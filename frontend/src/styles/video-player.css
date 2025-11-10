@@ -1,0 +1,129 @@
+/* Custom Video Player Styles */
+
+.video-player {
+  position: relative;
+  width: 100%;
+}
+
+.video-player video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background-color: #000;
+}
+
+.video-player:fullscreen {
+  width: 100vw;
+  height: 100vh;
+}
+
+.video-player:-webkit-full-screen {
+  width: 100vw;
+  height: 100vh;
+}
+
+.video-player:-moz-full-screen {
+  width: 100vw;
+  height: 100vh;
+}
+
+.video-player:-ms-fullscreen {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Custom volume slider */
+.video-player input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.video-player input[type='range']::-webkit-slider-track {
+  background: rgba(255, 255, 255, 0.3);
+  height: 4px;
+  border-radius: 2px;
+}
+
+.video-player input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #fff;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  margin-top: -4px;
+}
+
+.video-player input[type='range']::-moz-range-track {
+  background: rgba(255, 255, 255, 0.3);
+  height: 4px;
+  border-radius: 2px;
+}
+
+.video-player input[type='range']::-moz-range-thumb {
+  background: #fff;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  border: none;
+}
+
+/* Progress bar hover effect */
+.video-player .progress-bar {
+  transition: height 0.2s ease;
+}
+
+.video-player .progress-bar:hover {
+  height: 8px;
+}
+
+/* Control button hover effects */
+.video-player button {
+  transition: all 0.2s ease;
+}
+
+.video-player button:hover {
+  transform: scale(1.1);
+}
+
+.video-player button:active {
+  transform: scale(0.95);
+}
+
+/* Settings menu animation */
+.video-player .settings-menu {
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading spinner */
+.video-player .loading-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
