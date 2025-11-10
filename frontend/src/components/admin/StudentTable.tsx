@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Edit, Calendar } from 'lucide-react';
-import { StudentListItem } from '../../types';
+import type { StudentListItem } from '../../types';
 import { formatDate, getDaysRemaining, getSubscriptionStatusColor } from '../../utils/formatters';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';

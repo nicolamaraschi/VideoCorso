@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, CheckCircle, Circle, Lock } from 'lucide-react';
-import { Chapter, Lesson, Progress } from '../../types';
+import type { Chapter, Lesson, Progress } from '../../types';
 import { LessonCard } from './LessonCard';
 
 interface ChapterListProps {

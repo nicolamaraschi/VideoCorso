@@ -1,25 +1,48 @@
 import { useState, useEffect } from 'react';
 import { courseService } from '../services/courseService';
-import { CourseStructure, CourseProgress } from '../types';
+import type { CourseStructure, CourseProgress, Progress } from '../types';
+import { useAuthContext } from '../components/auth/AuthContext';
 
 export const useCourse = () => {
+  const { isAuthenticated } = useAuthContext();
   const [courseStructure, setCourseStructure] = useState<CourseStructure | null>(null);
   const [courseProgress, setCourseProgress] = useState<CourseProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadCourse();
-  }, []);
+    // Carichiamo i dati solo se l'utente è autenticato
+    // (tranne la struttura base che potrebbe servire pubblica, ma per ora la leghiamo all'auth)
+    if (isAuthenticated) {
+      loadCourse();
+    } else {
+      // Se non autenticato, carichiamo solo la struttura (o gestiamo diversamente)
+      loadStructureOnly();
+    }
+  }, [isAuthenticated]); // Ricarica quando lo stato di auth cambia
+
+  const loadStructureOnly = async () => {
+     try {
+      setLoading(true);
+      setError(null);
+      const structure = await courseService.getCourseStructure();
+      setCourseStructure(structure);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load course structure');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const loadCourse = async () => {
     try {
       setLoading(true);
       setError(null);
 
+      // Eseguiamo in parallelo
       const [structure, progress] = await Promise.all([
         courseService.getCourseStructure(),
-        courseService.getUserProgress().catch(() => null),
+        courseService.getUserProgress().catch(() => null), // Non bloccare tutto se il progresso fallisce
       ]);
 
       setCourseStructure(structure);
@@ -39,6 +62,8 @@ export const useCourse = () => {
       console.error('Failed to refresh progress:', err);
     }
   };
+
+  // ... (il resto delle funzioni helper rimane invariato)
 
   const getLessonById = (lessonId: string) => {
     if (!courseStructure) return null;

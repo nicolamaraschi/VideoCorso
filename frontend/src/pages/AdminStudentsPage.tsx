@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StudentTable } from '../components/admin/StudentTable';
 import { adminService } from '../services/adminService';
-import { StudentListItem } from '../types';
+import type { StudentListItem } from '../types';
 import { Loading } from '../components/common/Loading';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 

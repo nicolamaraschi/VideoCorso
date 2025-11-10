@@ -65,4 +65,6 @@ export interface CourseProgress {
   percentage: number;
   chapters: ChapterProgress[];
   last_watched_lesson?: Lesson;
+  lesson_progress: Record<string, Progress>; // <--- AGGIUNTO
+  total_watch_time: number; // <--- AGGIUNTO
 }

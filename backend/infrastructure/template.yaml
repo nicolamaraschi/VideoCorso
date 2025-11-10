@@ -325,6 +325,14 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /course/structure
             Method: GET
+        GetFreePreviews: # <--- AGGIUNTO (da courseService.ts)
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /course/previews
+            Method: GET
+            Auth:
+              Authorizer: NONE # Come da nota in courseService.ts
 
   VideoHandler:
     Type: AWS::Serverless::Function
@@ -357,6 +365,10 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref ProgressTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref PurchasesTable # Per /user/subscription
+        - DynamoDBReadPolicy:
+            TableName: !Ref LessonsTable # Per /progress/user
       Events:
         UpdateProgress:
           Type: Api
@@ -369,6 +381,24 @@ Resources:
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /progress/user
+            Method: GET
+        GetLessonProgress: # <--- AGGIUNTO (da courseService.ts)
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /progress/lesson/{lessonId}
+            Method: GET
+        MarkLessonComplete: # <--- AGGIUNTO (da courseService.ts)
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /progress/complete
+            Method: POST
+        GetSubscription: # <--- AGGIUNTO (da paymentService.ts)
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /user/subscription
             Method: GET
 
   AdminHandler:
@@ -392,7 +422,10 @@ Resources:
             TableName: !Ref ProgressTable
         - S3CrudPolicy:
             BucketName: !Ref VideoBucket
+        - S3CrudPolicy:
+            BucketName: !Ref ThumbnailBucket
       Events:
+        # === Eventi Già Presenti ===
         CreateChapter:
           Type: Api
           Properties:
@@ -422,6 +455,68 @@ Resources:
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /admin/video/upload
+            Method: POST
+        
+        # === Eventi Mancanti (da adminService.ts) ===
+        DeleteVideo: # <--- AGGIUNTO
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/video/{videoId}
+            Method: DELETE
+        UpdateChapter: # <--- AGGIUNTO
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/course/chapter/{chapterId}
+            Method: PUT
+        DeleteChapter: # <--- AGGIUNTO
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/course/chapter/{chapterId}
+            Method: DELETE
+        UpdateLesson: # <--- AGGIUNTO
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/course/lesson/{lessonId}
+            Method: PUT
+        DeleteLesson: # <--- AGGIUNTO
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/course/lesson/{lessonId}
+            Method: DELETE
+        ReorderChapters: # <--- AGGIUNTO
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/course/reorder-chapters
+            Method: PUT
+        ReorderLessons: # <--- AGGIUNTO
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/course/reorder-lessons
+            Method: PUT
+        UpdateStudent: # <--- AGGIUNTO
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/student/{studentId}
+            Method: PATCH
+        SearchStudents: # <--- AGGIUNTO
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/students/search
+            Method: GET
+        GenerateThumbnail: # <--- AGGIUNTO
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/video/thumbnail
             Method: POST
 
   # ==================== CloudFront ====================

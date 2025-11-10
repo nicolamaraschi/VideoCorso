@@ -1,6 +1,6 @@
 import React from 'react';
 import { Users, DollarSign, Video, TrendingUp, Clock } from 'lucide-react';
-import { AdminStats } from '../../types';
+import type { AdminStats } from '../../types';
 import { formatCurrency, formatPercentage } from '../../utils/formatters';
 
 interface StatsCardsProps {

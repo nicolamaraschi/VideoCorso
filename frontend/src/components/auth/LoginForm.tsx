@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, AlertCircle } from 'lucide-react';
 import { Button } from '../common/Button';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuthContext } from './AuthContext.tsx'; // <--- PERCORSO CORRETTO
 import { validateEmail } from '../../utils/validators';
 
 export const LoginForm: React.FC = () => {
@@ -10,7 +10,7 @@ export const LoginForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login } = useAuthContext(); // MODIFICATO (da useAuth)
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Edit, Trash2, GripVertical, Save } from 'lucide-react';
-import { Chapter, Lesson } from '../../types';
+import type { Chapter, Lesson } from '../../types';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 

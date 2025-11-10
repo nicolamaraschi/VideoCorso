@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { Amplify } from 'aws-amplify';
 import App from './App';
 import './index.css';
+import { AuthProvider } from './components/auth/AuthContext.tsx'; // <--- PERCORSO CORRETTO
+import { BrowserRouter as Router } from 'react-router-dom'; // <--- SPOSTIAMO IL ROUTER QUI
 
 // Configure Amplify
 Amplify.configure({
@@ -17,6 +19,11 @@ Amplify.configure({
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    {/* AGGIUNTO WRAPPER */}
+    <Router>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </Router>
   </React.StrictMode>
 );

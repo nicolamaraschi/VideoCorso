@@ -1,6 +1,6 @@
 import React from 'react';
 import { Play, CheckCircle, Circle, Lock, Clock } from 'lucide-react';
-import { Lesson, Progress } from '../../types';
+import type { Lesson, Progress } from '../../types';
 import { formatDuration } from '../../utils/formatters';
 
 interface LessonCardProps {

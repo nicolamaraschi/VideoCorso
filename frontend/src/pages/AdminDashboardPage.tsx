@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Users, DollarSign } from 'lucide-react';
 import { adminService } from '../services/adminService';
-import { AdminStats } from '../types';
+import type { AdminStats } from '../types';
 import { Loading } from '../components/common/Loading';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { StatsCards } from '../components/admin/StatsCards';

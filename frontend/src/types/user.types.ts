@@ -31,6 +31,8 @@ export interface Subscription {
   is_active: boolean;
 }
 
+// Questo tipo è la causa dell'errore originale.
+// È definito qui e importato correttamente.
 export interface AuthUser {
   userId: string;
   email: string;
@@ -38,4 +40,5 @@ export interface AuthUser {
   isAdmin: boolean;
   subscriptionStatus: string;
   subscriptionEndDate: string;
+  total_watch_time: number; // <--- AGGIUNTO
 }

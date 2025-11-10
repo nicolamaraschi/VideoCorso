@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { courseService } from '../services/courseService';
-import { Progress } from '../types';
+import type { Progress } from '../types';
 
 interface UseVideoProgressProps {
   lessonId: string;

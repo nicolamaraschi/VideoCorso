@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getCurrentUser, signIn, signOut, fetchAuthSession } from 'aws-amplify/auth';
-import { AuthUser } from '../types';
+import { getCurrentUser, signIn, signOut, fetchAuthSession } from '@aws-amplify/auth';
+import type { AuthUser } from '../types';
 
 export const useAuth = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -28,6 +28,8 @@ export const useAuth = () => {
         isAdmin: (attributes?.['cognito:groups'] as string[])?.includes('admin') || false,
         subscriptionStatus: attributes?.['custom:subscription_status'] as string || 'expired',
         subscriptionEndDate: attributes?.['custom:subscription_end_date'] as string || '',
+        // Assicurati che questo attributo esista in Cognito o venga dal tuo DB
+        total_watch_time: parseFloat(attributes?.['custom:total_watch_time'] as string || '0'),
       };
 
       setUser(authUser);

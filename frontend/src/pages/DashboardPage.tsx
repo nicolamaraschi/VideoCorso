@@ -2,17 +2,17 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play, Clock, Award, Calendar } from 'lucide-react';
 import { useCourse } from '../hooks/useCourse';
-import { useAuth } from '../hooks/useAuth';
+import { useAuthContext } from '../components/auth/AuthContext.tsx'; // <--- PERCORSO CORRETTO
 import { Loading } from '../components/common/Loading';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { ChapterList } from '../components/course/ChapterList';
 import { ProgressBar } from '../components/course/ProgressBar';
 import { Button } from '../components/common/Button';
-import { formatDate, getDaysRemaining, formatWatchTime } from '../utils/formatters';
+import { formatDate, getDaysRemaining, formatWatchTime } from '../utils/formatters.ts'; // <--- PERCORSO CORRETTO E RIMOSSO DUPLICATO
 
 export const DashboardPage: React.FC = () => {
   const { courseStructure, courseProgress, loading, error, reload } = useCourse();
-  const { user } = useAuth();
+  const { user } = useAuthContext(); // MODIFICATO (da useAuth)
   const navigate = useNavigate();
 
   if (loading) {
@@ -85,6 +85,7 @@ export const DashboardPage: React.FC = () => {
             <span className="text-sm font-medium text-gray-600">Watch Time</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">
+            {/* Errore corretto: usiamo user.total_watch_time come nel file originale */}
             {formatWatchTime(user?.total_watch_time || 0)}
           </p>
         </div>
@@ -148,26 +149,7 @@ export const DashboardPage: React.FC = () => {
         </h2>
         <ChapterList
           chapters={courseStructure.chapters}
-          progress={
-            courseProgress
-              ? Object.fromEntries(
-                  courseStructure.chapters.flatMap((chapter) =>
-                    (chapter.lessons || []).map((lesson) => [
-                      lesson.lesson_id,
-                      {
-                        progress_id: '',
-                        user_id: user?.userId || '',
-                        lesson_id: lesson.lesson_id,
-                        watched_seconds: 0,
-                        total_seconds: lesson.duration_seconds,
-                        completed: false,
-                        last_watched: new Date().toISOString(),
-                      },
-                    ])
-                  )
-                )
-              : {}
-          }
+          progress={courseProgress?.lesson_progress || {}} // MODIFICATO
           onLessonClick={handleLessonClick}
         />
       </div>
