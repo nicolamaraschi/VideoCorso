@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, User, LogOut, Settings } from 'lucide-react';
-import { useAuthContext } from '../auth/AuthContext.tsx'; // <--- PERCORSO CORRETTO
+import { Menu, X, User, LogOut } from 'lucide-react';
+import { useAuthContext } from '../auth/AuthContext'; // <--- Percorso corretto
 import { Button } from '../common/Button';
+
+// Logo URL dal sito della cliente
+const logoUrl = "https://assets.cdn.filesafe.space/ceYe4VnMXLjh1ENSEbH0/media/64107bc74d97b25219e10bcf.png";
 
 export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const { isAuthenticated, user, isAdmin, logout } = useAuthContext(); // MODIFICATO (da useAuth)
+  const { isAuthenticated, user, isAdmin, logout } = useAuthContext();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
+    setUserMenuOpen(false); // Chiudi il menu dopo il logout
     navigate('/login');
   };
 
@@ -19,19 +23,34 @@ export const Navbar: React.FC = () => {
     <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
+          
+          {/* --- LOGO MODIFICATO --- */}
           <div className="flex items-center">
-            <Link to={isAuthenticated ? '/dashboard' : '/'} className="flex items-center">
-              <span className="text-2xl font-bold text-primary-600">VideoCorso</span>
+            <Link to={isAuthenticated ? '/dashboard' : '/'} className="flex items-center gap-3">
+              <img 
+                src={logoUrl} 
+                alt="Logo Chiara Morocutti PMU" 
+                className="h-10 w-auto" // Altezza della navbar è h-16 (64px), quindi h-10 (40px) va bene
+              />
+              {/* Nascondiamo il testo su mobile per non affollare la navbar */}
+              <div className="hidden md:block">
+                <span className="text-lg font-bold text-primary-600 leading-tight block" style={{ fontFamily: 'Abhaya Libre, serif' }}>
+                  Chiara Morocutti PMU
+                </span>
+                <span className="text-xs text-gray-500 leading-tight block" style={{ fontFamily: 'Abhaya Libre, serif' }}>
+                  Milano, Corso Italia 49
+                </span>
+              </div>
             </Link>
           </div>
+          {/* --- FINE MODIFICA --- */}
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center gap-4">
             {isAuthenticated ? (
               <>
                 <Link to="/dashboard">
-                  <Button variant="ghost">My Course</Button>
+                  <Button variant="ghost">I Miei Corsi</Button>
                 </Link>
 
                 {isAdmin && (
@@ -79,7 +98,7 @@ export const Navbar: React.FC = () => {
                   <Button variant="ghost">Login</Button>
                 </Link>
                 <Link to="/checkout">
-                  <Button variant="primary">Get Started</Button>
+                  <Button variant="primary">Iscriviti Ora</Button>
                 </Link>
               </>
             )}
@@ -112,7 +131,7 @@ export const Navbar: React.FC = () => {
                   className="block px-4 py-2 rounded-lg hover:bg-gray-100"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  My Course
+                  I Miei Corsi
                 </Link>
 
                 {isAdmin && (
@@ -150,7 +169,7 @@ export const Navbar: React.FC = () => {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <Button variant="primary" fullWidth>
-                    Get Started
+                    Iscriviti Ora
                   </Button>
                 </Link>
               </>

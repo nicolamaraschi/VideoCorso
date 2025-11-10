@@ -1,5 +1,6 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+// L'import di 'Router' qui non è più necessario, ma 'Routes', 'Route', 'Navigate' sì.
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { Sidebar } from './components/layout/Sidebar';
@@ -22,7 +23,7 @@ function App() {
   const { isAuthenticated, isAdmin } = useAuth();
 
   return (
-    <Router>
+    // <Router> <-- RIMOSSA QUESTA RIGA
       <div className="flex flex-col min-h-screen">
         <Navbar />
 
@@ -100,7 +101,7 @@ function App() {
 
         <Footer />
       </div>
-    </Router>
+    // </Router> <-- RIMOSSA QUESTA RIGA
   );
 }
 
