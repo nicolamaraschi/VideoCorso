@@ -19,18 +19,44 @@ export const Navbar: React.FC = () => {
     navigate('/login');
   };
 
+  // Helper per creare link che funzionano sia come Link che come smooth scroll
+  const ScrollLink = ({ to, children, className, onClick }) => {
+    const handleClick = (e) => {
+      const isHomePage = window.location.pathname === '/';
+      
+      // Se siamo nella homepage, facciamo lo scroll
+      if (isHomePage && to.startsWith('/#')) {
+        e.preventDefault();
+        const id = to.substring(2); // Rimuove '/#'
+        const element = document.getElementById(id);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+          if (onClick) onClick();
+        }
+      } 
+      // Se non siamo nella homepage, usiamo il Link normale
+      // che ci porterà prima alla homepage e poi allo scrolling
+    };
+
+    return (
+      <Link to={to} className={className} onClick={handleClick}>
+        {children}
+      </Link>
+    );
+  };
+
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           
-          {/* --- LOGO MODIFICATO --- */}
+          {/* Logo */}
           <div className="flex items-center">
             <Link to={isAuthenticated ? '/dashboard' : '/'} className="flex items-center gap-3">
               <img 
                 src={logoUrl} 
                 alt="Logo Chiara Morocutti PMU" 
-                className="h-10 w-auto" // Altezza della navbar è h-16 (64px), quindi h-10 (40px) va bene
+                className="h-10 w-auto"
               />
               {/* Nascondiamo il testo su mobile per non affollare la navbar */}
               <div className="hidden md:block">
@@ -43,7 +69,38 @@ export const Navbar: React.FC = () => {
               </div>
             </Link>
           </div>
-          {/* --- FINE MODIFICA --- */}
+
+          {/* Link di navigazione - CORRETTI */}
+          <div className="hidden md:flex items-center space-x-8">
+            <ScrollLink 
+              to="/#corso" 
+              className="text-gray-700 hover:text-primary-600 transition"
+              onClick={() => {}}
+            >
+              Il Corso
+            </ScrollLink>
+            <ScrollLink 
+              to="/#vantaggi" 
+              className="text-gray-700 hover:text-primary-600 transition"
+              onClick={() => {}}
+            >
+              Vantaggi
+            </ScrollLink>
+            <ScrollLink 
+              to="/#anteprima" 
+              className="text-gray-700 hover:text-primary-600 transition"
+              onClick={() => {}}
+            >
+              Anteprima
+            </ScrollLink>
+            <ScrollLink 
+              to="/#testimonianze" 
+              className="text-gray-700 hover:text-primary-600 transition"
+              onClick={() => {}}
+            >
+              Testimonianze
+            </ScrollLink>
+          </div>
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center gap-4">
@@ -124,6 +181,36 @@ export const Navbar: React.FC = () => {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-gray-200 bg-white">
           <div className="px-4 py-4 space-y-2">
+            {/* Link di navigazione per mobile - CORRETTI */}
+            <ScrollLink
+              to="/#corso"
+              className="block px-4 py-2 rounded-lg hover:bg-gray-100"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Il Corso
+            </ScrollLink>
+            <ScrollLink
+              to="/#vantaggi"
+              className="block px-4 py-2 rounded-lg hover:bg-gray-100"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Vantaggi
+            </ScrollLink>
+            <ScrollLink
+              to="/#anteprima"
+              className="block px-4 py-2 rounded-lg hover:bg-gray-100"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Anteprima
+            </ScrollLink>
+            <ScrollLink
+              to="/#testimonianze"
+              className="block px-4 py-2 rounded-lg hover:bg-gray-100"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Testimonianze
+            </ScrollLink>
+
             {isAuthenticated ? (
               <>
                 <Link
