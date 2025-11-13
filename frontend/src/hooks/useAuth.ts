@@ -28,12 +28,12 @@ const MOCK_STUDENT_USER: AuthUser = {
 // *** ISTRUZIONI: DECOMMENTA L'UTENTE CHE VUOI TESTARE ***
 
 // 1. Per testare la Dashboard ADMIN:
-const USER_DA_TESTARE = MOCK_ADMIN_USER;
+//const USER_DA_TESTARE = MOCK_ADMIN_USER;
 
 // 2. Per testare la Dashboard CLIENTE (Studente):
  //const USER_DA_TESTARE = MOCK_STUDENT_USER;
 // 3. Per testare da sloggato (Landing Page, Login):
- //const USER_DA_TESTARE = null;
+ const USER_DA_TESTARE = null;
 
 // --- FINE BLOCCO MOCK ---
 

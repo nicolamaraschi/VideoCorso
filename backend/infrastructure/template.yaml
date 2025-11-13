@@ -213,7 +213,7 @@ Resources:
         - Name: subscription_status
           AttributeDataType: String
           Mutable: true
-        - Name: subscription_end_date
+        - Name: sub_end_date
           AttributeDataType: String
           Mutable: true
       Policies:
@@ -325,14 +325,14 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /course/structure
             Method: GET
-        GetFreePreviews: # <--- AGGIUNTO (da courseService.ts)
+        GetFreePreviews:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /course/previews
             Method: GET
             Auth:
-              Authorizer: NONE # Come da nota in courseService.ts
+              Authorizer: NONE
 
   VideoHandler:
     Type: AWS::Serverless::Function
@@ -366,9 +366,9 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref ProgressTable
         - DynamoDBReadPolicy:
-            TableName: !Ref PurchasesTable # Per /user/subscription
+            TableName: !Ref PurchasesTable
         - DynamoDBReadPolicy:
-            TableName: !Ref LessonsTable # Per /progress/user
+            TableName: !Ref LessonsTable
       Events:
         UpdateProgress:
           Type: Api
@@ -382,19 +382,19 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /progress/user
             Method: GET
-        GetLessonProgress: # <--- AGGIUNTO (da courseService.ts)
+        GetLessonProgress:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /progress/lesson/{lessonId}
             Method: GET
-        MarkLessonComplete: # <--- AGGIUNTO (da courseService.ts)
+        MarkLessonComplete:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /progress/complete
             Method: POST
-        GetSubscription: # <--- AGGIUNTO (da paymentService.ts)
+        GetSubscription:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
@@ -425,7 +425,6 @@ Resources:
         - S3CrudPolicy:
             BucketName: !Ref ThumbnailBucket
       Events:
-        # === Eventi Già Presenti ===
         CreateChapter:
           Type: Api
           Properties:
@@ -456,63 +455,61 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /admin/video/upload
             Method: POST
-        
-        # === Eventi Mancanti (da adminService.ts) ===
-        DeleteVideo: # <--- AGGIUNTO
+        DeleteVideo:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /admin/video/{videoId}
             Method: DELETE
-        UpdateChapter: # <--- AGGIUNTO
+        UpdateChapter:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /admin/course/chapter/{chapterId}
             Method: PUT
-        DeleteChapter: # <--- AGGIUNTO
+        DeleteChapter:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /admin/course/chapter/{chapterId}
             Method: DELETE
-        UpdateLesson: # <--- AGGIUNTO
+        UpdateLesson:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /admin/course/lesson/{lessonId}
             Method: PUT
-        DeleteLesson: # <--- AGGIUNTO
+        DeleteLesson:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /admin/course/lesson/{lessonId}
             Method: DELETE
-        ReorderChapters: # <--- AGGIUNTO
+        ReorderChapters:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /admin/course/reorder-chapters
             Method: PUT
-        ReorderLessons: # <--- AGGIUNTO
+        ReorderLessons:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /admin/course/reorder-lessons
             Method: PUT
-        UpdateStudent: # <--- AGGIUNTO
+        UpdateStudent:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /admin/student/{studentId}
             Method: PATCH
-        SearchStudents: # <--- AGGIUNTO
+        SearchStudents:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /admin/students/search
             Method: GET
-        GenerateThumbnail: # <--- AGGIUNTO
+        GenerateThumbnail:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway

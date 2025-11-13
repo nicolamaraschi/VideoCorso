@@ -70,37 +70,39 @@ export const Navbar: React.FC = () => {
             </Link>
           </div>
 
-          {/* Link di navigazione - CORRETTI */}
-          <div className="hidden md:flex items-center space-x-8">
-            <ScrollLink 
-              to="/#corso" 
-              className="text-gray-700 hover:text-primary-600 transition"
-              onClick={() => {}}
-            >
-              Il Corso
-            </ScrollLink>
-            <ScrollLink 
-              to="/#vantaggi" 
-              className="text-gray-700 hover:text-primary-600 transition"
-              onClick={() => {}}
-            >
-              Vantaggi
-            </ScrollLink>
-            <ScrollLink 
-              to="/#anteprima" 
-              className="text-gray-700 hover:text-primary-600 transition"
-              onClick={() => {}}
-            >
-              Anteprima
-            </ScrollLink>
-            <ScrollLink 
-              to="/#testimonianze" 
-              className="text-gray-700 hover:text-primary-600 transition"
-              onClick={() => {}}
-            >
-              Testimonianze
-            </ScrollLink>
-          </div>
+          {/* Link di navigazione - Verranno mostrati solo se non autenticati */}
+          {!isAuthenticated && (
+            <div className="hidden md:flex items-center space-x-8">
+              <ScrollLink 
+                to="/#corso" 
+                className="text-gray-700 hover:text-primary-600 transition"
+                onClick={() => {}}
+              >
+                Il Corso
+              </ScrollLink>
+              <ScrollLink 
+                to="/#vantaggi" 
+                className="text-gray-700 hover:text-primary-600 transition"
+                onClick={() => {}}
+              >
+                Vantaggi
+              </ScrollLink>
+              <ScrollLink 
+                to="/#anteprima" 
+                className="text-gray-700 hover:text-primary-600 transition"
+                onClick={() => {}}
+              >
+                Anteprima
+              </ScrollLink>
+              <ScrollLink 
+                to="/#testimonianze" 
+                className="text-gray-700 hover:text-primary-600 transition"
+                onClick={() => {}}
+              >
+                Testimonianze
+              </ScrollLink>
+            </div>
+          )}
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center gap-4">
@@ -181,35 +183,6 @@ export const Navbar: React.FC = () => {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-gray-200 bg-white">
           <div className="px-4 py-4 space-y-2">
-            {/* Link di navigazione per mobile - CORRETTI */}
-            <ScrollLink
-              to="/#corso"
-              className="block px-4 py-2 rounded-lg hover:bg-gray-100"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Il Corso
-            </ScrollLink>
-            <ScrollLink
-              to="/#vantaggi"
-              className="block px-4 py-2 rounded-lg hover:bg-gray-100"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Vantaggi
-            </ScrollLink>
-            <ScrollLink
-              to="/#anteprima"
-              className="block px-4 py-2 rounded-lg hover:bg-gray-100"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Anteprima
-            </ScrollLink>
-            <ScrollLink
-              to="/#testimonianze"
-              className="block px-4 py-2 rounded-lg hover:bg-gray-100"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Testimonianze
-            </ScrollLink>
 
             {isAuthenticated ? (
               <>
@@ -244,6 +217,36 @@ export const Navbar: React.FC = () => {
               </>
             ) : (
               <>
+                {/* Link di navigazione per mobile - Verranno mostrati solo se non autenticati */}
+                <ScrollLink
+                  to="/#corso"
+                  className="block px-4 py-2 rounded-lg hover:bg-gray-100"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Il Corso
+                </ScrollLink>
+                <ScrollLink
+                  to="/#vantaggi"
+                  className="block px-4 py-2 rounded-lg hover:bg-gray-100"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Vantaggi
+                </ScrollLink>
+                <ScrollLink
+                  to="/#anteprima"
+                  className="block px-4 py-2 rounded-lg hover:bg-gray-100"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Anteprima
+                </ScrollLink>
+                <ScrollLink
+                  to="/#testimonianze"
+                  className="block px-4 py-2 rounded-lg hover:bg-gray-100"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Testimonianze
+                </ScrollLink>
+
                 <Link
                   to="/login"
                   className="block px-4 py-2 rounded-lg hover:bg-gray-100"

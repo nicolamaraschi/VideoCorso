@@ -1,14 +1,16 @@
 import json
-import os
 
 def lambda_handler(event, context):
     """
-    Handle Stripe payment operations
+    Handle video streaming operations
     """
     path = event.get('path', '')
     http_method = event.get('httpMethod', '')
 
-    if path == '/payment/create-checkout' and http_method == 'POST':
+    if path.startswith('/course/video/') and http_method == 'GET':
+        # Extract lesson_id from path
+        lesson_id = path.split('/')[-1]
+        
         return {
             'statusCode': 200,
             'headers': {
@@ -16,14 +18,9 @@ def lambda_handler(event, context):
                 'Access-Control-Allow-Origin': '*'
             },
             'body': json.dumps({
-                'session_id': 'dummy_session_id',
-                'checkout_url': 'https://example.com/checkout'
+                'video_url': 'https://example.com/video.mp4',
+                'expires_at': '2024-12-31T23:59:59Z'
             })
-        }
-    elif path == '/payment/webhook' and http_method == 'POST':
-        return {
-            'statusCode': 200,
-            'body': json.dumps({'received': True})
         }
 
     return {

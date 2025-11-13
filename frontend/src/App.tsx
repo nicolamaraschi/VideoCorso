@@ -1,6 +1,6 @@
 import React from 'react';
 // L'import di 'Router' qui non è più necessario, ma 'Routes', 'Route', 'Navigate' sì.
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { Sidebar } from './components/layout/Sidebar';
@@ -17,11 +17,18 @@ import { AdminUploadPage } from './pages/AdminUploadPage';
 import { AdminCoursePage } from './pages/AdminCoursePage';
 import { AdminStudentsPage } from './pages/AdminStudentsPage';
 
-import { useAuth } from './hooks/useAuth';
+import { useAuthContext } from './components/auth/AuthContext.tsx';
+import { Loading } from './components/common/Loading.tsx';
 
 function App() {
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin, loading } = useAuthContext();
+  const location = useLocation();
 
+  // Mostra un caricamento globale mentre l'autenticazione viene verificata
+  if (loading && location.pathname !== '/') {
+    return <Loading fullScreen text="Loading..." />;
+  }
+  
   return (
     // <Router> <-- RIMOSSA QUESTA RIGA
       <div className="flex flex-col min-h-screen">
@@ -37,7 +44,14 @@ function App() {
           <main className="flex-1">
             <Routes>
               {/* Public routes */}
-              <Route path="/" element={<LandingPage />} />
+              <Route 
+                path="/" 
+                element={
+                  isAuthenticated 
+                    ? (isAdmin ? <Navigate to="/admin" replace /> : <Navigate to="/dashboard" replace />)
+                    : <LandingPage />
+                } 
+              />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
 
