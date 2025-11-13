@@ -3,13 +3,13 @@ frontend:
   phases:
     preBuild:
       commands:
-        - cd frontend  # Directory che contiene il tuo package.json
-        - npm ci
+        - cd frontend
+        - npm install  # Cambiato da npm ci a npm install
     build:
       commands:
         - npm run build
   artifacts:
-    baseDirectory: frontend/build  # Directory dove vengono creati i file compilati
+    baseDirectory: frontend/build
     files:
       - '**/*'
   cache:
