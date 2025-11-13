@@ -4,17 +4,13 @@ frontend:
     preBuild:
       commands:
         - cd frontend
-        - rm -rf node_modules package-lock.json
-        - npm install react@18.2.0 react-dom@18.2.0 scheduler@0.23.0 --save-exact --force
+        - npm install react@18.2.0 react-dom@18.2.0 --save-exact --force
         - npm install --legacy-peer-deps
     build:
       commands:
-        - echo "Building the project..."
-        - npm run build -- --skipTypeCheck # Modifica il comando di build per ignorare gli errori TypeScript
-        # Se lo skipTypeCheck non funziona, prova con questa versione alternativa
-        # - sed -i 's/tsc -b && vite build/vite build/g' package.json && npm run build
+        - npm run build
   artifacts:
-    baseDirectory: frontend/build
+    baseDirectory: frontend/dist
     files:
       - '**/*'
   cache:
