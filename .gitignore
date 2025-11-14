@@ -87,3 +87,8 @@ backend/**/*.pyc
 backend/**/__pycache__/
 backend/**/venv/
 backend/infrastructure/.aws-sam/
+
+
+# SAM build artifacts
+backend/infrastructure/.aws-sam/
+.aws-sam/

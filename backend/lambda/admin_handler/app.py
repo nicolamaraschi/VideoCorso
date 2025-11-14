@@ -2,6 +2,7 @@ import json
 import os
 import boto3
 import uuid
+import datetime
 from decimal import Decimal
 from botocore.exceptions import ClientError
 
@@ -29,7 +30,10 @@ def create_response(status_code, body):
 
 def get_user_groups(event):
     try:
-        return event['requestContext']['authorizer']['claims'].get('cognito:groups', [])
+        groups = event['requestContext']['authorizer']['claims'].get('cognito:groups', '')
+        if isinstance(groups, str):
+            return groups.split(',') if groups else []
+        return groups if isinstance(groups, list) else []
     except KeyError:
         return []
 
@@ -54,7 +58,6 @@ TABLE_NAMES = {
 TABLES = {name: dynamodb.Table(table_name) for name, table_name in TABLE_NAMES.items() if table_name}
 
 VIDEO_BUCKET = os.environ.get('VIDEO_BUCKET')
-# THUMBNAIL_BUCKET = os.environ.get('THUMBNAIL_BUCKET') # Non usato per ora
 
 # --- Funzioni Logiche ---
 
@@ -67,7 +70,8 @@ def create_chapter(body):
             'course_id': body.get('course_id'),
             'title': body.get('title'),
             'description': body.get('description', ''),
-            'order_number': body.get('order_number', 0)
+            'order_number': body.get('order_number', 0),
+            'created_at': datetime.datetime.utcnow().isoformat() + 'Z'
         }
         TABLES['CHAPTERS'].put_item(Item=item)
         return create_response(201, {'success': True, 'data': item})
@@ -76,7 +80,6 @@ def create_chapter(body):
 
 def update_chapter(chapter_id, body):
     try:
-        # Costruisci l'espressione di aggiornamento dinamicamente
         update_expression = "SET "
         expression_values = {}
         for key, value in body.items():
@@ -84,7 +87,7 @@ def update_chapter(chapter_id, body):
                 update_expression += f" {key} = :{key},"
                 expression_values[f":{key}"] = value
         
-        update_expression = update_expression.rstrip(',') # Rimuovi l'ultima virgola
+        update_expression = update_expression.rstrip(',')
         
         updated_item = TABLES['CHAPTERS'].update_item(
             Key={'chapter_id': chapter_id},
@@ -98,7 +101,6 @@ def update_chapter(chapter_id, body):
 
 def delete_chapter(chapter_id):
     try:
-        # TODO: In produzione, dovresti prima cancellare tutte le lezioni associate
         TABLES['CHAPTERS'].delete_item(Key={'chapter_id': chapter_id})
         return create_response(200, {'success': True, 'message': 'Chapter deleted'})
     except Exception as e:
@@ -117,7 +119,8 @@ def create_lesson(body):
             'duration_seconds': body.get('duration_seconds', 0),
             'video_s3_key': body.get('video_s3_key'),
             'thumbnail_url': body.get('thumbnail_url', ''),
-            'is_free_preview': body.get('is_free_preview', False)
+            'is_free_preview': body.get('is_free_preview', False),
+            'created_at': datetime.datetime.utcnow().isoformat() + 'Z'
         }
         TABLES['LESSONS'].put_item(Item=item)
         return create_response(201, {'success': True, 'data': item})
@@ -147,7 +150,6 @@ def update_lesson(lesson_id, body):
 
 def delete_lesson(lesson_id):
     try:
-        # TODO: Dovresti cancellare anche il video da S3
         TABLES['LESSONS'].delete_item(Key={'lesson_id': lesson_id})
         return create_response(200, {'success': True, 'message': 'Lesson deleted'})
     except Exception as e:
@@ -161,13 +163,12 @@ def get_presigned_upload_url(body):
         if not file_name or not file_type:
             return create_response(400, {'error': 'file_name e file_type sono richiesti'})
 
-        # Crea una chiave S3 unica
         s3_key = f"videos/{str(uuid.uuid4())}-{file_name}"
         
         response = s3_client.generate_presigned_url(
             'put_object',
             Params={'Bucket': VIDEO_BUCKET, 'Key': s3_key, 'ContentType': file_type},
-            ExpiresIn=3600  # 1 ora
+            ExpiresIn=3600
         )
         
         return create_response(200, {
@@ -183,32 +184,34 @@ def get_presigned_upload_url(body):
 
 # /admin/stats
 def get_stats():
-    # ATTENZIONE: Le SCAN sono LENTE e COSTOSE in produzione.
-    # Questo è un esempio base. Per la produzione reale, usare
-    # DynamoDB Streams + un'altra Lambda per aggregare i dati.
     try:
-        users = TABLES['USERS'].scan(Select='COUNT')['Count']
-        purchases = TABLES['PURCHASES'].scan()
+        users_response = TABLES['USERS'].scan(Select='COUNT')
+        users = users_response.get('Count', 0)
         
-        total_revenue = sum(item.get('amount', 0) for item in purchases.get('Items', []))
+        purchases_response = TABLES['PURCHASES'].scan()
+        purchases = purchases_response.get('Items', [])
+        
+        total_revenue = sum(item.get('amount', 0) for item in purchases)
         
         return create_response(200, {
             'total_students': users,
-            'active_students': users, # Logica semplificata
-            'total_revenue': total_revenue, # In centesimi
-            'new_purchases_month': len(purchases.get('Items', [])), # Logica semplificata
+            'active_students': users,
+            'total_revenue': total_revenue,
+            'new_purchases_today': 0,
+            'new_purchases_week': 0,
+            'new_purchases_month': len(purchases),
             'total_video_views': 0,
             'average_completion_rate': 0,
             'most_viewed_lessons': [],
-            'recent_purchases': sorted(purchases.get('Items', []), key=lambda x: x['purchase_date'], reverse=True)[:5],
+            'recent_purchases': sorted(purchases, key=lambda x: x.get('purchase_date', ''), reverse=True)[:5],
             'daily_access_chart': []
         })
     except Exception as e:
+        print(f"Errore get_stats: {e}")
         return create_response(500, {'error': str(e)})
 
 # /admin/students
 def get_students(params):
-    # ATTENZIONE: SCAN. Lento.
     try:
         response = TABLES['USERS'].scan()
         items = response.get('Items', [])
@@ -220,6 +223,7 @@ def get_students(params):
             'total_pages': 1
         })
     except Exception as e:
+        print(f"Errore get_students: {e}")
         return create_response(500, {'error': str(e)})
 
 # --- Handler Principale ---
@@ -236,8 +240,10 @@ def lambda_handler(event, context):
     if not is_admin(event):
         return create_response(403, {'error': 'Accesso negato. Privilegi di amministratore richiesti.'})
 
-    body = json.loads(event.get('body', '{}'))
-    params = event.get('queryStringParameters', {})
+    # FIX: body può essere None per GET requests
+    body_str = event.get('body') or '{}'
+    body = json.loads(body_str)
+    params = event.get('queryStringParameters') or {}
     
     try:
         # Rotte per Capitoli
@@ -263,7 +269,6 @@ def lambda_handler(event, context):
         # Rotte per Video
         elif path == '/admin/video/upload' and http_method == 'POST':
             return get_presigned_upload_url(body)
-        # TODO: Implementare le altre rotte (reorder, delete video, stats, students, etc.)
         
         # Rotte Statistiche
         elif path == '/admin/stats' and http_method == 'GET':

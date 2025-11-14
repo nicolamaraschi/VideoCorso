@@ -2,6 +2,7 @@
 module.exports = {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
+    "./index.html",
   ],
   theme: {
     extend: {
@@ -10,6 +11,18 @@ module.exports = {
         serif: ['Playfair Display', 'serif'],
       },
       colors: {
+        primary: {
+          50: '#fdf2f8',
+          100: '#fce7f3',
+          200: '#fbcfe8',
+          300: '#f9a8d4',
+          400: '#f472b6',
+          500: '#ec4899',
+          600: '#db2777',
+          700: '#be185d',
+          800: '#9f1239',
+          900: '#831843',
+        },
         indigo: {
           50: '#eef2ff',
           100: '#e0e7ff',
@@ -31,7 +44,7 @@ module.exports = {
         DEFAULT: {
           css: {
             'h1, h2, h3, h4, h5, h6': {
-              fontFamily: `${theme('fontFamily.serif')}`,
+              fontFamily: theme('fontFamily.serif'),
             },
           },
         },

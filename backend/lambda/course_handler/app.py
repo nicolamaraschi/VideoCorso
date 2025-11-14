@@ -32,10 +32,6 @@ def get_user_id(event):
         return None
         
 def check_subscription(user_id):
-    # Questa è una funzione helper che dovrai espandere
-    # Per ora, restituisce True se l'utente è loggato
-    # In produzione, dovresti controllare la data di scadenza
-    # dalla tabella Users o Purchases
     return user_id is not None
 
 # --- Inizializzazione ---
@@ -59,8 +55,21 @@ def get_course_structure(event):
     try:
         # 1. Prendi il corso
         course_response = courses_table.scan(Limit=1)
+        
+        # SE NON CI SONO CORSI, RESTITUISCI UNA STRUTTURA VUOTA INVECE DI 404
         if not course_response.get('Items'):
-            return create_response(404, {'error': 'Course not found'})
+            # Crea un corso placeholder per permettere all'admin di iniziare
+            placeholder_course = {
+                'course_id': 'placeholder',
+                'title': 'Corso in costruzione',
+                'description': 'Usa il pannello admin per creare il tuo primo corso',
+                'price': 0,
+                'is_active': False
+            }
+            return create_response(200, {
+                'course': placeholder_course,
+                'chapters': []
+            })
         
         course = course_response['Items'][0]
         course_id = course['course_id']
@@ -85,10 +94,8 @@ def get_course_structure(event):
             for lesson in lessons:
                 is_free = lesson.get('is_free_preview', False)
                 if has_access or is_free:
-                    # L'utente ha accesso, mostra tutto tranne la S3 key
                     lesson.pop('video_s3_key', None) 
                 else:
-                    # L'utente non ha accesso e non è free preview
                     lesson = {
                         'lesson_id': lesson.get('lesson_id'),
                         'title': lesson.get('title'),
@@ -115,7 +122,6 @@ def get_free_previews():
             FilterExpression=boto3.dynamodb.conditions.Attr('is_free_preview').eq(True)
         )
         lessons = response.get('Items', [])
-        # Rimuovi dati sensibili
         for lesson in lessons:
             lesson.pop('video_s3_key', None)
             
