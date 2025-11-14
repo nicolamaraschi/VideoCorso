@@ -38,15 +38,10 @@ Globals:
         VIDEO_BUCKET: !Ref VideoBucket
         STRIPE_SECRET_KEY: !Ref StripeSecretKey
         STRIPE_WEBHOOK_SECRET: !Ref StripeWebhookSecret
-  Api:
-    Cors:
-      AllowMethods: "'GET,POST,PUT,DELETE,PATCH,OPTIONS'"
-      AllowHeaders: "'Content-Type,Authorization'"
-      AllowOrigin: "'*'"
-
+  
 Resources:
   # ==================== DynamoDB Tables ====================
-
+  
   CoursesTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -164,7 +159,7 @@ Resources:
           KeyType: HASH
 
   # ==================== S3 Buckets ====================
-
+  
   VideoBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -195,7 +190,7 @@ Resources:
         BlockPublicPolicy: false
 
   # ==================== Cognito User Pool ====================
-
+  
   UserPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -256,11 +251,16 @@ Resources:
     Properties:
       Name: !Sub '${Environment}-videocorso-api'
       StageName: !Ref Environment
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,PATCH,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
       Auth:
-        DefaultAuthorizer: CognitoAuthorizer
+        AddDefaultAuthorizerToCorsPreflight: false
         Authorizers:
           CognitoAuthorizer:
             UserPoolArn: !GetAtt UserPool.Arn
+        DefaultAuthorizer: CognitoAuthorizer
 
   # ==================== Lambda Functions ====================
 
@@ -517,7 +517,7 @@ Resources:
             Method: POST
 
   # ==================== CloudFront ====================
-
+  
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:

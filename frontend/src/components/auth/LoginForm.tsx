@@ -1,8 +1,10 @@
+// frontend/src/components/auth/LoginForm.tsx
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, AlertCircle } from 'lucide-react';
 import { Button } from '../common/Button';
-import { useAuthContext } from './AuthContext.tsx'; 
+import { useAuthContext } from './AuthContext.tsx';
 import { validateEmail } from '../../utils/validators';
 
 export const LoginForm: React.FC = () => {
