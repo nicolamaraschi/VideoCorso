@@ -1,8 +1,7 @@
 // frontend/src/hooks/useAuth.ts
-// QUESTO È IL CODICE DI PRODUZIONE COMPLETO
 
 import { useState, useEffect } from 'react';
-import { getCurrentUser, signIn, signOut, fetchAuthSession } from '@aws-amplify/auth';
+import { getCurrentUser, signIn, signOut, fetchAuthSession } from 'aws-amplify/auth';
 import type { AuthUser } from '../types';
 
 export const useAuth = () => {
@@ -17,12 +16,22 @@ export const useAuth = () => {
   const checkUser = async () => {
     try {
       setLoading(true);
+      console.log('Checking user...');
+      
       const currentUser = await getCurrentUser();
+      console.log('Current user found:', currentUser);
+      
       const session = await fetchAuthSession();
+      console.log('Auth session retrieved:', session.tokens ? 'Has tokens' : 'No tokens');
 
       // Prendi gli attributi dal token
       const idToken = session.tokens?.idToken;
       const attributes = idToken?.payload;
+      
+      if (attributes) {
+        console.log('User attributes found in token:', 
+          Object.keys(attributes).filter(k => !k.startsWith('_')));
+      }
 
       // Costruisci l'oggetto AuthUser
       const authUser: AuthUser = {
@@ -37,20 +46,18 @@ export const useAuth = () => {
         subscriptionStatus:
           (attributes?.['custom:subscription_status'] as string) || 'expired',
         
-        // --- CORREZIONE IMPORTANTE ---
-        // Ho usato "custom:sub_end_date" come definito nel tuo template.yaml
         subscriptionEndDate:
           (attributes?.['custom:sub_end_date'] as string) || '', 
           
-        // Questo attributo è nel tuo tipo 'AuthUser' ma non nel template Cognito.
-        // Se lo hai aggiunto a mano, funzionerà, altrimenti sarà 0.
         total_watch_time:
           parseFloat(attributes?.['custom:total_watch_time'] as string || '0'),
       };
 
+      console.log('User authenticated:', authUser.email, authUser.isAdmin ? '(admin)' : '');
       setUser(authUser);
       setError(null);
     } catch (err) {
+      console.log('No authenticated user found:', err);
       // Non è un errore se l'utente non è loggato
       setUser(null);
       setError(null); 
@@ -63,15 +70,18 @@ export const useAuth = () => {
     try {
       setLoading(true);
       setError(null);
+      console.log(`Signing in with email: ${email}`);
 
       await signIn({
         username: email,
         password,
       });
 
+      console.log('Sign in successful, checking user...');
       await checkUser(); // Ricarica i dati utente dopo il login
       return { success: true };
     } catch (err: any) {
+      console.error('Login failed:', err);
       const errorMessage = err.message || 'Failed to login';
       setError(errorMessage);
       return { success: false, error: errorMessage };
@@ -83,10 +93,13 @@ export const useAuth = () => {
   const logout = async () => {
     try {
       setLoading(true);
+      console.log('Signing out...');
       await signOut();
       setUser(null);
       setError(null);
+      console.log('Sign out successful');
     } catch (err: any) {
+      console.error('Logout failed:', err);
       setError(err.message || 'Failed to logout');
     } finally {
       setLoading(false);
@@ -94,6 +107,7 @@ export const useAuth = () => {
   };
 
   const refreshUser = async () => {
+    console.log('Refreshing user...');
     await checkUser();
   };
 
@@ -102,7 +116,7 @@ export const useAuth = () => {
     loading,
     error,
     isAuthenticated: !!user,
-    isAdmin: user?.isAdmin || false,
+    isAdmin: !!user?.isAdmin,
     login,
     logout,
     refreshUser,

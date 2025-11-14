@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, AlertCircle } from 'lucide-react';
 import { Button } from '../common/Button';
-import { useAuthContext } from './AuthContext.tsx'; // <--- PERCORSO CORRETTO
+import { useAuthContext } from './AuthContext.tsx'; 
 import { validateEmail } from '../../utils/validators';
 
 export const LoginForm: React.FC = () => {
@@ -10,7 +10,7 @@ export const LoginForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuthContext(); // MODIFICATO (da useAuth)
+  const { login } = useAuthContext();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,14 +30,19 @@ export const LoginForm: React.FC = () => {
 
     try {
       setLoading(true);
+      console.log('Attempting login with:', { email });
+      
       const result = await login(email, password);
-
+      
+      console.log('Login result:', result);
+      
       if (result.success) {
         navigate('/dashboard');
       } else {
         setError(result.error || 'Login failed');
       }
     } catch (err: any) {
+      console.error('Login error:', err);
       setError(err.message || 'An error occurred during login');
     } finally {
       setLoading(false);
@@ -67,6 +72,7 @@ export const LoginForm: React.FC = () => {
             placeholder="your@email.com"
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             required
+            autoComplete="email"
           />
         </div>
       </div>
@@ -85,6 +91,7 @@ export const LoginForm: React.FC = () => {
             placeholder="••••••••"
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             required
+            autoComplete="current-password"
           />
         </div>
       </div>

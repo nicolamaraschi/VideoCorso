@@ -28,7 +28,7 @@ def create_response(status_code, body):
     }
 
 def get_user_groups(event):
-     try:
+    try:
         return event['requestContext']['authorizer']['claims'].get('cognito:groups', [])
     except KeyError:
         return []
