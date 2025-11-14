@@ -56,25 +56,24 @@ def get_course_structure(event):
         # 1. Prendi il corso
         course_response = courses_table.scan(Limit=1)
         
-        # SE NON CI SONO CORSI, RESTITUISCI UNA STRUTTURA VUOTA INVECE DI 404
+        # FIX: Logica modificata
         if not course_response.get('Items'):
-            # Crea un corso placeholder per permettere all'admin di iniziare
-            placeholder_course = {
+            # Se non ci sono corsi, CREA un corso placeholder
+            course = {
                 'course_id': 'placeholder',
                 'title': 'Corso in costruzione',
                 'description': 'Usa il pannello admin per creare il tuo primo corso',
                 'price': 0,
                 'is_active': False
             }
-            return create_response(200, {
-                'course': placeholder_course,
-                'chapters': []
-            })
+        else:
+            # Altrimenti, usa il corso trovato
+            course = course_response['Items'][0]
         
-        course = course_response['Items'][0]
+        # Ora course_id sarà 'placeholder' o il vero ID
         course_id = course['course_id']
 
-        # 2. Prendi i capitoli
+        # 2. Prendi i capitoli (Questa query ora funziona anche per 'placeholder')
         chapters_response = chapters_table.query(
             IndexName='CourseIndex',
             KeyConditionExpression=boto3.dynamodb.conditions.Key('course_id').eq(course_id)

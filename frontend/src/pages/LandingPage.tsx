@@ -32,7 +32,8 @@ export const LandingPage: React.FC = () => {
                 transition={{ duration: 0.7, delay: 0.4 }}
                 className="mt-8 flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4"
               >
-                <Link to="/checkout" className="px-8 py-4 bg-primary-600 text-white text-center rounded-full font-medium hover:bg-primary-700 transition shadow-md hover:shadow-lg active:shadow-sm">
+                {/* FIX: Usare bg-gray-800 come fallback affidabile */}
+                <Link to="/checkout" className="px-8 py-4 bg-gray-800 text-white text-center rounded-full font-medium hover:bg-gray-900 transition shadow-md hover:shadow-lg active:shadow-sm">
                   Inizia il tuo percorso
                 </Link>
                 <a href="#anteprima" className="px-8 py-4 bg-white text-primary-600 text-center border border-primary-600 rounded-full font-medium hover:bg-gray-50 transition">
@@ -221,7 +222,8 @@ export const LandingPage: React.FC = () => {
               </div>
               
               <div className="mt-8">
-                <Link to="/checkout" className="px-8 py-3 bg-primary-600 text-white rounded-full font-medium hover:bg-primary-700 transition shadow-md hover:shadow-lg inline-block">
+                {/* FIX: Usare bg-gray-800 come fallback affidabile */}
+                <Link to="/checkout" className="px-8 py-3 bg-gray-800 text-white rounded-full font-medium hover:bg-gray-900 transition shadow-md hover:shadow-lg inline-block">
                   Scopri il corso completo
                 </Link>
               </div>
@@ -274,7 +276,8 @@ export const LandingPage: React.FC = () => {
           
           <div className="mt-12 text-center">
             <p className="text-lg text-gray-300 mb-6">Queste sono solo alcune delle oltre 40 lezioni dettagliate incluse nel corso completo.</p>
-            <Link to="/checkout" className="px-8 py-3 bg-primary-600 text-white rounded-full font-medium hover:bg-primary-700 transition shadow-md hover:shadow-lg inline-block">
+            {/* FIX: Usare bg-gray-800 come fallback affidabile */}
+            <Link to="/checkout" className="px-8 py-3 bg-gray-800 text-white rounded-full font-medium hover:bg-gray-900 transition shadow-md hover:shadow-lg inline-block">
               Accedi al corso completo
             </Link>
           </div>
@@ -397,7 +400,8 @@ export const LandingPage: React.FC = () => {
             whileTap={{ scale: 0.95 }}
             className="inline-block"
           >
-            <Link to="/checkout" className="px-10 py-4 bg-white text-primary-600 rounded-full font-bold text-lg hover:bg-gray-100 transition shadow-lg">
+            {/* FIX: Usare bg-gray-800 come fallback affidabile */}
+            <Link to="/checkout" className="px-10 py-4 bg-gray-800 text-white rounded-full font-bold text-lg hover:bg-gray-900 transition shadow-lg">
               Iscriviti al corso ora
             </Link>
           </motion.div>

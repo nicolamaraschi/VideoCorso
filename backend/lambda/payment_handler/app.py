@@ -1,7 +1,6 @@
 import json
 import os
 import boto3
-import stripe
 import uuid
 from datetime import datetime, timedelta
 
@@ -59,22 +58,28 @@ def handle_checkout_session(session):
                 UserPoolId=COGNITO_USER_POOL_ID,
                 Username=customer_email
             )
-            user_id = user['UserAttributes'][0]['Value'] # Assumendo che 'sub' sia il primo
+            # Estrai 'sub' (user_id) dagli attributi
+            user_id = next(attr['Value'] for attr in user['UserAttributes'] if attr['Name'] == 'sub')
             print(f"Utente {customer_email} trovato. UserID: {user_id}")
             
         except cognito_client.exceptions.UserNotFoundException:
             # Crea l'utente se non esiste
             print(f"Utente {customer_email} non trovato. Creazione in corso...")
+            
+            # FIX: Modificato per inviare l'email di invito con password temporanea
             new_user = cognito_client.admin_create_user(
                 UserPoolId=COGNITO_USER_POOL_ID,
                 Username=customer_email,
                 UserAttributes=[
                     {'Name': 'email', 'Value': customer_email},
-                    {'Name': 'email_verified', 'Value': 'true'}
+                    # Rimuoviamo email_verified: 'true'. La verifica avverrà al primo login.
                 ],
-                MessageAction='SUPPRESS' # Non inviare email di benvenuto di default
+                DesiredDeliveryMediums=['EMAIL'], # Diciamo a Cognito di inviare l'email
+                MessageAction='RESEND' # Invia l'email di invito (che contiene la temp password)
             )
-            user_id = new_user['User']['Attributes'][0]['Value']
+            
+            # Estrai 'sub' (user_id) dagli attributi del nuovo utente
+            user_id = next(attr['Value'] for attr in new_user['User']['Attributes'] if attr['Name'] == 'sub')
             print(f"Utente creato. UserID: {user_id}")
 
             # Aggiungi utente al gruppo 'students'
@@ -136,7 +141,7 @@ def handle_checkout_session(session):
         print(f"Errore salvataggio acquisto in DynamoDB: {e}")
         return create_response(500, {'error': f"Errore DB Purchase: {e}"})
         
-    # TODO: Inviare email di benvenuto con AWS SES
+    # TODO: Inviare email di benvenuto personalizzata con AWS SES
 
     return create_response(200, {'message': 'Webhook processato con successo'})
 

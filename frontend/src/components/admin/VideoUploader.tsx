@@ -6,7 +6,8 @@ import { validateVideoFile } from '../../utils/validators';
 
 interface VideoUploaderProps {
   lessonId?: string;
-  onUploadComplete: (videoKey: string) => void;
+  // FIX: Modificato per passare anche la durata
+  onUploadComplete: (videoKey: string, duration: number) => void;
 }
 
 export const VideoUploader: React.FC<VideoUploaderProps> = ({
@@ -61,6 +62,22 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
     }
   };
 
+  // FIX: Funzione per ottenere la durata del video
+  const getVideoDuration = (file: File): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(video.src);
+        resolve(Math.round(video.duration));
+      };
+      video.onerror = () => {
+        reject('Failed to load video metadata.');
+      };
+      video.src = window.URL.createObjectURL(file);
+    });
+  };
+
   const handleUpload = async () => {
     if (!file) return;
 
@@ -68,6 +85,15 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
       setUploading(true);
       setError(null);
       setProgress(0);
+
+      // FIX: Ottieni la durata prima di iniziare l'upload
+      let duration = 0;
+      try {
+        duration = await getVideoDuration(file);
+      } catch (err) {
+        console.error(err);
+        // Non bloccare l'upload se la durata fallisce, imposta 0
+      }
 
       // Get pre-signed URL
       const uploadData = await adminService.getUploadUrl({
@@ -90,7 +116,8 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
         if (xhr.status === 200) {
           setSuccess(true);
           setProgress(100);
-          onUploadComplete(uploadData.video_s3_key);
+          // FIX: Passa la chiave E la durata
+          onUploadComplete(uploadData.video_s3_key, duration);
 
           // Reset after 2 seconds
           setTimeout(() => {

@@ -12,6 +12,12 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  
+  // FIX: Aggiunte le proprietà mancanti all'interfaccia
+  newPasswordRequired: boolean;
+  completeNewPassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
+  sendPasswordResetCode: (email: string) => Promise<{ success: boolean; error?: string }>;
+  submitPasswordReset: (email: string, confirmationCode: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 // Creiamo il Context

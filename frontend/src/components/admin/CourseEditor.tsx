@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, GripVertical, Save } from 'lucide-react';
+import { Plus, Edit, Trash2, GripVertical, Save, Play } from 'lucide-react';
 import type { Chapter, Lesson } from '../../types';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
+import { VideoUploader } from './VideoUploader';
+// FIX: Importa i componenti necessari per l'anteprima
+import { VideoPlayer } from '../course/VideoPlayer';
+import { courseService } from '../../services/courseService';
+import { Loading } from '../common/Loading';
 
 interface CourseEditorProps {
   chapters: Chapter[];
@@ -28,6 +33,12 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
+
+  // FIX: Aggiungi stato per il modale di anteprima
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
+  const [previewLessonId, setPreviewLessonId] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const [chapterForm, setChapterForm] = useState({ title: '', description: '' });
   const [lessonForm, setLessonForm] = useState({
@@ -82,6 +93,33 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     setShowLessonModal(false);
     setEditingLesson(null);
     setSelectedChapterId(null);
+  };
+
+  // FIX: Funzione per gestire l'anteprima del video
+  const handlePreviewLesson = async (lesson: Lesson) => {
+    try {
+      setPreviewLoading(true);
+      setShowPreviewModal(true);
+      
+      // Chiamiamo lo stesso servizio usato dagli studenti
+      const response = await courseService.getVideoUrl(lesson.lesson_id);
+      
+      setPreviewVideoUrl(response.video_url);
+      setPreviewLessonId(lesson.lesson_id); // Usato per il tracciamento
+    } catch (err) {
+      console.error("Failed to load preview video", err);
+      alert("Failed to load video preview.");
+      setShowPreviewModal(false);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  // FIX: Funzione per chiudere l'anteprima
+  const closePreviewModal = () => {
+    setShowPreviewModal(false);
+    setPreviewVideoUrl(null);
+    setPreviewLessonId(null);
   };
 
   return (
@@ -171,6 +209,14 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {/* FIX: Pulsante Anteprima */}
+                      <button
+                        onClick={() => handlePreviewLesson(lesson)}
+                        className="p-2 text-gray-600 hover:text-blue-600"
+                        title="Preview Lesson"
+                      >
+                        <Play className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => {
                           setEditingLesson(lesson);
@@ -284,37 +330,49 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Duration (seconds)
-              </label>
-              <input
-                type="number"
-                value={lessonForm.duration_seconds}
-                onChange={(e) =>
-                  setLessonForm({
-                    ...lessonForm,
-                    duration_seconds: parseInt(e.target.value),
-                  })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+
+          {/* FIX: Logica di upload video integrata */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Video File
+            </label>
+            {lessonForm.video_s3_key ? (
+              // Se un video è già stato caricato/collegato
+              <div className="flex items-center justify-between gap-3 p-3 bg-green-50 rounded-lg">
+                <span className="text-sm text-gray-900 font-mono truncate">
+                  {lessonForm.video_s3_key}
+                </span>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setLessonForm({ ...lessonForm, video_s3_key: '', duration_seconds: 0 })}
+                >
+                  Change
+                </Button>
+              </div>
+            ) : (
+              // Se non c'è video, mostra l'uploader
+              <VideoUploader
+                onUploadComplete={(videoKey, duration) => {
+                  console.log('Video S3 Key received:', videoKey);
+                  console.log('Video duration received:', duration);
+                  // Popola automaticamente sia la chiave che la durata
+                  setLessonForm({ 
+                    ...lessonForm, 
+                    video_s3_key: videoKey,
+                    duration_seconds: duration 
+                  });
+                }}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Video S3 Key
-              </label>
-              <input
-                type="text"
-                value={lessonForm.video_s3_key}
-                onChange={(e) =>
-                  setLessonForm({ ...lessonForm, video_s3_key: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
+            )}
           </div>
+          
+          {/* Campo Durata nascosto, ma ancora nel modulo (viene popolato automaticamente) */}
+          <input
+            type="hidden"
+            value={lessonForm.duration_seconds}
+          />
+          
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -329,11 +387,35 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               Free Preview Lesson
             </label>
           </div>
-          <Button onClick={handleSaveLesson} variant="primary" fullWidth>
+          <Button 
+            onClick={handleSaveLesson} 
+            variant="primary" 
+            fullWidth
+            disabled={!lessonForm.title || !lessonForm.video_s3_key}
+          >
             <Save className="w-4 h-4 mr-2" />
             {editingLesson ? 'Update Lesson' : 'Create Lesson'}
           </Button>
         </div>
+      </Modal>
+
+      {/* FIX: Modale per l'anteprima del video */}
+      <Modal
+        isOpen={showPreviewModal}
+        onClose={closePreviewModal}
+        title="Lesson Preview"
+        size="xl"
+      >
+        {previewLoading ? (
+          <Loading text="Loading video..." />
+        ) : previewVideoUrl && previewLessonId ? (
+          <VideoPlayer
+            videoUrl={previewVideoUrl}
+            lessonId={previewLessonId} // Passiamo l'ID per il tracciamento
+          />
+        ) : (
+          <p>Error loading video.</p>
+        )}
       </Modal>
     </div>
   );

@@ -1,7 +1,15 @@
 // frontend/src/hooks/useAuth.ts
 
 import { useState, useEffect } from 'react';
-import { getCurrentUser, signIn, signOut, fetchAuthSession, confirmSignIn } from 'aws-amplify/auth';
+import { 
+  getCurrentUser, 
+  signIn, 
+  signOut, 
+  fetchAuthSession, 
+  confirmSignIn,
+  resetPassword,
+  confirmResetPassword 
+} from 'aws-amplify/auth';
 import type { AuthUser } from '../types';
 
 export const useAuth = () => {
@@ -71,15 +79,15 @@ export const useAuth = () => {
       const signInResult = await signIn({ username: email, password });
       console.log('Sign in result:', signInResult);
       
-      // Gestione caso NEW_PASSWORD_REQUIRED
-      if (signInResult.nextStep?.signInStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD') {
+      // FIX: Corretto il controllo della stringa (Errore 1)
+      const isNewPasswordRequired = 
+        signInResult.nextStep?.signInStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED';
+
+      if (isNewPasswordRequired) {
         console.log('New password required');
         setNewPasswordRequired(true);
         setTempUser(signInResult);
-        return { 
-          success: false, 
-          error: 'È necessario cambiare la password. Contatta l\'amministratore.' 
-        };
+        return { success: true }; 
       }
 
       console.log('Sign in successful, checking user...');
@@ -87,9 +95,12 @@ export const useAuth = () => {
       return { success: true };
     } catch (err: any) {
       console.error('Login failed:', err);
-      const errorMessage = err.message || 'Failed to login';
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
+      
+      // FIX: Messaggio di errore generico (come richiesto)
+      const userFriendlyError = 'Credenziali non valide. Controlla email e password.';
+      
+      setError(userFriendlyError);
+      return { success: false, error: userFriendlyError };
     } finally {
       setLoading(false);
     }
@@ -137,6 +148,38 @@ export const useAuth = () => {
     console.log('Refreshing user...');
     await checkUser();
   };
+  
+  const sendPasswordResetCode = async (email: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      await resetPassword({ username: email });
+      setLoading(false);
+      return { success: true };
+    } catch (err: any) {
+      setLoading(false);
+      console.error('Send reset code failed:', err);
+      const userFriendlyError = "Impossibile inviare il codice. Controlla l'email e riprova.";
+      setError(userFriendlyError);
+      return { success: false, error: userFriendlyError };
+    }
+  };
+  
+  const submitPasswordReset = async (email: string, confirmationCode: string, newPassword: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      await confirmResetPassword({ username: email, confirmationCode, newPassword });
+      setLoading(false);
+      return { success: true };
+    } catch (err: any) {
+      setLoading(false);
+      console.error('Submit reset failed:', err);
+      const userFriendlyError = "Codice non valido o password non conforme ai requisiti.";
+      setError(userFriendlyError);
+      return { success: false, error: userFriendlyError };
+    }
+  };
 
   return {
     user,
@@ -149,5 +192,7 @@ export const useAuth = () => {
     completeNewPassword,
     logout,
     refreshUser,
+    sendPasswordResetCode,
+    submitPasswordReset,
   };
 };
