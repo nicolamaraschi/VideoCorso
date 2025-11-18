@@ -5,6 +5,8 @@ import uuid
 import datetime
 from decimal import Decimal
 from botocore.exceptions import ClientError
+# FIX: Aggiungi import per timedelta
+from datetime import timedelta
 
 # --- Helpers ---
 
@@ -44,6 +46,8 @@ def is_admin(event):
 
 dynamodb = boto3.resource('dynamodb')
 s3_client = boto3.client('s3')
+# FIX: Inizializza il client Cognito
+cognito_client = boto3.client('cognito-idp')
 
 # Mappa per tutte le tabelle
 TABLE_NAMES = {
@@ -58,6 +62,8 @@ TABLE_NAMES = {
 TABLES = {name: dynamodb.Table(table_name) for name, table_name in TABLE_NAMES.items() if table_name}
 
 VIDEO_BUCKET = os.environ.get('VIDEO_BUCKET')
+# FIX: Recupera l'ID del User Pool dall'ambiente
+COGNITO_USER_POOL_ID = os.environ.get('COGNITO_USER_POOL_ID')
 
 # --- Funzioni Logiche ---
 
@@ -182,6 +188,69 @@ def get_presigned_upload_url(body):
     except Exception as e:
         return create_response(500, {'error': str(e)})
 
+# FIX: Aggiunta nuova funzione per creazione manuale studente
+# /admin/student/create
+def create_manual_student(body):
+    email = body.get('email')
+    full_name = body.get('full_name')
+
+    if not email or not full_name:
+        return create_response(400, {'error': 'Email e full_name sono richiesti'})
+
+    try:
+        # 1. Crea utente in Cognito e invia email con password temporanea
+        print(f"Creazione utente Cognito: {email}")
+        new_user = cognito_client.admin_create_user(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Username=email,
+            UserAttributes=[
+                {'Name': 'email', 'Value': email},
+                {'Name': 'full_name', 'Value': full_name},
+                # Imposta full_name anche come attributo custom se esiste (opzionale)
+                # {'Name': 'custom:full_name', 'Value': full_name},
+            ],
+            DesiredDeliveryMediums=['EMAIL'],
+            MessageAction='RESEND' # Invia email di invito con password temporanea
+        )
+        
+        user_id = next(attr['Value'] for attr in new_user['User']['Attributes'] if attr['Name'] == 'sub')
+        print(f"Utente creato. UserID: {user_id}")
+
+        # 2. Aggiungi utente al gruppo 'students'
+        cognito_client.admin_add_user_to_group(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Username=email,
+            GroupName='students'
+        )
+        print("Utente aggiunto al gruppo 'students'")
+
+        # 3. Calcola la data di scadenza (1 anno da oggi)
+        purchase_date = datetime.datetime.utcnow()
+        expiration_date = purchase_date + timedelta(days=365)
+        
+        purchase_date_iso = purchase_date.isoformat() + "Z"
+        expiration_date_iso = expiration_date.isoformat() + "Z"
+
+        # 4. Salva i dati utente nella nostra tabella Users
+        user_item = {
+            'user_id': user_id,
+            'email': email,
+            'full_name': full_name,
+            'subscription_status': 'active',
+            'sub_end_date': expiration_date_iso,
+            'created_at': purchase_date_iso
+        }
+        TABLES['USERS'].put_item(Item=user_item)
+        print("Tabella Users aggiornata.")
+        
+        return create_response(201, {'success': True, 'data': user_item})
+
+    except cognito_client.exceptions.UsernameExistsException:
+        return create_response(409, {'error': 'Un utente con questa email esiste già'})
+    except Exception as e:
+        print(f"Errore durante la creazione manuale: {e}")
+        return create_response(500, {'error': f"Errore server: {e}"})
+
 # /admin/stats
 def get_stats():
     try:
@@ -265,6 +334,10 @@ def lambda_handler(event, context):
         elif path.startswith('/admin/course/lesson/') and http_method == 'DELETE':
             lesson_id = event['pathParameters']['lessonId']
             return delete_lesson(lesson_id)
+
+        # FIX: Aggiunta rotta per creazione manuale studente
+        elif path == '/admin/student/create' and http_method == 'POST':
+            return create_manual_student(body)
 
         # Rotte per Video
         elif path == '/admin/video/upload' and http_method == 'POST':

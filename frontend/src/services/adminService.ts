@@ -12,6 +12,8 @@ import type {
   PaginatedResponse,
   Chapter,
   Lesson,
+  // FIX: Importa il tipo User
+  User,
 } from '../types';
 
 export const adminService = {
@@ -72,6 +74,11 @@ export const adminService = {
   // Student Management
   async getStudents(page: number = 1, perPage: number = 20): Promise<PaginatedResponse<StudentListItem>> {
     return apiClient.get<PaginatedResponse<StudentListItem>>(`/admin/students?page=${page}&per_page=${perPage}`);
+  },
+
+  // FIX: Aggiunta funzione per creare studente
+  async createStudent(data: { email: string; full_name: string }): Promise<ApiResponse<User>> {
+    return apiClient.post<ApiResponse<User>>('/admin/student/create', data);
   },
 
   async updateStudent(studentId: string, data: UpdateStudentRequest): Promise<ApiResponse> {

@@ -38,6 +38,8 @@ Globals:
         VIDEO_BUCKET: !Ref VideoBucket
         STRIPE_SECRET_KEY: !Ref StripeSecretKey
         STRIPE_WEBHOOK_SECRET: !Ref StripeWebhookSecret
+        # FIX: Aggiunta variabile d'ambiente globale per Cognito
+        COGNITO_USER_POOL_ID: !Ref UserPool
   
 Resources:
   # ==================== DynamoDB Tables ====================
@@ -282,6 +284,7 @@ Resources:
                 - cognito-idp:AdminCreateUser
                 - cognito-idp:AdminSetUserPassword
                 - cognito-idp:AdminAddUserToGroup
+                - cognito-idp:AdminGetUser # FIX: Aggiunto permesso per controllare se utente esiste
               Resource: !GetAtt UserPool.Arn
             - Effect: Allow
               Action:
@@ -407,6 +410,10 @@ Resources:
       FunctionName: !Sub '${Environment}-videocorso-admin-handler'
       CodeUri: ../lambda/admin_handler/
       Handler: app.lambda_handler
+      # FIX: Aggiunta variabile d'ambiente COGNITO_USER_POOL_ID
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID: !Ref UserPool
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref CoursesTable
@@ -424,6 +431,14 @@ Resources:
             BucketName: !Ref VideoBucket
         - S3CrudPolicy:
             BucketName: !Ref ThumbnailBucket
+        # FIX: Aggiunta policy per gestire utenti Cognito
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminAddUserToGroup
+              Resource: !GetAtt UserPool.Arn
       Events:
         CreateChapter:
           Type: Api
@@ -514,6 +529,13 @@ Resources:
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /admin/video/thumbnail
+            Method: POST
+        # FIX: Aggiunto nuovo endpoint per creazione manuale
+        CreateStudent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/student/create
             Method: POST
 
   # ==================== CloudFront ====================
