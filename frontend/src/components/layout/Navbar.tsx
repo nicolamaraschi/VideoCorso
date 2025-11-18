@@ -60,7 +60,7 @@ export const Navbar: React.FC = () => {
               {/* Visibile anche su mobile, centrato su mobile */}
               <div className="block flex-1 md:flex-none text-center md:text-left pr-10 md:pr-0">
                 <span className="text-base md:text-lg font-bold text-primary-600 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
-                  Chiara Morocutti Academy
+                  Chiara Morocutti Accademy
                 </span>
                 <span className="text-[10px] md:text-xs text-gray-500 leading-tight block" style={{ fontFamily: 'Abhaya Libre, serif' }}>
                   Formazione d'Eccellenza
