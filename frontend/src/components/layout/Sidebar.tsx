@@ -2,8 +2,6 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home,
-  Video,
-  Upload,
   Users,
   BarChart3,
   BookOpen,
@@ -25,7 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
   const adminLinks = [
     { to: '/admin', icon: BarChart3, label: 'Dashboard' },
     { to: '/admin/course', icon: BookOpen, label: 'Course Structure' },
-    { to: '/admin/upload', icon: Upload, label: 'Upload Videos' },
+    // RIMOSSO: Link a 'Upload Videos'
     { to: '/admin/students', icon: Users, label: 'Students' },
   ];
 

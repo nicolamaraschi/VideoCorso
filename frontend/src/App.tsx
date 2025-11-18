@@ -13,7 +13,7 @@ import { CheckoutPage } from './pages/CheckoutPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { VideoPlayerPage } from './pages/VideoPlayerPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
-import { AdminUploadPage } from './pages/AdminUploadPage';
+// RIMOSSO: import { AdminUploadPage } from './pages/AdminUploadPage';
 import { AdminCoursePage } from './pages/AdminCoursePage';
 import { AdminStudentsPage } from './pages/AdminStudentsPage';
 
@@ -82,14 +82,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/admin/upload"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminUploadPage />
-                  </ProtectedRoute>
-                }
-              />
+              {/* RIMOSSO: Route /admin/upload */}
               <Route
                 path="/admin/course"
                 element={

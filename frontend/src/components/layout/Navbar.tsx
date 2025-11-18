@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, User, LogOut } from 'lucide-react';
-import { useAuthContext } from '../auth/AuthContext'; // <--- Percorso corretto
+import { useAuthContext } from '../auth/AuthContext'; 
 import { Button } from '../common/Button';
 
 // Logo URL dal sito della cliente
@@ -15,7 +15,7 @@ export const Navbar: React.FC = () => {
 
   const handleLogout = async () => {
     await logout();
-    setUserMenuOpen(false); // Chiudi il menu dopo il logout
+    setUserMenuOpen(false); 
     navigate('/login');
   };
 
@@ -24,7 +24,6 @@ export const Navbar: React.FC = () => {
     const handleClick = (e) => {
       const isHomePage = window.location.pathname === '/';
       
-      // Se siamo nella homepage, facciamo lo scroll
       if (isHomePage && to.startsWith('/#')) {
         e.preventDefault();
         const id = to.substring(2); // Rimuove '/#'
@@ -34,8 +33,6 @@ export const Navbar: React.FC = () => {
           if (onClick) onClick();
         }
       } 
-      // Se non siamo nella homepage, usiamo il Link normale
-      // che ci porterà prima alla homepage e poi allo scrolling
     };
 
     return (
@@ -50,27 +47,28 @@ export const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           
-          {/* Logo */}
-          <div className="flex items-center">
-            <Link to={isAuthenticated ? '/dashboard' : '/'} className="flex items-center gap-3">
+          {/* Logo & Brand Text */}
+          <div className="flex items-center flex-1">
+            <Link to={isAuthenticated ? '/dashboard' : '/'} className="flex items-center gap-3 w-full md:w-auto">
               <img 
                 src={logoUrl} 
-                alt="Logo Chiara Morocutti PMU" 
-                className="h-10 w-auto"
+                alt="Chiara Morocutti" 
+                className="h-10 w-auto rounded-full object-cover flex-shrink-0"
               />
-              {/* Nascondiamo il testo su mobile per non affollare la navbar */}
-              <div className="hidden md:block">
-                <span className="text-lg font-bold text-primary-600 leading-tight block" style={{ fontFamily: 'Abhaya Libre, serif' }}>
-                  Chiara Morocutti PMU
+              
+              {/* Modificato: Visibile anche su mobile (rimosso 'hidden'), centrato su mobile */}
+              <div className="block flex-1 md:flex-none text-center md:text-left pr-10 md:pr-0">
+                <span className="text-base md:text-lg font-bold text-primary-600 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
+                  Chiara Morocutti Academy
                 </span>
-                <span className="text-xs text-gray-500 leading-tight block" style={{ fontFamily: 'Abhaya Libre, serif' }}>
-                  Milano, Corso Italia 49
+                <span className="text-[10px] md:text-xs text-gray-500 leading-tight block" style={{ fontFamily: 'Abhaya Libre, serif' }}>
+                  Formazione d'Eccellenza
                 </span>
               </div>
             </Link>
           </div>
 
-          {/* Link di navigazione - Verranno mostrati solo se non autenticati */}
+          {/* Link di navigazione (Desktop) */}
           {!isAuthenticated && (
             <div className="hidden md:flex items-center space-x-8">
               <ScrollLink 
@@ -104,7 +102,7 @@ export const Navbar: React.FC = () => {
             </div>
           )}
 
-          {/* Desktop Menu */}
+          {/* Desktop Menu (Autenticato) */}
           <div className="hidden md:flex items-center gap-4">
             {isAuthenticated ? (
               <>
@@ -164,7 +162,7 @@ export const Navbar: React.FC = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden">
+          <div className="md:hidden flex-shrink-0">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-lg hover:bg-gray-100"
@@ -186,24 +184,7 @@ export const Navbar: React.FC = () => {
 
             {isAuthenticated ? (
               <>
-                <Link
-                  to="/dashboard"
-                  className="block px-4 py-2 rounded-lg hover:bg-gray-100"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  I Miei Corsi
-                </Link>
-
-                {isAdmin && (
-                  <Link
-                    to="/admin"
-                    className="block px-4 py-2 rounded-lg hover:bg-gray-100"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Admin
-                  </Link>
-                )}
-
+                {/* Menu Mobile Semplificato: Solo Logout */}
                 <button
                   onClick={() => {
                     handleLogout();
@@ -217,7 +198,7 @@ export const Navbar: React.FC = () => {
               </>
             ) : (
               <>
-                {/* Link di navigazione per mobile - Verranno mostrati solo se non autenticati */}
+                {/* Link di navigazione per mobile */}
                 <ScrollLink
                   to="/#corso"
                   className="block px-4 py-2 rounded-lg hover:bg-gray-100"

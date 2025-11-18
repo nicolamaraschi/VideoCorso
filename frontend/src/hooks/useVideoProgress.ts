@@ -29,8 +29,8 @@ export const useVideoProgress = ({ lessonId, videoElement }: UseVideoProgressPro
       const currentTime = videoElement.currentTime;
       const duration = videoElement.duration;
 
-      // Save progress every 5 seconds
-      if (Math.abs(currentTime - lastSavedTime.current) >= 5) {
+      // Save progress every 300 seconds instead of 5
+      if (Math.abs(currentTime - lastSavedTime.current) >= 300) {
         lastSavedTime.current = currentTime;
         debouncedSave(currentTime, duration);
       }

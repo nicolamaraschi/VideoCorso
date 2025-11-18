@@ -37,7 +37,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [showSettings, setShowSettings] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const { progress, isSaving } = useVideoProgress({
+  const { progress } = useVideoProgress({
     lessonId,
     videoElement: videoRef.current,
   });
@@ -210,13 +210,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         className="w-full aspect-video"
         onClick={togglePlay}
       />
-
-      {/* Saving Indicator */}
-      {isSaving && (
-        <div className="absolute top-4 right-4 bg-black bg-opacity-75 text-white text-xs px-3 py-1 rounded-full">
-          Saving progress...
-        </div>
-      )}
 
       {/* Controls Overlay */}
       <div

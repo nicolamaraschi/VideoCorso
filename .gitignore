@@ -9,45 +9,57 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-
 # ---------------------------------------------------------
-# 🟦 NODE / JAVASCRIPT
+# 🟦 NODE / JAVASCRIPT / TYPESCRIPT
 # ---------------------------------------------------------
 node_modules/
 dist/
 dist-ssr/
 *.local
-*.cache/
-.cache/
-
-
-# ---------------------------------------------------------
-# 🟦 AWS SAM BUILD
-# ---------------------------------------------------------
-# Ignora qualsiasi cartella .aws-sam generata dal build
-.aws-sam/
-
+*.tsbuildinfo
+.eslintcache
 
 # ---------------------------------------------------------
-# 🟦 PYTHON / LAMBDA
+# 🟦 TESTING & COVERAGE
 # ---------------------------------------------------------
+coverage/
+test-results/
+
+# ---------------------------------------------------------
+# 🟦 FRONTEND (Vite, React)
+# ---------------------------------------------------------
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/build/
+
+# ---------------------------------------------------------
+# 🟦 BACKEND (Python, Lambda, SAM)
+# ---------------------------------------------------------
+# Python Artifacts
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 *.pytest_cache/
+
+# Virtual Environments
 venv/
-.env/      # tipico virtualenv
+.env/
 .venv/
+backend/**/venv/
 
+# AWS SAM Build Artifacts
+.aws-sam/
+backend/infrastructure/.aws-sam/
 
 # ---------------------------------------------------------
-# 🟦 ENV FILES
+# 🟦 ENV FILES (Secrets)
 # ---------------------------------------------------------
-# File di configurazione locali
+.env
+.env.*
+!.env.example
 *.env
-*.env.*
-
 
 # ---------------------------------------------------------
 # 🟦 EDITOR & IDE
@@ -61,34 +73,11 @@ venv/
 *.sln
 *.sw?
 
-
 # ---------------------------------------------------------
-# 🟦 MACOS
+# 🟦 OS FILES (Mac/Windows/Linux)
 # ---------------------------------------------------------
 .DS_Store
 .AppleDouble
 .LSOverride
-
-
-# ---------------------------------------------------------
-# 🟦 FRONTEND (Vite, React)
-# ---------------------------------------------------------
-# Output temporaneo
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
-
-
-# ---------------------------------------------------------
-# 🟦 BACKEND (Lambda)
-# ---------------------------------------------------------
-# Build temporanei Python
-backend/**/*.pyc
-backend/**/__pycache__/
-backend/**/venv/
-backend/infrastructure/.aws-sam/
-
-
-# SAM build artifacts
-backend/infrastructure/.aws-sam/
-.aws-sam/
+Thumbs.db
+desktop.ini
