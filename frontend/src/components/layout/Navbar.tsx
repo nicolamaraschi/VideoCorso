@@ -48,7 +48,8 @@ export const Navbar: React.FC = () => {
         <div className="flex justify-between items-center h-16">
           
           {/* Logo & Brand Text */}
-          <div className="flex items-center flex-1">
+          {/* FIX: md:flex-none impedisce al logo di espandersi su desktop, permettendo ai link di stare al centro */}
+          <div className="flex items-center flex-1 md:flex-none">
             <Link to={isAuthenticated ? '/dashboard' : '/'} className="flex items-center gap-3 w-full md:w-auto">
               <img 
                 src={logoUrl} 
@@ -56,7 +57,7 @@ export const Navbar: React.FC = () => {
                 className="h-10 w-auto rounded-full object-cover flex-shrink-0"
               />
               
-              {/* Modificato: Visibile anche su mobile (rimosso 'hidden'), centrato su mobile */}
+              {/* Visibile anche su mobile, centrato su mobile */}
               <div className="block flex-1 md:flex-none text-center md:text-left pr-10 md:pr-0">
                 <span className="text-base md:text-lg font-bold text-primary-600 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
                   Chiara Morocutti Academy
@@ -69,6 +70,7 @@ export const Navbar: React.FC = () => {
           </div>
 
           {/* Link di navigazione (Desktop) */}
+          {/* Questi link saranno centrati grazie a justify-between del genitore, ora che il logo non è flex-1 su desktop */}
           {!isAuthenticated && (
             <div className="hidden md:flex items-center space-x-8">
               <ScrollLink 
