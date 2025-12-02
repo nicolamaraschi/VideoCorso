@@ -25,7 +25,10 @@ function App() {
   const location = useLocation();
 
   // Mostra un caricamento globale mentre l'autenticazione viene verificata
-  if (loading && location.pathname !== '/') {
+  // MODIFICA: Non mostrare il loading screen sulla pagina di login, altrimenti
+  // quando l'utente clicca "Accedi", lo stato loading diventa true, la pagina viene
+  // smontata e rimontata, perdendo l'errore.
+  if (loading && location.pathname !== '/' && location.pathname !== '/login') {
     return <Loading fullScreen text="Loading..." />;
   }
   

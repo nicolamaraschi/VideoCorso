@@ -1,25 +1,19 @@
-// frontend/src/components/auth/LoginForm.tsx
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, AlertCircle, KeyRound, CheckCircle } from 'lucide-react'; // Aggiunto CheckCircle
+import { Mail, Lock, AlertCircle, KeyRound, CheckCircle } from 'lucide-react';
 import { Button } from '../common/Button';
 import { useAuthContext } from './AuthContext.tsx';
 import { validateEmail } from '../../utils/validators';
 
-// L'esportazione 'LoginForm' è qui, quindi l'errore è la cache di Vite
 export const LoginForm: React.FC = () => {
-  // Stati UI
   type View = 'login' | 'forgot' | 'reset';
   const [view, setView] = useState<View>('login');
   
-  // Stati Dati
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [code, setCode] = useState('');
   
-  // Stati Generali
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,7 +28,14 @@ export const LoginForm: React.FC = () => {
   
   const navigate = useNavigate();
 
-  // Gestore per il Login o Cambio Password Temporanea
+  const handleRedirect = (user: any) => {
+    if (user?.isAdmin) {
+      navigate('/admin');
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -43,15 +44,14 @@ export const LoginForm: React.FC = () => {
 
     try {
       if (!newPasswordRequired) {
-        // --- 1. Flusso di Login Normale ---
         if (!email || !password) {
-          setError('Please fill in all fields');
+          setError('Per favore compila tutti i campi');
           setLoading(false);
           return;
         }
 
         if (!validateEmail(email)) {
-          setError('Please enter a valid email address');
+          setError('Per favore inserisci un indirizzo email valido');
           setLoading(false);
           return;
         }
@@ -59,15 +59,16 @@ export const LoginForm: React.FC = () => {
         const result = await login(email, password);
         
         if (result.success && !newPasswordRequired) { 
-          navigate('/dashboard');
+          handleRedirect(result.user); 
         } else if (!result.success) {
-          setError(result.error || 'Login failed. Check your credentials.');
+          // FIX: Assicuriamoci che l'errore venga settato
+          // Se result.error è vuoto, mettiamo un messaggio di default
+          setError(result.error || 'Credenziali non valide. Riprova.');
         }
 
       } else {
-        // --- 2. Flusso Nuova Password (dopo il login temporaneo) ---
         if (!newPassword) {
-          setError('Please enter your new password');
+          setError('Per favore inserisci la tua nuova password');
           setLoading(false);
           return;
         }
@@ -75,27 +76,26 @@ export const LoginForm: React.FC = () => {
         const result = await completeNewPassword(newPassword);
         
         if (result.success) {
-          navigate('/dashboard');
+          handleRedirect(result.user);
         } else {
-          setError(result.error || 'Failed to set new password');
+          setError(result.error || 'Impossibile impostare la password');
         }
       }
     } catch (err: any) {
       console.error('Login form error:', err);
-      setError(err.message || 'An error occurred during login');
+      setError('Si è verificato un errore imprevisto.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Gestore per la Richiesta di Reset Password
   const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setMessage('');
     
     if (!validateEmail(email)) {
-      setError('Please enter a valid email address');
+      setError('Per favore inserisci un indirizzo email valido');
       return;
     }
 
@@ -104,21 +104,20 @@ export const LoginForm: React.FC = () => {
     setLoading(false);
 
     if (result.success) {
-      setMessage('Success! Check your email for a verification code.');
-      setView('reset'); // Passa alla vista per inserire il codice
+      setMessage('Successo! Controlla la tua email per il codice di verifica.');
+      setView('reset');
     } else {
-      setError(result.error || 'Failed to send reset code.');
+      setError(result.error || 'Impossibile inviare il codice di reset.');
     }
   };
 
-  // Gestore per l'Invio della Nuova Password
   const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setMessage('');
 
     if (!code || !newPassword) {
-      setError('Please fill in all fields');
+      setError('Per favore compila tutti i campi');
       return;
     }
 
@@ -127,13 +126,13 @@ export const LoginForm: React.FC = () => {
     setLoading(false);
 
     if (result.success) {
-      setMessage('Password reset successfully! Please log in with your new password.');
-      setView('login'); // Torna al login
+      setMessage('Password reimpostata con successo! Accedi con la nuova password.');
+      setView('login');
       setPassword(''); 
       setNewPassword('');
       setCode('');
     } else {
-      setError(result.error || 'Failed to reset password.');
+      setError(result.error || 'Impossibile reimpostare la password.');
     }
   };
 
@@ -141,32 +140,31 @@ export const LoginForm: React.FC = () => {
   const renderMessages = () => (
     <>
       {error && (
-        <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-lg mb-4 animate-fade-in">
           <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-          <p className="text-sm text-red-700">{error}</p>
+          <p className="text-sm text-red-700 font-medium">{error}</p>
         </div>
       )}
       {message && (
-        <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg">
+        <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg mb-4 animate-fade-in">
           <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-          <p className="text-sm text-green-700">{message}</p>
+          <p className="text-sm text-green-700 font-medium">{message}</p>
         </div>
       )}
     </>
   );
 
-  // --- 1. Flusso Set Nuova Password (Utente Temporaneo) ---
   if (newPasswordRequired) {
     return (
       <form onSubmit={handleLoginSubmit} className="space-y-6">
         {renderMessages()}
         <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-900">Set New Password</h2>
-          <p className="text-sm text-gray-600">Welcome! Please set a new password for your account.</p>
+          <h2 className="text-xl font-bold text-gray-900">Imposta Nuova Password</h2>
+          <p className="text-sm text-gray-600">Benvenuto! Imposta una nuova password per il tuo account.</p>
         </div>
         <div>
           <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
-            New Password
+            Nuova Password
           </label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -176,31 +174,30 @@ export const LoginForm: React.FC = () => {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               required
               autoComplete="new-password"
             />
           </div>
         </div>
         <Button type="submit" variant="primary" fullWidth loading={loading}>
-          Set Password and Sign In
+          Imposta Password e Accedi
         </Button>
       </form>
     );
   }
 
-  // --- 2. Flusso Password Dimenticata (Richiesta Codice) ---
   if (view === 'forgot') {
     return (
       <form onSubmit={handleForgotSubmit} className="space-y-6">
         {renderMessages()}
         <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-900">Forgot Password?</h2>
-          <p className="text-sm text-gray-600">Enter your email to receive a reset code.</p>
+          <h2 className="text-xl font-bold text-gray-900">Password Dimenticata?</h2>
+          <p className="text-sm text-gray-600">Inserisci la tua email per ricevere un codice di reset.</p>
         </div>
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-            Email Address
+            Indirizzo Email
           </label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -209,35 +206,34 @@ export const LoginForm: React.FC = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
+              placeholder="tua@email.com"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               required
               autoComplete="email"
             />
           </div>
         </div>
         <Button type="submit" variant="primary" fullWidth loading={loading}>
-          Send Reset Code
+          Invia Codice Reset
         </Button>
-        <Button variant="ghost" fullWidth onClick={() => setView('login')}>
-          Back to Sign In
+        <Button variant="ghost" fullWidth onClick={() => { setView('login'); setError(''); }}>
+          Torna al Login
         </Button>
       </form>
     );
   }
 
-  // --- 3. Flusso Password Dimenticata (Invio Codice) ---
   if (view === 'reset') {
     return (
       <form onSubmit={handleResetSubmit} className="space-y-6">
         {renderMessages()}
         <div className="text-center">
-          <h2 className="text-xl font-bold text-gray-900">Reset Your Password</h2>
-          <p className="text-sm text-gray-600">Enter the code sent to {email} and your new password.</p>
+          <h2 className="text-xl font-bold text-gray-900">Reimposta Password</h2>
+          <p className="text-sm text-gray-600">Inserisci il codice inviato a {email} e la tua nuova password.</p>
         </div>
         <div>
           <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-2">
-            Verification Code
+            Codice di Verifica
           </label>
           <div className="relative">
             <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -247,14 +243,14 @@ export const LoginForm: React.FC = () => {
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="123456"
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               required
             />
           </div>
         </div>
         <div>
           <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
-            New Password
+            Nuova Password
           </label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -264,29 +260,28 @@ export const LoginForm: React.FC = () => {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               required
               autoComplete="new-password"
             />
           </div>
         </div>
         <Button type="submit" variant="primary" fullWidth loading={loading}>
-          Set New Password
+          Imposta Nuova Password
         </Button>
-        <Button variant="ghost" fullWidth onClick={() => setView('login')}>
-          Back to Sign In
+        <Button variant="ghost" fullWidth onClick={() => { setView('login'); setError(''); }}>
+          Torna al Login
         </Button>
       </form>
     );
   }
 
-  // --- 4. Flusso di Login Standard ---
   return (
     <form onSubmit={handleLoginSubmit} className="space-y-6">
       {renderMessages()}
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-          Email Address
+          Indirizzo Email
         </label>
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -295,8 +290,8 @@ export const LoginForm: React.FC = () => {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="your@email.com"
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
+            placeholder="tua@email.com"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             required
             autoComplete="email"
           />
@@ -315,7 +310,7 @@ export const LoginForm: React.FC = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             required
             autoComplete="current-password"
           />
@@ -332,12 +327,12 @@ export const LoginForm: React.FC = () => {
           }}
           className="text-sm font-medium text-primary-600 hover:text-primary-700"
         >
-          Forgot password?
+          Password dimenticata?
         </button>
       </div>
 
       <Button type="submit" variant="primary" fullWidth loading={loading}>
-        Sign In
+        Accedi
       </Button>
     </form>
   );

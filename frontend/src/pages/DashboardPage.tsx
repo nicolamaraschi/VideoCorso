@@ -1,19 +1,24 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom'; // Aggiunto Navigate
 import { Play, Clock, Award, Calendar } from 'lucide-react';
 import { useCourse } from '../hooks/useCourse';
-import { useAuthContext } from '../components/auth/AuthContext.tsx'; // <--- PERCORSO CORRETTO
+import { useAuthContext } from '../components/auth/AuthContext.tsx'; 
 import { Loading } from '../components/common/Loading';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { ChapterList } from '../components/course/ChapterList';
 import { ProgressBar } from '../components/course/ProgressBar';
 import { Button } from '../components/common/Button';
-import { formatDate, getDaysRemaining, formatWatchTime } from '../utils/formatters.ts'; // <--- PERCORSO CORRETTO E RIMOSSO DUPLICATO
+import { formatWatchTime, getDaysRemaining } from '../utils/formatters.ts'; 
 
 export const DashboardPage: React.FC = () => {
   const { courseStructure, courseProgress, loading, error, reload } = useCourse();
-  const { user } = useAuthContext(); // MODIFICATO (da useAuth)
+  const { user, isAdmin } = useAuthContext(); // Estrai anche isAdmin
   const navigate = useNavigate();
+
+  // MODIFICA: Reindirizza Admin alla loro dashboard
+  if (isAdmin) {
+    return <Navigate to="/admin" replace />;
+  }
 
   if (loading) {
     return <Loading fullScreen text="Loading your course..." />;
@@ -85,7 +90,6 @@ export const DashboardPage: React.FC = () => {
             <span className="text-sm font-medium text-gray-600">Watch Time</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">
-            {/* Errore corretto: usiamo user.total_watch_time come nel file originale */}
             {formatWatchTime(user?.total_watch_time || 0)}
           </p>
         </div>
@@ -149,7 +153,7 @@ export const DashboardPage: React.FC = () => {
         </h2>
         <ChapterList
           chapters={courseStructure.chapters}
-          progress={courseProgress?.lesson_progress || {}} // MODIFICATO
+          progress={courseProgress?.lesson_progress || {}}
           onLessonClick={handleLessonClick}
         />
       </div>

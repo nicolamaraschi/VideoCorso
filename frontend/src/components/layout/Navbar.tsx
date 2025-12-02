@@ -10,7 +10,7 @@ const logoUrl = "https://assets.cdn.filesafe.space/ceYe4VnMXLjh1ENSEbH0/media/64
 export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const { isAuthenticated, user, isAdmin, logout } = useAuthContext();
+  const { isAuthenticated, user, isAdmin, logout } = useAuthContext(); // Assicurati di estrarre isAdmin
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -48,19 +48,17 @@ export const Navbar: React.FC = () => {
         <div className="flex justify-between items-center h-16">
           
           {/* Logo & Brand Text */}
-          {/* FIX: md:flex-none impedisce al logo di espandersi su desktop, permettendo ai link di stare al centro */}
           <div className="flex items-center flex-1 md:flex-none">
-            <Link to={isAuthenticated ? '/dashboard' : '/'} className="flex items-center gap-3 w-full md:w-auto">
+            <Link to={isAuthenticated ? (isAdmin ? '/admin' : '/dashboard') : '/'} className="flex items-center gap-3 w-full md:w-auto">
               <img 
                 src={logoUrl} 
                 alt="Chiara Morocutti" 
                 className="h-10 w-auto rounded-full object-cover flex-shrink-0"
               />
               
-              {/* Visibile anche su mobile, centrato su mobile */}
               <div className="block flex-1 md:flex-none text-center md:text-left pr-10 md:pr-0">
                 <span className="text-base md:text-lg font-bold text-primary-600 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
-                  Chiara Morocutti Accademy
+                  Chiara Morocutti Academy
                 </span>
                 <span className="text-[10px] md:text-xs text-gray-500 leading-tight block" style={{ fontFamily: 'Abhaya Libre, serif' }}>
                   Formazione d'Eccellenza
@@ -69,38 +67,13 @@ export const Navbar: React.FC = () => {
             </Link>
           </div>
 
-          {/* Link di navigazione (Desktop) */}
-          {/* Questi link saranno centrati grazie a justify-between del genitore, ora che il logo non è flex-1 su desktop */}
+          {/* Link di navigazione (Desktop - Non autenticato) */}
           {!isAuthenticated && (
             <div className="hidden md:flex items-center space-x-8">
-              <ScrollLink 
-                to="/#corso" 
-                className="text-gray-700 hover:text-primary-600 transition"
-                onClick={() => {}}
-              >
-                Il Corso
-              </ScrollLink>
-              <ScrollLink 
-                to="/#vantaggi" 
-                className="text-gray-700 hover:text-primary-600 transition"
-                onClick={() => {}}
-              >
-                Vantaggi
-              </ScrollLink>
-              <ScrollLink 
-                to="/#anteprima" 
-                className="text-gray-700 hover:text-primary-600 transition"
-                onClick={() => {}}
-              >
-                Anteprima
-              </ScrollLink>
-              <ScrollLink 
-                to="/#testimonianze" 
-                className="text-gray-700 hover:text-primary-600 transition"
-                onClick={() => {}}
-              >
-                Testimonianze
-              </ScrollLink>
+              <ScrollLink to="/#corso" className="text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Il Corso</ScrollLink>
+              <ScrollLink to="/#vantaggi" className="text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Vantaggi</ScrollLink>
+              <ScrollLink to="/#anteprima" className="text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Anteprima</ScrollLink>
+              <ScrollLink to="/#testimonianze" className="text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Testimonianze</ScrollLink>
             </div>
           )}
 
@@ -108,13 +81,16 @@ export const Navbar: React.FC = () => {
           <div className="hidden md:flex items-center gap-4">
             {isAuthenticated ? (
               <>
-                <Link to="/dashboard">
-                  <Button variant="ghost">I Miei Corsi</Button>
-                </Link>
+                {/* MODIFICA QUI: Mostra "I Miei Corsi" SOLO se NON è admin */}
+                {!isAdmin && (
+                  <Link to="/dashboard">
+                    <Button variant="ghost">I Miei Corsi</Button>
+                  </Link>
+                )}
 
                 {isAdmin && (
                   <Link to="/admin">
-                    <Button variant="ghost">Admin</Button>
+                    <Button variant="ghost">Admin Dashboard</Button>
                   </Link>
                 )}
 
@@ -134,15 +110,9 @@ export const Navbar: React.FC = () => {
 
                   {userMenuOpen && (
                     <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setUserMenuOpen(false)}
-                      />
+                      <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
                       <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                        <button
-                          onClick={handleLogout}
-                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        >
+                        <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                           <LogOut className="w-4 h-4" />
                           Logout
                         </button>
@@ -153,27 +123,16 @@ export const Navbar: React.FC = () => {
               </>
             ) : (
               <>
-                <Link to="/login">
-                  <Button variant="ghost">Login</Button>
-                </Link>
-                <Link to="/checkout">
-                  <Button variant="primary">Iscriviti Ora</Button>
-                </Link>
+                <Link to="/login"><Button variant="ghost">Login</Button></Link>
+                <Link to="/checkout"><Button variant="primary">Iscriviti Ora</Button></Link>
               </>
             )}
           </div>
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex-shrink-0">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg hover:bg-gray-100"
-            >
-              {mobileMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 rounded-lg hover:bg-gray-100">
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
@@ -183,68 +142,32 @@ export const Navbar: React.FC = () => {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-gray-200 bg-white">
           <div className="px-4 py-4 space-y-2">
-
             {isAuthenticated ? (
               <>
-                {/* Menu Mobile Semplificato: Solo Logout */}
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 flex items-center gap-2"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Logout
+                 {/* MODIFICA QUI: Anche su mobile nascondiamo link studente agli admin */}
+                 {!isAdmin && (
+                    <Link to="/dashboard" className="block px-4 py-2 rounded-lg hover:bg-gray-100" onClick={() => setMobileMenuOpen(false)}>
+                      I Miei Corsi
+                    </Link>
+                 )}
+                 
+                 {isAdmin && (
+                    <Link to="/admin" className="block px-4 py-2 rounded-lg hover:bg-gray-100" onClick={() => setMobileMenuOpen(false)}>
+                      Admin Dashboard
+                    </Link>
+                 )}
+
+                <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 flex items-center gap-2">
+                  <LogOut className="w-4 h-4" /> Logout
                 </button>
               </>
             ) : (
               <>
-                {/* Link di navigazione per mobile */}
-                <ScrollLink
-                  to="/#corso"
-                  className="block px-4 py-2 rounded-lg hover:bg-gray-100"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Il Corso
-                </ScrollLink>
-                <ScrollLink
-                  to="/#vantaggi"
-                  className="block px-4 py-2 rounded-lg hover:bg-gray-100"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Vantaggi
-                </ScrollLink>
-                <ScrollLink
-                  to="/#anteprima"
-                  className="block px-4 py-2 rounded-lg hover:bg-gray-100"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Anteprima
-                </ScrollLink>
-                <ScrollLink
-                  to="/#testimonianze"
-                  className="block px-4 py-2 rounded-lg hover:bg-gray-100"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Testimonianze
-                </ScrollLink>
-
-                <Link
-                  to="/login"
-                  className="block px-4 py-2 rounded-lg hover:bg-gray-100"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/checkout"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Button variant="primary" fullWidth>
-                    Iscriviti Ora
-                  </Button>
-                </Link>
+                <ScrollLink to="/#corso" className="block px-4 py-2 rounded-lg hover:bg-gray-100" onClick={() => setMobileMenuOpen(false)}>Il Corso</ScrollLink>
+                <ScrollLink to="/#vantaggi" className="block px-4 py-2 rounded-lg hover:bg-gray-100" onClick={() => setMobileMenuOpen(false)}>Vantaggi</ScrollLink>
+                <ScrollLink to="/#anteprima" className="block px-4 py-2 rounded-lg hover:bg-gray-100" onClick={() => setMobileMenuOpen(false)}>Anteprima</ScrollLink>
+                <Link to="/login" className="block px-4 py-2 rounded-lg hover:bg-gray-100" onClick={() => setMobileMenuOpen(false)}>Login</Link>
+                <Link to="/checkout" onClick={() => setMobileMenuOpen(false)}><Button variant="primary" fullWidth>Iscriviti Ora</Button></Link>
               </>
             )}
           </div>
