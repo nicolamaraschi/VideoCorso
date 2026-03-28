@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, CheckCircle, Circle, Lock } from 'lucide-react';
+import { ChevronDown, ChevronRight, CheckCircle } from 'lucide-react';
 import type { Chapter, Lesson, Progress } from '../../types';
 import { LessonCard } from './LessonCard';
 

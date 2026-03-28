@@ -6,6 +6,7 @@ import { Loading } from '../components/common/Loading';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { StatsCards } from '../components/admin/StatsCards';
 import { formatDate, formatCurrency } from '../utils/formatters';
+import { getErrorMessage } from '../utils/errors';
 
 export const AdminDashboardPage: React.FC = () => {
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -22,8 +23,8 @@ export const AdminDashboardPage: React.FC = () => {
       setError(null);
       const data = await adminService.getStats();
       setStats(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load statistics');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to load statistics'));
     } finally {
       setLoading(false);
     }

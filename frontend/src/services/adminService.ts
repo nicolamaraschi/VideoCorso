@@ -1,23 +1,29 @@
 import apiClient from './api';
 import type {
+  AdminCourseRequest,
+  AdminStats,
+  AdminAccount,
+  ApiResponse,
+  Chapter,
+  Coupon,
+  CouponRequest,
+  Course,
+  Lesson,
+  PaginatedResponse,
+  PurchaseDetail,
+  PurchaseRecord,
+  ReorderRequest,
+  StudentDetail,
+  StudentListItem,
+  UpdateStudentRequest,
   UploadVideoRequest,
   UploadVideoResponse,
   CreateChapterRequest,
   CreateLessonRequest,
-  ReorderRequest,
-  AdminStats,
-  StudentListItem,
-  UpdateStudentRequest,
-  ApiResponse,
-  PaginatedResponse,
-  Chapter,
-  Lesson,
-  // FIX: Importa il tipo User
   User,
 } from '../types';
 
 export const adminService = {
-  // Video Management
   async getUploadUrl(data: UploadVideoRequest): Promise<UploadVideoResponse> {
     return apiClient.post<UploadVideoResponse>('/admin/video/upload', data);
   },
@@ -26,17 +32,48 @@ export const adminService = {
     await fetch(uploadUrl, {
       method: 'PUT',
       body: file,
-      headers: {
-        'Content-Type': file.type,
-      },
+      headers: { 'Content-Type': file.type },
     });
   },
 
   async deleteVideo(videoId: string): Promise<ApiResponse> {
-    return apiClient.delete<ApiResponse>(`/admin/video/${videoId}`);
+    return apiClient.delete<ApiResponse>(`/admin/video/${encodeURIComponent(videoId)}`);
   },
 
-  // Chapter Management
+  async getCourses(): Promise<Course[]> {
+    const response = await apiClient.get<{ items: Course[] }>('/admin/courses');
+    return response.items;
+  },
+
+  async getAdminAccounts(): Promise<AdminAccount[]> {
+    const response = await apiClient.get<{ items: AdminAccount[] }>('/admin/accounts');
+    return response.items;
+  },
+
+  async createAdminAccount(data: { email: string; full_name: string }): Promise<ApiResponse<AdminAccount>> {
+    return apiClient.post<ApiResponse<AdminAccount>>('/admin/account', data);
+  },
+
+  async updateAdminAccount(email: string, data: { full_name?: string; enabled?: boolean }): Promise<ApiResponse> {
+    return apiClient.patch<ApiResponse>(`/admin/account/${encodeURIComponent(email)}`, data);
+  },
+
+  async deleteAdminAccount(email: string): Promise<ApiResponse> {
+    return apiClient.delete<ApiResponse>(`/admin/account/${encodeURIComponent(email)}`);
+  },
+
+  async resendAdminInvite(email: string): Promise<ApiResponse> {
+    return apiClient.post<ApiResponse>(`/admin/account/${encodeURIComponent(email)}/resend-invite`);
+  },
+
+  async createCourse(data: AdminCourseRequest): Promise<ApiResponse<Course>> {
+    return apiClient.post<ApiResponse<Course>>('/admin/course', data);
+  },
+
+  async updateCourse(courseId: string, data: Partial<AdminCourseRequest>): Promise<ApiResponse<Course>> {
+    return apiClient.put<ApiResponse<Course>>(`/admin/course/${courseId}`, data);
+  },
+
   async createChapter(data: CreateChapterRequest): Promise<ApiResponse<Chapter>> {
     return apiClient.post<ApiResponse<Chapter>>('/admin/course/chapter', data);
   },
@@ -49,7 +86,6 @@ export const adminService = {
     return apiClient.delete<ApiResponse>(`/admin/course/chapter/${chapterId}`);
   },
 
-  // Lesson Management
   async createLesson(data: CreateLessonRequest): Promise<ApiResponse<Lesson>> {
     return apiClient.post<ApiResponse<Lesson>>('/admin/course/lesson', data);
   },
@@ -62,7 +98,6 @@ export const adminService = {
     return apiClient.delete<ApiResponse>(`/admin/course/lesson/${lessonId}`);
   },
 
-  // Reordering
   async reorderChapters(data: ReorderRequest): Promise<ApiResponse> {
     return apiClient.put<ApiResponse>('/admin/course/reorder-chapters', data);
   },
@@ -71,46 +106,92 @@ export const adminService = {
     return apiClient.put<ApiResponse>('/admin/course/reorder-lessons', data);
   },
 
-  // Student Management
-  async getStudents(page: number = 1, perPage: number = 20): Promise<PaginatedResponse<StudentListItem>> {
-    const response = await apiClient.get<PaginatedResponse<any>>(`/admin/students?page=${page}&per_page=${perPage}`);
-    return {
-      ...response,
-      items: response.items.map((item: any) => ({
-        user_id: item.user_id,
-        email: item.email,
-        full_name: item.full_name || 'N/A',
-        subscription_status: item.subscription_status || 'active',
-        subscription_end_date: item.sub_end_date || item.subscription_end_date || new Date().toISOString(),
-        total_watch_time: item.total_watch_time || 0,
-        last_login: item.last_login || new Date().toISOString(),
-        purchase_date: item.created_at || item.purchase_date || new Date().toISOString(),
-        completion_percentage: item.completion_percentage || 0,
-      })),
-    };
-  },
-
-  // FIX: Aggiunta funzione per creare studente
-  async createStudent(data: { email: string; full_name: string }): Promise<ApiResponse<User>> {
-    return apiClient.post<ApiResponse<User>>('/admin/student/create', data);
-  },
-
-  async updateStudent(studentId: string, data: UpdateStudentRequest): Promise<ApiResponse> {
-    return apiClient.patch<ApiResponse>(`/admin/student/${studentId}`, data);
+  async getStudents(page: number = 1, perPage: number = 50): Promise<PaginatedResponse<StudentListItem>> {
+    return apiClient.get<PaginatedResponse<StudentListItem>>(`/admin/students?page=${page}&per_page=${perPage}`);
   },
 
   async searchStudents(query: string): Promise<StudentListItem[]> {
     return apiClient.get<StudentListItem[]>(`/admin/students/search?q=${encodeURIComponent(query)}`);
   },
 
-  // Statistics
+  async getStudentDetail(studentId: string): Promise<StudentDetail> {
+    return apiClient.get<StudentDetail>(`/admin/student/${studentId}`);
+  },
+
+  async createStudent(data: { email: string; full_name: string }): Promise<ApiResponse<User>> {
+    return apiClient.post<ApiResponse<User>>('/admin/student/create', data);
+  },
+
+  async updateStudent(studentId: string, data: UpdateStudentRequest): Promise<ApiResponse<User>> {
+    return apiClient.patch<ApiResponse<User>>(`/admin/student/${studentId}`, data);
+  },
+
+  async resendInvite(studentId: string): Promise<ApiResponse> {
+    return apiClient.post<ApiResponse>(`/admin/student/${studentId}/resend-invite`);
+  },
+
+  async getPurchases(filters?: { status?: string; course_id?: string; email?: string; origin?: string }): Promise<PurchaseRecord[]> {
+    const query = new URLSearchParams();
+    if (filters?.status) {
+      query.set('status', filters.status);
+    }
+    if (filters?.course_id) {
+      query.set('course_id', filters.course_id);
+    }
+    if (filters?.email) {
+      query.set('email', filters.email);
+    }
+    if (filters?.origin) {
+      query.set('origin', filters.origin);
+    }
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    const response = await apiClient.get<{ items: PurchaseRecord[] }>(`/admin/purchases${suffix}`);
+    return response.items;
+  },
+
+  async getPurchaseDetail(purchaseId: string): Promise<PurchaseDetail> {
+    return apiClient.get<PurchaseDetail>(`/admin/purchase/${purchaseId}`);
+  },
+
+  async resyncPurchase(purchaseId: string): Promise<ApiResponse<PurchaseRecord>> {
+    return apiClient.post<ApiResponse<PurchaseRecord>>(`/admin/purchase/${purchaseId}/resync`);
+  },
+
+  async forceUnlockPurchase(purchaseId: string): Promise<ApiResponse<PurchaseRecord>> {
+    return apiClient.post<ApiResponse<PurchaseRecord>>(`/admin/purchase/${purchaseId}/unlock`);
+  },
+
+  async revokePurchase(purchaseId: string): Promise<ApiResponse<PurchaseRecord>> {
+    return apiClient.post<ApiResponse<PurchaseRecord>>(`/admin/purchase/${purchaseId}/revoke`);
+  },
+
+  async markPurchaseVerified(purchaseId: string): Promise<ApiResponse<PurchaseRecord>> {
+    return apiClient.post<ApiResponse<PurchaseRecord>>(`/admin/purchase/${purchaseId}/mark-verified`);
+  },
+
+  async getCoupons(): Promise<Coupon[]> {
+    const response = await apiClient.get<{ items: Coupon[] }>('/admin/coupons');
+    return response.items;
+  },
+
+  async createCoupon(data: CouponRequest): Promise<ApiResponse<Coupon>> {
+    return apiClient.post<ApiResponse<Coupon>>('/admin/coupon', data);
+  },
+
+  async updateCoupon(couponId: string, data: Partial<CouponRequest>): Promise<ApiResponse<Coupon>> {
+    return apiClient.put<ApiResponse<Coupon>>(`/admin/coupon/${couponId}`, data);
+  },
+
+  async testCoupon(data: { code: string; course_id?: string; email?: string }): Promise<{ valid: boolean; reason: string; final_total?: number }> {
+    return apiClient.post<{ valid: boolean; reason: string; final_total?: number }>('/admin/coupon/test', data);
+  },
+
   async getStats(): Promise<AdminStats> {
     return apiClient.get<AdminStats>('/admin/stats');
   },
 
-  // Generate thumbnail from video
-  async generateThumbnail(videoKey: string, timestamp: number = 0): Promise<{ thumbnail_url: string }> {
-    return apiClient.post<{ thumbnail_url: string }>('/admin/video/thumbnail', {
+  async generateThumbnail(videoKey: string, timestamp: number = 0): Promise<{ thumbnail_url: string; message?: string }> {
+    return apiClient.post<{ thumbnail_url: string; message?: string }>('/admin/video/thumbnail', {
       video_s3_key: videoKey,
       timestamp,
     });

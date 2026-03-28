@@ -2,10 +2,21 @@ export interface Course {
   course_id: string;
   title: string;
   description: string;
+  subtitle?: string;
+  short_description?: string;
+  long_description?: string;
   price: number;
+  discounted_price?: number | null;
+  cover_image_url?: string;
+  status?: 'draft' | 'published' | 'hidden' | 'archived';
+  is_purchasable?: boolean;
+  public_slug?: string;
+  display_order?: number;
+  badge?: '' | 'bestseller' | 'new' | 'sale';
   created_at: string;
   updated_at: string;
   is_active: boolean;
+  has_access?: boolean;
 }
 
 export interface Chapter {
@@ -46,6 +57,11 @@ export interface CourseStructure {
   chapters: Chapter[];
 }
 
+export interface CourseListItem extends Course {
+  access_granted_by?: 'purchase' | 'global_access';
+  purchase?: import('./user.types').PurchaseRecord | null;
+}
+
 export interface VideoPlayerData {
   lesson: Lesson;
   videoUrl: string;
@@ -60,11 +76,12 @@ export interface ChapterProgress {
 }
 
 export interface CourseProgress {
+  course_id?: string;
   total_lessons: number;
   completed_lessons: number;
   percentage: number;
   chapters: ChapterProgress[];
   last_watched_lesson?: Lesson;
-  lesson_progress: Record<string, Progress>; // <--- AGGIUNTO
-  total_watch_time: number; // <--- AGGIUNTO
+  lesson_progress: Record<string, Progress>;
+  total_watch_time: number;
 }

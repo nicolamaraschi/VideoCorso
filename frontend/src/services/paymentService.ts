@@ -3,6 +3,7 @@ import type{
   CreateCheckoutRequest,
   CreateCheckoutResponse,
   ApiResponse,
+  Subscription,
 } from '../types';
 
 export const paymentService = {
@@ -12,12 +13,11 @@ export const paymentService = {
   },
 
   // Verify payment status (after redirect from Stripe)
-  async verifyPayment(sessionId: string): Promise<ApiResponse<any>> {
-    return apiClient.get<ApiResponse<any>>(`/payment/verify/${sessionId}`);
+  async verifyPayment(sessionId: string): Promise<ApiResponse<unknown>> {
+    return apiClient.get<ApiResponse<unknown>>(`/payment/verify/${sessionId}`);
   },
 
-  // Get user's subscription info
-  async getSubscription(): Promise<any> {
-    return apiClient.get<any>('/user/subscription');
+  async getSubscription(): Promise<Subscription> {
+    return apiClient.get<Subscription>('/user/subscription');
   },
 };

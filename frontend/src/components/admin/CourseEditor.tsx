@@ -10,13 +10,21 @@ import { VideoPlayer } from '../course/VideoPlayer';
 import { courseService } from '../../services/courseService';
 import { Loading } from '../common/Loading';
 
+type LessonFormData = {
+  title: string;
+  description: string;
+  duration_seconds: number;
+  video_s3_key: string;
+  is_free_preview: boolean;
+};
+
 interface CourseEditorProps {
   chapters: Chapter[];
   onCreateChapter: (data: { title: string; description: string }) => Promise<void>;
   onUpdateChapter: (chapterId: string, data: Partial<Chapter>) => Promise<void>;
   onDeleteChapter: (chapterId: string) => Promise<void>;
-  onCreateLesson: (chapterId: string, data: any) => Promise<void>;
-  onUpdateLesson: (lessonId: string, data: any) => Promise<void>;
+  onCreateLesson: (chapterId: string, data: LessonFormData) => Promise<void>;
+  onUpdateLesson: (lessonId: string, data: Partial<LessonFormData>) => Promise<void>;
   onDeleteLesson: (lessonId: string) => Promise<void>;
   onReorderChapters: (items: { id: string; order_number: number }[]) => Promise<void>;
   onReorderLessons: (items: { id: string; order_number: number }[]) => Promise<void>;

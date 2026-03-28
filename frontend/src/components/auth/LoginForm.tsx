@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, AlertCircle, KeyRound, CheckCircle } from 'lucide-react';
 import { Button } from '../common/Button';
-import { useAuthContext } from './AuthContext.tsx';
+import { useAuthContext } from './useAuthContext';
 import { validateEmail } from '../../utils/validators';
+import type { AuthUser } from '../../types';
 
 export const LoginForm: React.FC = () => {
   type View = 'login' | 'forgot' | 'reset';
@@ -28,7 +29,7 @@ export const LoginForm: React.FC = () => {
   
   const navigate = useNavigate();
 
-  const handleRedirect = (user: any) => {
+  const handleRedirect = (user?: AuthUser | null) => {
     if (user?.isAdmin) {
       navigate('/admin');
     } else {
@@ -81,7 +82,7 @@ export const LoginForm: React.FC = () => {
           setError(result.error || 'Impossibile impostare la password');
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Login form error:', err);
       setError('Si è verificato un errore imprevisto.');
     } finally {

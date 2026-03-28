@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuthContext } from './AuthContext.tsx'; // <--- PERCORSO CORRETTO
+import { useAuthContext } from './useAuthContext';
 import { Loading } from '../common/Loading';
 
 interface ProtectedRouteProps {

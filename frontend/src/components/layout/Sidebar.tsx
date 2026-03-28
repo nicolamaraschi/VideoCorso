@@ -6,6 +6,9 @@ import {
   BarChart3,
   BookOpen,
   ChevronRight,
+  CreditCard,
+  Shield,
+  TicketPercent,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -16,15 +19,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
   const location = useLocation();
 
   const studentLinks = [
-    { to: '/dashboard', icon: Home, label: 'Dashboard' },
-    { to: '/dashboard/course', icon: BookOpen, label: 'Course' },
+    { to: '/dashboard', icon: Home, label: 'I Miei Corsi' },
   ];
 
   const adminLinks = [
     { to: '/admin', icon: BarChart3, label: 'Dashboard' },
-    { to: '/admin/course', icon: BookOpen, label: 'Course Structure' },
-    // RIMOSSO: Link a 'Upload Videos'
+    { to: '/admin/course', icon: BookOpen, label: 'Catalogo Corsi' },
     { to: '/admin/students', icon: Users, label: 'Students' },
+    { to: '/admin/purchases', icon: CreditCard, label: 'Purchases' },
+    { to: '/admin/coupons', icon: TicketPercent, label: 'Coupons' },
+    { to: '/admin/accounts', icon: Shield, label: 'Admin Accounts' },
   ];
 
   const links = isAdmin ? adminLinks : studentLinks;
@@ -34,7 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
       <nav className="p-4 space-y-1">
         {links.map((link) => {
           const Icon = link.icon;
-          const isActive = location.pathname === link.to;
+          const isActive = location.pathname === link.to || location.pathname.startsWith(`${link.to}/`);
 
           return (
             <Link

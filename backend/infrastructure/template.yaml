@@ -38,6 +38,8 @@ Globals:
         CHAPTERS_TABLE: !Ref ChaptersTable
         LESSONS_TABLE: !Ref LessonsTable
         PURCHASES_TABLE: !Ref PurchasesTable
+        COUPONS_TABLE: !Ref CouponsTable
+        WEBHOOK_EVENTS_TABLE: !Ref WebhookEventsTable
         PROGRESS_TABLE: !Ref ProgressTable
         USERS_TABLE: !Ref UsersTable
         VIDEO_BUCKET: !Ref VideoBucket
@@ -124,6 +126,30 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: ALL
+
+  CouponsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${Environment}-videocorso-coupons'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: coupon_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: coupon_id
+          KeyType: HASH
+
+  WebhookEventsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${Environment}-videocorso-webhook-events'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: event_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: event_id
+          KeyType: HASH
 
   ProgressTable:
     Type: AWS::DynamoDB::Table
@@ -279,8 +305,14 @@ Resources:
       CodeUri: ../lambda/payment_handler/
       Handler: app.lambda_handler
       Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref CoursesTable
         - DynamoDBCrudPolicy:
             TableName: !Ref PurchasesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CouponsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WebhookEventsTable
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
         - Version: '2012-10-17'
@@ -290,7 +322,8 @@ Resources:
                 - cognito-idp:AdminCreateUser
                 - cognito-idp:AdminSetUserPassword
                 - cognito-idp:AdminAddUserToGroup
-                - cognito-idp:AdminGetUser # FIX: Aggiunto permesso per controllare se utente esiste
+                - cognito-idp:AdminGetUser
+                - cognito-idp:AdminUpdateUserAttributes
               Resource: !GetAtt UserPool.Arn
             - Effect: Allow
               Action:
@@ -313,6 +346,14 @@ Resources:
             Method: POST
             Auth:
               Authorizer: NONE
+        VerifyPayment:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /payment/verify/{sessionId}
+            Method: GET
+            Auth:
+              Authorizer: NONE
 
   CourseHandler:
     Type: AWS::Serverless::Function
@@ -327,6 +368,10 @@ Resources:
             TableName: !Ref ChaptersTable
         - DynamoDBCrudPolicy:
             TableName: !Ref LessonsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref PurchasesTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref UsersTable
       Events:
         GetCourseStructure:
           Type: Api
@@ -342,6 +387,26 @@ Resources:
             Method: GET
             Auth:
               Authorizer: NONE
+        GetCoursesCatalog:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /courses
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        GetCourseById:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /courses/{courseId}
+            Method: GET
+        GetMyCourses:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /me/courses
+            Method: GET
 
   VideoHandler:
     Type: AWS::Serverless::Function
@@ -357,6 +422,12 @@ Resources:
             BucketName: !Ref VideoBucket
         - DynamoDBReadPolicy:
             TableName: !Ref LessonsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref ChaptersTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref PurchasesTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref UsersTable
       Events:
         GetVideoUrl:
           Type: Api
@@ -378,6 +449,12 @@ Resources:
             TableName: !Ref PurchasesTable
         - DynamoDBReadPolicy:
             TableName: !Ref LessonsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref ChaptersTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref CoursesTable
       Events:
         UpdateProgress:
           Type: Api
@@ -409,6 +486,12 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /user/subscription
             Method: GET
+        GetCourseProgress:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /me/courses/{courseId}/progress
+            Method: GET
 
   AdminHandler:
     Type: AWS::Serverless::Function
@@ -431,6 +514,8 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref PurchasesTable
         - DynamoDBCrudPolicy:
+            TableName: !Ref CouponsTable
+        - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
         - DynamoDBCrudPolicy:
             TableName: !Ref ProgressTable
@@ -446,13 +531,55 @@ Resources:
                 - cognito-idp:AdminCreateUser
                 - cognito-idp:AdminAddUserToGroup
                 - cognito-idp:AdminGetUser
+                - cognito-idp:AdminUpdateUserAttributes
+                - cognito-idp:AdminSetUserPassword
+                - cognito-idp:AdminDeleteUser
+                - cognito-idp:AdminEnableUser
+                - cognito-idp:AdminDisableUser
+                - cognito-idp:ListUsersInGroup
               Resource: !GetAtt UserPool.Arn
       Events:
+        GetAdminAccounts:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/accounts
+            Method: GET
+        CreateAdminAccount:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/account
+            Method: POST
         CreateChapter:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /admin/course/chapter
+            Method: POST
+        GetCourses:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/courses
+            Method: GET
+        CreateCourse:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/course
+            Method: POST
+        GetCoupons:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/coupons
+            Method: GET
+        CreateCoupon:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/coupon
             Method: POST
         CreateLesson:
           Type: Api
@@ -490,6 +617,18 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /admin/course/chapter/{chapterId}
             Method: PUT
+        UpdateCourse:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/course/{courseId}
+            Method: PUT
+        UpdateCoupon:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/coupon/{couponId}
+            Method: PUT
         DeleteChapter:
           Type: Api
           Properties:
@@ -526,6 +665,12 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /admin/student/{studentId}
             Method: PATCH
+        GetStudentDetail:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/student/{studentId}
+            Method: GET
         SearchStudents:
           Type: Api
           Properties:
@@ -544,6 +689,72 @@ Resources:
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /admin/student/create
+            Method: POST
+        UpdateAdminAccount:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/account/{email}
+            Method: PATCH
+        DeleteAdminAccount:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/account/{email}
+            Method: DELETE
+        ResendAdminInvite:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/account/{email}/resend-invite
+            Method: POST
+        ResendInvite:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/student/{studentId}/resend-invite
+            Method: POST
+        GetPurchases:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/purchases
+            Method: GET
+        GetPurchaseDetail:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/purchase/{purchaseId}
+            Method: GET
+        PurchaseResync:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/purchase/{purchaseId}/resync
+            Method: POST
+        PurchaseUnlock:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/purchase/{purchaseId}/unlock
+            Method: POST
+        PurchaseRevoke:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/purchase/{purchaseId}/revoke
+            Method: POST
+        PurchaseMarkVerified:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/purchase/{purchaseId}/mark-verified
+            Method: POST
+        CouponTest:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/coupon/test
             Method: POST
 
   # ==================== CloudFront ====================

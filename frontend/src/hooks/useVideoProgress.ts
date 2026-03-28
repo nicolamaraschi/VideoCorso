@@ -13,9 +13,70 @@ export const useVideoProgress = ({ lessonId, videoElement }: UseVideoProgressPro
   const lastSavedTime = useRef<number>(0);
   const saveTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    loadProgress();
+  const loadProgress = useCallback(async () => {
+    try {
+      const data = await courseService.getLessonProgress(lessonId);
+      setProgress(data);
+    } catch (err) {
+      console.error('Failed to load progress:', err);
+    }
   }, [lessonId]);
+
+  const saveProgress = useCallback(async (watchedSeconds: number, totalSeconds: number) => {
+    try {
+      setIsSaving(true);
+
+      const response = await courseService.updateProgress({
+        lesson_id: lessonId,
+        watched_seconds: Math.floor(watchedSeconds),
+        total_seconds: Math.floor(totalSeconds),
+        completed: false,
+      });
+
+      if (response.data) {
+        setProgress(response.data);
+      }
+    } catch (err) {
+      console.error('Failed to save progress:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [lessonId]);
+
+  const markComplete = useCallback(async (watchedSeconds: number, totalSeconds: number) => {
+    try {
+      setIsSaving(true);
+
+      const response = await courseService.updateProgress({
+        lesson_id: lessonId,
+        watched_seconds: Math.floor(watchedSeconds),
+        total_seconds: Math.floor(totalSeconds),
+        completed: true,
+      });
+
+      if (response.data) {
+        setProgress(response.data);
+      }
+    } catch (err) {
+      console.error('Failed to mark complete:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [lessonId]);
+
+  const debouncedSave = useCallback((watchedSeconds: number, totalSeconds: number) => {
+    if (saveTimeout.current) {
+      clearTimeout(saveTimeout.current);
+    }
+
+    saveTimeout.current = setTimeout(() => {
+      void saveProgress(watchedSeconds, totalSeconds);
+    }, 1000);
+  }, [saveProgress]);
+
+  useEffect(() => {
+    void loadProgress();
+  }, [loadProgress]);
 
   useEffect(() => {
     if (!videoElement || !progress) return;
@@ -60,68 +121,7 @@ export const useVideoProgress = ({ lessonId, videoElement }: UseVideoProgressPro
         saveProgress(videoElement.currentTime, videoElement.duration);
       }
     };
-  }, [videoElement, progress, lessonId]);
-
-  const loadProgress = async () => {
-    try {
-      const data = await courseService.getLessonProgress(lessonId);
-      setProgress(data);
-    } catch (err) {
-      console.error('Failed to load progress:', err);
-    }
-  };
-
-  const debouncedSave = useCallback((watchedSeconds: number, totalSeconds: number) => {
-    if (saveTimeout.current) {
-      clearTimeout(saveTimeout.current);
-    }
-
-    saveTimeout.current = setTimeout(() => {
-      saveProgress(watchedSeconds, totalSeconds);
-    }, 1000);
-  }, [lessonId]);
-
-  const saveProgress = async (watchedSeconds: number, totalSeconds: number) => {
-    try {
-      setIsSaving(true);
-
-      const response = await courseService.updateProgress({
-        lesson_id: lessonId,
-        watched_seconds: Math.floor(watchedSeconds),
-        total_seconds: Math.floor(totalSeconds),
-        completed: false,
-      });
-
-      if (response.data) {
-        setProgress(response.data);
-      }
-    } catch (err) {
-      console.error('Failed to save progress:', err);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const markComplete = async (watchedSeconds: number, totalSeconds: number) => {
-    try {
-      setIsSaving(true);
-
-      const response = await courseService.updateProgress({
-        lesson_id: lessonId,
-        watched_seconds: Math.floor(watchedSeconds),
-        total_seconds: Math.floor(totalSeconds),
-        completed: true,
-      });
-
-      if (response.data) {
-        setProgress(response.data);
-      }
-    } catch (err) {
-      console.error('Failed to mark complete:', err);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  }, [videoElement, progress, debouncedSave, markComplete, saveProgress]);
 
   const resetProgress = async () => {
     try {
@@ -147,7 +147,7 @@ export const useVideoProgress = ({ lessonId, videoElement }: UseVideoProgressPro
     resetProgress,
     markComplete: () => {
       if (videoElement) {
-        markComplete(videoElement.currentTime, videoElement.duration);
+        void markComplete(videoElement.currentTime, videoElement.duration);
       }
     },
   };

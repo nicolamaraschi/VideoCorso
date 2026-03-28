@@ -12,11 +12,25 @@ export const formatDuration = (seconds: number): string => {
 };
 
 export const formatDate = (dateString: string): string => {
-  return format(new Date(dateString), 'MMM dd, yyyy');
+  if (!dateString) {
+    return 'N/D';
+  }
+  const parsed = new Date(dateString);
+  if (Number.isNaN(parsed.getTime())) {
+    return 'N/D';
+  }
+  return format(parsed, 'MMM dd, yyyy');
 };
 
 export const formatDateTime = (dateString: string): string => {
-  return format(new Date(dateString), 'MMM dd, yyyy HH:mm');
+  if (!dateString) {
+    return 'N/D';
+  }
+  const parsed = new Date(dateString);
+  if (Number.isNaN(parsed.getTime())) {
+    return 'N/D';
+  }
+  return format(parsed, 'MMM dd, yyyy HH:mm');
 };
 
 export const formatRelativeTime = (dateString: string): string => {
@@ -27,7 +41,7 @@ export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('it-IT', {
     style: 'currency',
     currency: 'EUR',
-  }).format(amount / 100);
+  }).format(amount);
 };
 
 export const formatPercentage = (value: number, decimals: number = 0): string => {

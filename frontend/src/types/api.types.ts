@@ -1,4 +1,4 @@
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -19,11 +19,14 @@ export interface CreateCheckoutRequest {
   success_url: string;
   cancel_url: string;
   email?: string;
+  coupon_code?: string;
 }
 
 export interface CreateCheckoutResponse {
   session_id: string;
   checkout_url: string;
+  purchase_id?: string;
+  is_free_access?: boolean;
 }
 
 // Video API types
@@ -59,6 +62,23 @@ export interface UploadVideoResponse {
   upload_url: string;
   video_s3_key: string;
   expires_at: string;
+}
+
+export interface AdminCourseRequest {
+  title: string;
+  description: string;
+  subtitle?: string;
+  short_description?: string;
+  long_description?: string;
+  price: number;
+  discounted_price?: number | null;
+  cover_image_url?: string;
+  status?: 'draft' | 'published' | 'hidden' | 'archived';
+  is_active: boolean;
+  is_purchasable?: boolean;
+  public_slug?: string;
+  display_order?: number;
+  badge?: '' | 'bestseller' | 'new' | 'sale';
 }
 
 export interface CreateChapterRequest {
@@ -113,19 +133,22 @@ export interface AdminStats {
   _debug_dates?: string[];
 }
 
-export interface StudentListItem {
-  user_id: string;
-  email: string;
-  full_name: string;
-  subscription_status: string;
-  subscription_end_date: string;
-  total_watch_time: number;
-  last_login: string;
-  purchase_date: string;
-  completion_percentage: number;
-}
-
 export interface UpdateStudentRequest {
   subscription_end_date?: string;
   subscription_status?: string;
+  full_name?: string;
+  global_access?: boolean;
+}
+
+export interface CouponRequest {
+  code: string;
+  course_scope: string[];
+  discount_type: 'percent' | 'fixed';
+  discount_value: number;
+  starts_at?: string | null;
+  expires_at?: string | null;
+  max_redemptions?: number | null;
+  allowed_user_emails: string[];
+  is_active: boolean;
+  is_free_access: boolean;
 }

@@ -1,99 +1,179 @@
 import json
 import os
-import boto3
-from decimal import Decimal
-from botocore.exceptions import ClientError
 from datetime import datetime, timedelta
+from decimal import Decimal
+from typing import Any, Optional
 
-# --- Helpers ---
+import boto3
+from boto3.dynamodb.conditions import Key
+from botocore.exceptions import ClientError
+
+
+LEGACY_COURSE_ID = 'legacy-default-course'
+
 
 class DecimalEncoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, obj: Any):
         if isinstance(obj, Decimal):
             if obj % 1 == 0:
                 return int(obj)
             return float(obj)
-        return super(DecimalEncoder, self).default(obj)
+        return super().default(obj)
 
-def create_response(status_code, body):
+
+def create_response(status_code: int, body: Any):
     return {
         'statusCode': status_code,
         'headers': {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type,Authorization'
+            'Access-Control-Allow-Methods': 'GET,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization',
         },
-        'body': json.dumps(body, cls=DecimalEncoder)
+        'body': json.dumps(body, cls=DecimalEncoder),
     }
 
-def get_user_id(event):
+
+def get_user_id(event) -> Optional[str]:
     try:
-        # L'autenticazione è gestita da API Gateway (CognitoAuthorizer)
         return event['requestContext']['authorizer']['claims']['sub']
     except KeyError:
         return None
 
-# --- Inizializzazione ---
+
+def is_admin(event) -> bool:
+    try:
+        groups = event['requestContext']['authorizer']['claims'].get('cognito:groups', '')
+        if isinstance(groups, str):
+            return 'admin' in groups.split(',') if groups else False
+        if isinstance(groups, list):
+            return 'admin' in groups
+    except KeyError:
+        pass
+    return False
+
+
+def query_all(table, **kwargs):
+    items = []
+    last_key = None
+    while True:
+        current_kwargs = dict(kwargs)
+        if last_key:
+            current_kwargs['ExclusiveStartKey'] = last_key
+        response = table.query(**current_kwargs)
+        items.extend(response.get('Items', []))
+        last_key = response.get('LastEvaluatedKey')
+        if not last_key:
+            break
+    return items
+
+
+def normalize_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.lower() in {'true', '1', 'yes', 'on'}
+    return bool(value)
+
+
+def get_user_item(user_id: str) -> dict[str, Any]:
+    response = users_table.get_item(Key={'user_id': user_id})
+    return response.get('Item') or {}
+
+
+def get_user_purchases(user_id: str) -> list[dict[str, Any]]:
+    return query_all(
+        purchases_table,
+        IndexName='UserIndex',
+        KeyConditionExpression=Key('user_id').eq(user_id),
+    )
+
+
+def user_has_global_access(user_item: dict[str, Any]) -> bool:
+    if normalize_bool(user_item.get('global_access', False)):
+        return True
+
+    status = str(user_item.get('subscription_status', '')).lower()
+    return status == 'active' and not user_item.get('sub_end_date')
+
+
+def normalize_purchase_course_id(purchase: dict[str, Any]) -> str:
+    return purchase.get('course_id') or LEGACY_COURSE_ID
+
+
+def purchase_grants_access(purchase: dict[str, Any]) -> bool:
+    local_status = str(purchase.get('local_status') or purchase.get('status') or '')
+    access_unlocked = normalize_bool(purchase.get('access_unlocked', local_status in {'paid', 'active'}))
+    access_revoked = normalize_bool(purchase.get('access_revoked', False))
+    refunded_amount = Decimal(str(purchase.get('refunded_amount', 0) or 0))
+    return local_status in {'paid', 'needs_review'} and access_unlocked and not access_revoked and refunded_amount <= 0
+
+
+def can_access_course(user_id: str, course_id: str) -> bool:
+    if user_has_global_access(get_user_item(user_id)):
+        return True
+
+    for purchase in get_user_purchases(user_id):
+        if normalize_purchase_course_id(purchase) == course_id and purchase_grants_access(purchase):
+            return True
+
+    return False
+
+
+def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False):
+    lesson_response = lessons_table.get_item(Key={'lesson_id': lesson_id})
+    lesson = lesson_response.get('Item')
+    if not lesson:
+        return create_response(404, {'error': 'Lesson not found'})
+
+    chapter_response = chapters_table.get_item(Key={'chapter_id': lesson.get('chapter_id')})
+    chapter = chapter_response.get('Item')
+    if not chapter:
+        return create_response(404, {'error': 'Chapter not found'})
+
+    course_id = chapter.get('course_id')
+    is_free_preview = normalize_bool(lesson.get('is_free_preview', False))
+    if not is_free_preview and not admin_bypass and not can_access_course(user_id, course_id):
+        return create_response(403, {'error': 'Course access required'})
+
+    video_s3_key = lesson.get('video_s3_key')
+    if not video_s3_key:
+        return create_response(404, {'error': 'No video found for this lesson'})
+
+    try:
+        presigned_url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': video_bucket_name, 'Key': video_s3_key},
+            ExpiresIn=3600,
+        )
+    except ClientError as exc:
+        print(f'generate_presigned_url error: {exc}')
+        return create_response(500, {'error': 'Failed to generate video URL'})
+
+    return create_response(200, {
+        'video_url': presigned_url,
+        'expires_at': (datetime.utcnow() + timedelta(hours=1)).isoformat() + 'Z',
+        'course_id': course_id,
+    })
+
 
 dynamodb = boto3.resource('dynamodb')
 s3_client = boto3.client('s3')
 
-LESSONS_TABLE_NAME = os.environ.get('LESSONS_TABLE')
-VIDEO_BUCKET_NAME = os.environ.get('VIDEO_BUCKET')
+lessons_table = dynamodb.Table(os.environ.get('LESSONS_TABLE'))
+chapters_table = dynamodb.Table(os.environ.get('CHAPTERS_TABLE'))
+purchases_table = dynamodb.Table(os.environ.get('PURCHASES_TABLE'))
+users_table = dynamodb.Table(os.environ.get('USERS_TABLE'))
+video_bucket_name = os.environ.get('VIDEO_BUCKET')
 
-lessons_table = dynamodb.Table(LESSONS_TABLE_NAME)
-
-# --- Funzioni Logiche ---
-
-def get_video_url(user_id, lesson_id):
-    try:
-        # TODO: Aggiungere logica di controllo iscrizione
-        # Attualmente, se l'utente è autenticato (user_id != None), 
-        # gli viene concesso l'accesso.
-        
-        # 1. Trova la lezione nel DB
-        lesson_response = lessons_table.get_item(
-            Key={'lesson_id': lesson_id}
-        )
-        
-        if 'Item' not in lesson_response:
-            return create_response(404, {'error': 'Lesson not found'})
-            
-        lesson = lesson_response['Item']
-        video_s3_key = lesson.get('video_s3_key')
-
-        if not video_s3_key:
-            return create_response(404, {'error': 'No video S3 key associated with this lesson'})
-
-        # 2. Genera un S3 Pre-signed URL (valido per 1 ora)
-        # Questo è coerente con i permessi S3ReadPolicy dati alla Lambda
-        try:
-            presigned_url = s3_client.generate_presigned_url(
-                'get_object',
-                Params={'Bucket': VIDEO_BUCKET_NAME, 'Key': video_s3_key},
-                ExpiresIn=3600  # 1 ora
-            )
-            
-            return create_response(200, {
-                'video_url': presigned_url,
-                'expires_at': (datetime.utcnow() + timedelta(hours=1)).isoformat() + "Z"
-            })
-            
-        except ClientError as e:
-            print(f"Errore S3 generate_presigned_url: {e}")
-            return create_response(500, {'error': f'S3 Error: {e}'})
-
-    except Exception as e:
-        print(f"Errore get_video_url: {e}")
-        return create_response(500, {'error': f"Internal server error: {e}"})
-
-# --- Handler Principale ---
 
 def lambda_handler(event, context):
+    del context
     path = event.get('path', '')
     http_method = event.get('httpMethod', '')
+    path_parameters = event.get('pathParameters') or {}
     user_id = get_user_id(event)
+    admin_bypass = is_admin(event)
 
     if http_method == 'OPTIONS':
         return create_response(200, {})
@@ -101,13 +181,7 @@ def lambda_handler(event, context):
     if not user_id:
         return create_response(401, {'error': 'Unauthorized'})
 
-    # Gestione rotta per /course/video/{lesson_id}
     if path.startswith('/course/video/') and http_method == 'GET':
-        try:
-            # Il template.yaml usa {lesson_id}
-            lesson_id = event['pathParameters']['lesson_id']
-            return get_video_url(user_id, lesson_id)
-        except (KeyError, TypeError):
-            return create_response(400, {'error': 'Invalid lesson ID'})
+        return get_video_url(user_id, path_parameters.get('lesson_id'), admin_bypass=admin_bypass)
 
-    return create_response(404, {'error': 'VideoHandler: Not found'})
+    return create_response(404, {'error': 'Not found'})

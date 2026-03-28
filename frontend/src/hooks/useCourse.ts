@@ -1,94 +1,76 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { courseService } from '../services/courseService';
-import type { CourseStructure, CourseProgress, Progress } from '../types';
-import { useAuthContext } from '../components/auth/AuthContext';
+import type { CourseProgress, CourseStructure, Lesson } from '../types';
+import { useAuthContext } from '../components/auth/useAuthContext';
+import { getErrorMessage } from '../utils/errors';
 
-export const useCourse = () => {
+export const useCourse = (courseId?: string) => {
   const { isAuthenticated } = useAuthContext();
   const [courseStructure, setCourseStructure] = useState<CourseStructure | null>(null);
   const [courseProgress, setCourseProgress] = useState<CourseProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Carichiamo i dati solo se l'utente è autenticato
-    // (tranne la struttura base che potrebbe servire pubblica, ma per ora la leghiamo all'auth)
-    if (isAuthenticated) {
-      loadCourse();
-    } else {
-      // Se non autenticato, carichiamo solo la struttura (o gestiamo diversamente)
-      loadStructureOnly();
-    }
-  }, [isAuthenticated]); // Ricarica quando lo stato di auth cambia
-
-  const loadStructureOnly = async () => {
-     try {
-      setLoading(true);
-      setError(null);
-      const structure = await courseService.getCourseStructure();
-      setCourseStructure(structure);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load course structure');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const loadCourse = async () => {
+  const loadCourse = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Eseguiamo in parallelo
-      const [structure, progress] = await Promise.all([
-        courseService.getCourseStructure(),
-        courseService.getUserProgress().catch(() => null), // Non bloccare tutto se il progresso fallisce
-      ]);
-
+      const structure = await courseService.getCourseStructure(courseId);
       setCourseStructure(structure);
-      setCourseProgress(progress);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load course');
+
+      if (isAuthenticated && structure.course.has_access) {
+        const progress = await courseService.getCourseProgress(structure.course.course_id).catch(() => null);
+        setCourseProgress(progress);
+      } else {
+        setCourseProgress(null);
+      }
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to load course'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [courseId, isAuthenticated]);
+
+  useEffect(() => {
+    void loadCourse();
+  }, [loadCourse]);
 
   const refreshProgress = async () => {
+    if (!courseStructure?.course.course_id || !courseStructure.course.has_access) {
+      return;
+    }
     try {
-      const progress = await courseService.getUserProgress();
+      const progress = await courseService.getCourseProgress(courseStructure.course.course_id);
       setCourseProgress(progress);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to refresh progress:', err);
     }
   };
 
-  // ... (il resto delle funzioni helper rimane invariato)
-
-  const getLessonById = (lessonId: string) => {
-    if (!courseStructure) return null;
+  const getLessonById = (lessonId: string): Lesson | null => {
+    if (!courseStructure) {
+      return null;
+    }
 
     for (const chapter of courseStructure.chapters) {
-      const lesson = chapter.lessons?.find((l) => l.lesson_id === lessonId);
-      if (lesson) return lesson;
+      const lesson = chapter.lessons?.find((item) => item.lesson_id === lessonId);
+      if (lesson) {
+        return lesson;
+      }
     }
 
     return null;
   };
 
-  const getChapterById = (chapterId: string) => {
-    return courseStructure?.chapters.find((c) => c.chapter_id === chapterId) || null;
-  };
-
-  const getNextLesson = (currentLessonId: string) => {
-    if (!courseStructure) return null;
+  const getNextLesson = (currentLessonId: string): Lesson | null => {
+    if (!courseStructure) {
+      return null;
+    }
 
     let foundCurrent = false;
-
     for (const chapter of courseStructure.chapters) {
-      if (!chapter.lessons) continue;
-
-      for (const lesson of chapter.lessons) {
+      for (const lesson of chapter.lessons || []) {
         if (foundCurrent) {
           return lesson;
         }
@@ -101,15 +83,14 @@ export const useCourse = () => {
     return null;
   };
 
-  const getPreviousLesson = (currentLessonId: string) => {
-    if (!courseStructure) return null;
+  const getPreviousLesson = (currentLessonId: string): Lesson | null => {
+    if (!courseStructure) {
+      return null;
+    }
 
-    let previousLesson = null;
-
+    let previousLesson: Lesson | null = null;
     for (const chapter of courseStructure.chapters) {
-      if (!chapter.lessons) continue;
-
-      for (const lesson of chapter.lessons) {
+      for (const lesson of chapter.lessons || []) {
         if (lesson.lesson_id === currentLessonId) {
           return previousLesson;
         }
@@ -125,11 +106,10 @@ export const useCourse = () => {
     courseProgress,
     loading,
     error,
+    reload: loadCourse,
     refreshProgress,
     getLessonById,
-    getChapterById,
     getNextLesson,
     getPreviousLesson,
-    reload: loadCourse,
   };
 };

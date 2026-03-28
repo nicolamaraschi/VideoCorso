@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, DollarSign, Video, TrendingUp, Clock } from 'lucide-react';
+import { Users, DollarSign, Video, TrendingUp } from 'lucide-react';
 import type { AdminStats } from '../../types';
 import { formatCurrency, formatPercentage } from '../../utils/formatters';
 

@@ -1,53 +1,69 @@
 import apiClient from './api';
-import type{
-  CourseStructure,
-  Progress,
-  CourseProgress,
-  GetVideoUrlResponse,
-  UpdateProgressRequest,
+import type {
   ApiResponse,
+  CourseListItem,
+  CourseProgress,
+  CourseStructure,
+  GetVideoUrlResponse,
+  Lesson,
+  Progress,
+  UpdateProgressRequest,
 } from '../types';
 
 export const courseService = {
-  // Get complete course structure with chapters and lessons
-  async getCourseStructure(): Promise<CourseStructure> {
-    return apiClient.get<CourseStructure>('/course/structure');
+  async getCatalog(): Promise<CourseListItem[]> {
+    const response = await apiClient.get<{ items: CourseListItem[] }>('/courses');
+    return response.items;
   },
 
-  // Get signed URL for video streaming
+  async getMyCourses(): Promise<CourseListItem[]> {
+    const response = await apiClient.get<{ items: CourseListItem[] }>('/me/courses');
+    return response.items;
+  },
+
+  async getCourseStructure(courseId?: string): Promise<CourseStructure> {
+    const query = courseId ? `?course_id=${encodeURIComponent(courseId)}` : '';
+    return apiClient.get<CourseStructure>(`/course/structure${query}`);
+  },
+
+  async getCourseDetails(courseId: string): Promise<CourseStructure> {
+    return apiClient.get<CourseStructure>(`/courses/${courseId}`);
+  },
+
   async getVideoUrl(lessonId: string): Promise<GetVideoUrlResponse> {
     return apiClient.get<GetVideoUrlResponse>(`/course/video/${lessonId}`);
   },
 
-  // Get user's overall course progress
   async getUserProgress(): Promise<CourseProgress> {
     return apiClient.get<CourseProgress>('/progress/user');
   },
 
-  // Update lesson progress
+  async getCourseProgress(courseId: string): Promise<CourseProgress> {
+    return apiClient.get<CourseProgress>(`/me/courses/${courseId}/progress`);
+  },
+
   async updateProgress(data: UpdateProgressRequest): Promise<ApiResponse<Progress>> {
     return apiClient.post<ApiResponse<Progress>>('/progress/update', data);
   },
 
-  // Get progress for specific lesson
   async getLessonProgress(lessonId: string): Promise<Progress | null> {
     try {
-      return apiClient.get<Progress>(`/progress/lesson/${lessonId}`);
-    } catch (error) {
+      return await apiClient.get<Progress>(`/progress/lesson/${lessonId}`);
+    } catch {
       return null;
     }
   },
 
-  // Mark lesson as completed
-  async markLessonComplete(lessonId: string): Promise<ApiResponse<Progress>> {
+  async markLessonComplete(lessonId: string, totalSeconds?: number): Promise<ApiResponse<Progress>> {
     return apiClient.post<ApiResponse<Progress>>('/progress/complete', {
       lesson_id: lessonId,
       completed: true,
+      total_seconds: totalSeconds,
+      watched_seconds: totalSeconds,
     });
   },
 
-  // Get free preview lessons (no auth required)
-  async getFreePreviews(): Promise<any> {
-    return apiClient.get<any>('/course/previews');
+  async getFreePreviews(): Promise<Lesson[]> {
+    return apiClient.get<Lesson[]>('/course/previews');
   },
 };

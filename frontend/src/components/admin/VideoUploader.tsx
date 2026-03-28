@@ -3,6 +3,7 @@ import { Upload, File, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '../common/Button';
 import { adminService } from '../../services/adminService';
 import { validateVideoFile } from '../../utils/validators';
+import { getErrorMessage } from '../../utils/errors';
 
 interface VideoUploaderProps {
   lessonId?: string;
@@ -92,7 +93,6 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
         duration = await getVideoDuration(file);
       } catch (err) {
         console.error(err);
-        // Non bloccare l'upload se la durata fallisce, imposta 0
       }
 
       // Get pre-signed URL
@@ -116,7 +116,6 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
         if (xhr.status === 200) {
           setSuccess(true);
           setProgress(100);
-          // FIX: Passa la chiave E la durata
           onUploadComplete(uploadData.video_s3_key, duration);
 
           // Reset after 2 seconds
@@ -142,8 +141,8 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
         xhr.addEventListener('load', resolve);
         xhr.addEventListener('error', reject);
       });
-    } catch (err: any) {
-      setError(err.message || 'Failed to upload video');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to upload video'));
       setProgress(0);
     } finally {
       setUploading(false);

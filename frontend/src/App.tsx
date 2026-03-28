@@ -1,117 +1,151 @@
 import React from 'react';
-// L'import di 'Router' qui non è più necessario, ma 'Routes', 'Route', 'Navigate' sì.
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { Sidebar } from './components/layout/Sidebar';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
-
-// Pages
+import { Loading } from './components/common/Loading';
+import { useAuthContext } from './components/auth/useAuthContext';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { CourseDetailPage } from './pages/CourseDetailPage';
 import { VideoPlayerPage } from './pages/VideoPlayerPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
-// RIMOSSO: import { AdminUploadPage } from './pages/AdminUploadPage';
 import { AdminCoursePage } from './pages/AdminCoursePage';
 import { AdminStudentsPage } from './pages/AdminStudentsPage';
-
-import { useAuthContext } from './components/auth/AuthContext.tsx';
-import { Loading } from './components/common/Loading.tsx';
+import { AdminStudentDetailPage } from './pages/AdminStudentDetailPage';
+import { AdminPurchasesPage } from './pages/AdminPurchasesPage';
+import { AdminAccountsPage } from './pages/AdminAccountsPage';
+import { AdminPurchaseDetailPage } from './pages/AdminPurchaseDetailPage';
+import { AdminCouponsPage } from './pages/AdminCouponsPage';
 
 function App() {
   const { isAuthenticated, isAdmin, loading } = useAuthContext();
   const location = useLocation();
 
-  // Mostra un caricamento globale mentre l'autenticazione viene verificata
-  // MODIFICA: Non mostrare il loading screen sulla pagina di login, altrimenti
-  // quando l'utente clicca "Accedi", lo stato loading diventa true, la pagina viene
-  // smontata e rimontata, perdendo l'errore.
   if (loading && location.pathname !== '/' && location.pathname !== '/login') {
     return <Loading fullScreen text="Loading..." />;
   }
-  
+
   return (
-    // <Router> <-- RIMOSSA QUESTA RIGA
-      <div className="flex flex-col min-h-screen">
-        <Navbar />
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
 
-        <div className="flex flex-1">
-          {/* Sidebar for authenticated users */}
-          {isAuthenticated && (
-            <Sidebar isAdmin={isAdmin} />
-          )}
+      <div className="flex flex-1">
+        {isAuthenticated && <Sidebar isAdmin={isAdmin} />}
 
-          {/* Main content */}
-          <main className="flex-1">
-            <Routes>
-              {/* Public routes */}
-              <Route 
-                path="/" 
-                element={
-                  isAuthenticated 
-                    ? (isAdmin ? <Navigate to="/admin" replace /> : <Navigate to="/dashboard" replace />)
-                    : <LandingPage />
-                } 
-              />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/checkout" element={<CheckoutPage />} />
+        <main className="flex-1">
+          <Routes>
+            <Route
+              path="/"
+              element={
+                isAuthenticated
+                  ? (isAdmin ? <Navigate to="/admin" replace /> : <Navigate to="/dashboard" replace />)
+                  : <LandingPage />
+              }
+            />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
 
-              {/* Protected student routes */}
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <DashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/video/:lessonId"
-                element={
-                  <ProtectedRoute>
-                    <VideoPlayerPage />
-                  </ProtectedRoute>
-                }
-              />
+            <Route
+              path="/dashboard"
+              element={(
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="/courses/:courseId"
+              element={(
+                <ProtectedRoute>
+                  <CourseDetailPage />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="/courses/:courseId/lessons/:lessonId"
+              element={(
+                <ProtectedRoute>
+                  <VideoPlayerPage />
+                </ProtectedRoute>
+              )}
+            />
 
-              {/* Protected admin routes */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminDashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              {/* RIMOSSO: Route /admin/upload */}
-              <Route
-                path="/admin/course"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminCoursePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/students"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminStudentsPage />
-                  </ProtectedRoute>
-                }
-              />
+            <Route
+              path="/admin"
+              element={(
+                <ProtectedRoute requireAdmin>
+                  <AdminDashboardPage />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="/admin/course"
+              element={(
+                <ProtectedRoute requireAdmin>
+                  <AdminCoursePage />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="/admin/students"
+              element={(
+                <ProtectedRoute requireAdmin>
+                  <AdminStudentsPage />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="/admin/students/:studentId"
+              element={(
+                <ProtectedRoute requireAdmin>
+                  <AdminStudentDetailPage />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="/admin/purchases"
+              element={(
+                <ProtectedRoute requireAdmin>
+                  <AdminPurchasesPage />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="/admin/purchases/:purchaseId"
+              element={(
+                <ProtectedRoute requireAdmin>
+                  <AdminPurchaseDetailPage />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="/admin/accounts"
+              element={(
+                <ProtectedRoute requireAdmin>
+                  <AdminAccountsPage />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="/admin/coupons"
+              element={(
+                <ProtectedRoute requireAdmin>
+                  <AdminCouponsPage />
+                </ProtectedRoute>
+              )}
+            />
 
-              {/* Catch all - redirect to home */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
-        </div>
-
-        <Footer />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
       </div>
-    // </Router> <-- RIMOSSA QUESTA RIGA
+
+      <Footer />
+    </div>
   );
 }
 

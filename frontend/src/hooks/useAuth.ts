@@ -9,17 +9,35 @@ import {
   confirmResetPassword 
 } from 'aws-amplify/auth';
 import type { AuthUser } from '../types';
+import type { AuthActionResult } from '../components/auth/auth-context';
+import { getErrorMessage } from '../utils/errors';
+
+interface AuthErrorLike {
+  name?: string;
+  __type?: string;
+  message?: string;
+}
 
 export const useAuth = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newPasswordRequired, setNewPasswordRequired] = useState(false);
-  const [tempUser, setTempUser] = useState<any>(null);
+  const [tempUser, setTempUser] = useState<boolean>(false);
 
   useEffect(() => {
     checkUser();
   }, []);
+
+  const getAuthErrorDetails = (error: unknown): Required<AuthErrorLike> => {
+    const authError = (typeof error === 'object' && error !== null ? error : {}) as AuthErrorLike;
+    const rawType = authError.__type ? authError.__type.split('#').pop() : '';
+    return {
+      name: authError.name || rawType || '',
+      __type: authError.__type || '',
+      message: authError.message || '',
+    };
+  };
 
   const checkUser = async (): Promise<AuthUser | null> => {
     try {
@@ -50,8 +68,7 @@ export const useAuth = () => {
       setUser(authUser);
       setError(null);
       return authUser;
-    } catch (err) {
-      console.log('No authenticated user found:', err);
+    } catch {
       setUser(null);
       setError(null); 
       return null;
@@ -60,7 +77,7 @@ export const useAuth = () => {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<AuthActionResult> => {
     try {
       setLoading(true);
       setError(null);
@@ -72,24 +89,18 @@ export const useAuth = () => {
 
       if (isNewPasswordRequired) {
         setNewPasswordRequired(true);
-        setTempUser(signInResult);
+        setTempUser(true);
         return { success: true }; 
       }
 
       const loggedUser = await checkUser();
       return { success: true, user: loggedUser }; 
 
-    } catch (err: any) {
+    } catch (err) {
       console.error('Login failed:', err);
       
       let errorMessage = 'Si è verificato un errore durante l\'accesso.';
-
-      // Estrazione sicura del nome dell'errore
-      const errorName = err.name || (err.__type ? err.__type.split('#').pop() : '');
-      const errorMsg = err.message || '';
-
-      console.log('Error Name:', errorName); // Debug
-      console.log('Error Message:', errorMsg); // Debug
+      const { name: errorName, message: errorMsg } = getAuthErrorDetails(err);
 
       switch (errorName) {
         case 'NotAuthorizedException':
@@ -108,7 +119,6 @@ export const useAuth = () => {
            errorMessage = 'Troppe richieste al server. Riprova tra poco.';
            break;
         default:
-          // Gestione specifica per il messaggio che hai incollato
           if (errorMsg.includes("Incorrect username or password")) {
              errorMessage = 'Email o password errati. Riprova.';
           } else if (errorMsg) {
@@ -134,12 +144,12 @@ export const useAuth = () => {
       
       const loggedUser = await checkUser();
       setNewPasswordRequired(false);
-      setTempUser(null);
+      setTempUser(false);
       
       return { success: true, user: loggedUser }; 
-    } catch (err: any) {
+    } catch (err) {
       console.error('Change password failed:', err);
-      const msg = err.message || 'Impossibile impostare la password.';
+      const msg = getErrorMessage(err, 'Impossibile impostare la password.');
       setError(msg);
       return { success: false, error: msg };
     } finally {
@@ -153,9 +163,9 @@ export const useAuth = () => {
       await signOut();
       setUser(null);
       setError(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Logout failed:', err);
-      setError(err.message || 'Errore durante il logout');
+      setError(getErrorMessage(err, 'Errore durante il logout'));
     } finally {
       setLoading(false);
     }
@@ -172,12 +182,13 @@ export const useAuth = () => {
       await resetPassword({ username: email });
       setLoading(false);
       return { success: true };
-    } catch (err: any) {
+    } catch (err) {
       setLoading(false);
       console.error('Send reset code failed:', err);
+      const { name } = getAuthErrorDetails(err);
       let msg = "Impossibile inviare il codice. Controlla l'email e riprova.";
-      if (err.name === 'LimitExceededException') msg = "Troppi tentativi. Riprova più tardi.";
-      if (err.name === 'UserNotFoundException') msg = "Nessun account trovato con questa email.";
+      if (name === 'LimitExceededException') msg = "Troppi tentativi. Riprova più tardi.";
+      if (name === 'UserNotFoundException') msg = "Nessun account trovato con questa email.";
       
       setError(msg);
       return { success: false, error: msg };
@@ -191,13 +202,14 @@ export const useAuth = () => {
       await confirmResetPassword({ username: email, confirmationCode, newPassword });
       setLoading(false);
       return { success: true };
-    } catch (err: any) {
+    } catch (err) {
       setLoading(false);
       console.error('Submit reset failed:', err);
+      const { name } = getAuthErrorDetails(err);
       let msg = "Errore nel reset della password.";
-      if (err.name === 'CodeMismatchException') msg = "Il codice inserito non è valido.";
-      if (err.name === 'ExpiredCodeException') msg = "Il codice è scaduto. Richiedine uno nuovo.";
-      if (err.name === 'InvalidPasswordException') msg = "La password non rispetta i requisiti di sicurezza.";
+      if (name === 'CodeMismatchException') msg = "Il codice inserito non è valido.";
+      if (name === 'ExpiredCodeException') msg = "Il codice è scaduto. Richiedine uno nuovo.";
+      if (name === 'InvalidPasswordException') msg = "La password non rispetta i requisiti di sicurezza.";
       
       setError(msg);
       return { success: false, error: msg };

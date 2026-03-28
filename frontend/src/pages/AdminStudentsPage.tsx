@@ -4,17 +4,16 @@ import { adminService } from '../services/adminService';
 import type { StudentListItem } from '../types';
 import { Loading } from '../components/common/Loading';
 import { ErrorMessage } from '../components/common/ErrorMessage';
-// FIX: Importa Button, Modal e Icone
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
 import { Plus, Save } from 'lucide-react';
+import { getErrorMessage } from '../utils/errors';
 
 export const AdminStudentsPage: React.FC = () => {
   const [students, setStudents] = useState<StudentListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // FIX: Stato per il modale di creazione
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newStudentForm, setNewStudentForm] = useState({ email: '', full_name: '' });
   const [isSaving, setIsSaving] = useState(false);
@@ -29,8 +28,8 @@ export const AdminStudentsPage: React.FC = () => {
       setError(null);
       const response = await adminService.getStudents();
       setStudents(response.items);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load students');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to load students'));
     } finally {
       setLoading(false);
     }
@@ -38,17 +37,16 @@ export const AdminStudentsPage: React.FC = () => {
 
   const handleUpdateStudent = async (
     studentId: string,
-    data: { subscription_end_date?: string }
-  ) => {
+    data: { subscription_end_date?: string; global_access?: boolean }
+  ): Promise<void> => {
     try {
       await adminService.updateStudent(studentId, data);
       await loadStudents();
-    } catch (err: any) {
-      alert(err.message || 'Failed to update student');
+    } catch (err) {
+      alert(getErrorMessage(err, 'Failed to update student'));
     }
   };
 
-  // FIX: Funzione per creare lo studente
   const handleCreateStudent = async () => {
     if (!newStudentForm.email || !newStudentForm.full_name) {
       alert('Email and Full Name are required.');
@@ -61,8 +59,8 @@ export const AdminStudentsPage: React.FC = () => {
       setShowCreateModal(false);
       setNewStudentForm({ email: '', full_name: '' });
       await loadStudents(); // Ricarica la lista
-    } catch (err: any) {
-      alert(err.message || 'Failed to create student');
+    } catch (err) {
+      alert(getErrorMessage(err, 'Failed to create student'));
     } finally {
       setIsSaving(false);
     }
@@ -87,12 +85,11 @@ export const AdminStudentsPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* FIX: Modificato Header per includere il pulsante */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Students</h1>
           <p className="text-gray-600">
-            Manage student subscriptions and monitor their progress
+            Manage paid students, global access and learning progress
           </p>
         </div>
         <Button 
@@ -109,7 +106,6 @@ export const AdminStudentsPage: React.FC = () => {
 
       <StudentTable students={students} onUpdateStudent={handleUpdateStudent} />
 
-      {/* FIX: Modale per la creazione manuale */}
       <Modal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}

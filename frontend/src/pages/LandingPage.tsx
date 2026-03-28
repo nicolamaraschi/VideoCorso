@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
+const previewImages = ['/marketing.jpg', '/team.jpg', '/hero-image.jpg'];
+
 export const LandingPage: React.FC = () => {
   return (
     <div className="bg-gradient-to-b from-gray-50 to-white min-h-screen">
@@ -245,7 +247,7 @@ export const LandingPage: React.FC = () => {
                 className="bg-gray-800 rounded-lg overflow-hidden shadow-lg"
               >
                 <div className="relative aspect-video">
-                  <img src={`/preview-${video}.jpg`} alt={`Anteprima video ${video}`} className="w-full h-full object-cover" />
+                  <img src={previewImages[video - 1]} alt={`Anteprima video ${video}`} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <button className="bg-primary-600/90 rounded-full p-4 shadow-lg hover:bg-primary-600 transition transform hover:scale-105">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" viewBox="0 0 20 20" fill="currentColor">

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   Play,
   Pause,
@@ -36,9 +36,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showControls, setShowControls] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const { progress } = useVideoProgress({
+  useVideoProgress({
     lessonId,
     videoElement: videoRef.current,
   });
@@ -70,6 +69,61 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.removeEventListener('ended', handleEnded);
     };
   }, [onEnded]);
+
+  const togglePlay = useCallback(() => {
+    if (!videoRef.current) return;
+
+    if (isPlaying) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  }, [isPlaying]);
+
+  const skip = useCallback((seconds: number) => {
+    if (!videoRef.current) return;
+    videoRef.current.currentTime += seconds;
+  }, []);
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!videoRef.current || !progressBarRef.current) return;
+
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const pos = (e.clientX - rect.left) / rect.width;
+    videoRef.current.currentTime = pos * duration;
+  };
+
+  const changeVolume = useCallback((delta: number) => {
+    if (!videoRef.current) return;
+    const newVolume = Math.max(0, Math.min(1, volume + delta));
+    setVolume(newVolume);
+    videoRef.current.volume = newVolume;
+    if (newVolume > 0) setIsMuted(false);
+  }, [volume]);
+
+  const toggleMute = useCallback(() => {
+    if (!videoRef.current) return;
+    videoRef.current.muted = !isMuted;
+    setIsMuted(!isMuted);
+  }, [isMuted]);
+
+  const changePlaybackRate = (rate: number) => {
+    if (!videoRef.current) return;
+    videoRef.current.playbackRate = rate;
+    setPlaybackRate(rate);
+    setShowSettings(false);
+  };
+
+  const toggleFullscreen = useCallback(() => {
+    if (!containerRef.current) return;
+
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -111,7 +165,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, []);
+  }, [changeVolume, skip, toggleFullscreen, toggleMute, togglePlay]);
 
   // Auto-hide controls
   useEffect(() => {
@@ -139,63 +193,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       clearTimeout(timeout);
     };
   }, [isPlaying]);
-
-  const togglePlay = () => {
-    if (!videoRef.current) return;
-
-    if (isPlaying) {
-      videoRef.current.pause();
-    } else {
-      videoRef.current.play();
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  const skip = (seconds: number) => {
-    if (!videoRef.current) return;
-    videoRef.current.currentTime += seconds;
-  };
-
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!videoRef.current || !progressBarRef.current) return;
-
-    const rect = progressBarRef.current.getBoundingClientRect();
-    const pos = (e.clientX - rect.left) / rect.width;
-    videoRef.current.currentTime = pos * duration;
-  };
-
-  const changeVolume = (delta: number) => {
-    if (!videoRef.current) return;
-    const newVolume = Math.max(0, Math.min(1, volume + delta));
-    setVolume(newVolume);
-    videoRef.current.volume = newVolume;
-    if (newVolume > 0) setIsMuted(false);
-  };
-
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-    videoRef.current.muted = !isMuted;
-    setIsMuted(!isMuted);
-  };
-
-  const changePlaybackRate = (rate: number) => {
-    if (!videoRef.current) return;
-    videoRef.current.playbackRate = rate;
-    setPlaybackRate(rate);
-    setShowSettings(false);
-  };
-
-  const toggleFullscreen = () => {
-    if (!containerRef.current) return;
-
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
-    }
-  };
 
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 

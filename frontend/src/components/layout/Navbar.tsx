@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, User, LogOut } from 'lucide-react';
-import { useAuthContext } from '../auth/AuthContext'; 
+import { useAuthContext } from '../auth/useAuthContext'; 
 import { Button } from '../common/Button';
 
 // Logo URL dal sito della cliente
@@ -19,9 +19,18 @@ export const Navbar: React.FC = () => {
     navigate('/login');
   };
 
-  // Helper per creare link che funzionano sia come Link che come smooth scroll
-  const ScrollLink = ({ to, children, className, onClick }) => {
-    const handleClick = (e) => {
+  const ScrollLink = ({
+    to,
+    children,
+    className,
+    onClick,
+  }: {
+    to: string;
+    children: React.ReactNode;
+    className?: string;
+    onClick?: () => void;
+  }) => {
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
       const isHomePage = window.location.pathname === '/';
       
       if (isHomePage && to.startsWith('/#')) {
@@ -83,8 +92,8 @@ export const Navbar: React.FC = () => {
               <>
                 {/* MODIFICA QUI: Mostra "I Miei Corsi" SOLO se NON è admin */}
                 {!isAdmin && (
-                  <Link to="/dashboard">
-                    <Button variant="ghost">I Miei Corsi</Button>
+                <Link to="/dashboard">
+                    <Button variant="ghost">Dashboard Corsi</Button>
                   </Link>
                 )}
 
@@ -124,7 +133,7 @@ export const Navbar: React.FC = () => {
             ) : (
               <>
                 <Link to="/login"><Button variant="ghost">Login</Button></Link>
-                <Link to="/checkout"><Button variant="primary">Iscriviti Ora</Button></Link>
+                <Link to="/checkout"><Button variant="primary">Vai al Checkout</Button></Link>
               </>
             )}
           </div>
@@ -147,7 +156,7 @@ export const Navbar: React.FC = () => {
                  {/* MODIFICA QUI: Anche su mobile nascondiamo link studente agli admin */}
                  {!isAdmin && (
                     <Link to="/dashboard" className="block px-4 py-2 rounded-lg hover:bg-gray-100" onClick={() => setMobileMenuOpen(false)}>
-                      I Miei Corsi
+                      Dashboard Corsi
                     </Link>
                  )}
                  
@@ -167,7 +176,7 @@ export const Navbar: React.FC = () => {
                 <ScrollLink to="/#vantaggi" className="block px-4 py-2 rounded-lg hover:bg-gray-100" onClick={() => setMobileMenuOpen(false)}>Vantaggi</ScrollLink>
                 <ScrollLink to="/#anteprima" className="block px-4 py-2 rounded-lg hover:bg-gray-100" onClick={() => setMobileMenuOpen(false)}>Anteprima</ScrollLink>
                 <Link to="/login" className="block px-4 py-2 rounded-lg hover:bg-gray-100" onClick={() => setMobileMenuOpen(false)}>Login</Link>
-                <Link to="/checkout" onClick={() => setMobileMenuOpen(false)}><Button variant="primary" fullWidth>Iscriviti Ora</Button></Link>
+                <Link to="/checkout" onClick={() => setMobileMenuOpen(false)}><Button variant="primary" fullWidth>Vai al Checkout</Button></Link>
               </>
             )}
           </div>
