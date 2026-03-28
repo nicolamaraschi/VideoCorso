@@ -1,18 +1,16 @@
 import React, { useState } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
+import { useAuth } from '../hooks/useAuth';
 import { paymentService } from '../services/paymentService';
 import { Loading } from '../components/common/Loading';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { Button } from '../components/common/Button';
 import { CheckCircle, Shield, Award, Video } from 'lucide-react';
 
-// Carica la chiave pubblica di Stripe dalle variabili d'ambiente .env
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '');
-
 // Immagine della garanzia
 const guaranteeImageUrl = "https://images.leadconnectorhq.com/image/f_webp/q_80/r_1200/u_https://assets.cdn.filesafe.space/ceYe4VnMXLjh1ENSEbH0/media/6514585ac9753e719aa60206.png";
 
 export const CheckoutPage: React.FC = () => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,28 +19,23 @@ export const CheckoutPage: React.FC = () => {
     setError(null);
 
     try {
-      const stripe = await stripePromise;
-      if (!stripe) {
-        throw new Error('Stripe.js failed to load.');
-      }
+      // 1. Crea la sessione di checkout sul backend
 
       // 1. Crea la sessione di checkout sul backend
       // Il course_id qui è un placeholder, ma non influenza il prezzo
       // che è fissato a 99.99€ nella Lambda.
-      const { session_id } = await paymentService.createCheckoutSession({
-        course_id: 'corso_completo_pmu', 
+      const { checkout_url } = await paymentService.createCheckoutSession({
+        course_id: 'corso_completo_pmu',
         success_url: `${window.location.origin}/dashboard?payment=success`,
         cancel_url: `${window.location.origin}/checkout?payment=cancelled`,
+        email: user?.email // Opzionale: precompila l'email se l'utente è già loggato
       });
 
       // 2. Reindirizza a Stripe
-      const { error } = await stripe.redirectToCheckout({
-        sessionId: session_id,
-      });
-
-      if (error) {
-        setError(error.message || 'An error occurred during redirect.');
-        setLoading(false);
+      if (checkout_url) {
+        window.location.href = checkout_url;
+      } else {
+        throw new Error('Checkout URL not received from server');
       }
 
     } catch (err: any) {
@@ -60,13 +53,13 @@ export const CheckoutPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12">
-        
+
         {/* Colonna Sinistra: Riepilogo Benefici */}
         <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900 mb-6" style={{ fontFamily: 'Abhaya Libre, serif' }}>
             Cosa stai acquistando
           </h2>
-          
+
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-800">Corso Completo: Metodo UltraRealistic Brows</h3>
             <p className="text-gray-600">La guida definitiva per diventare una Dermopigmentista di successo.</p>
@@ -85,9 +78,9 @@ export const CheckoutPage: React.FC = () => {
           </ul>
 
           <div className="text-center">
-            <img 
-              src={guaranteeImageUrl} 
-              alt="Garanzia Soddisfatta o Rimborsata" 
+            <img
+              src={guaranteeImageUrl}
+              alt="Garanzia Soddisfatta o Rimborsata"
               className="mx-auto w-48 mb-4"
             />
             <h4 className="font-semibold text-gray-800">Garanzia 14 Giorni</h4>
@@ -116,7 +109,7 @@ export const CheckoutPage: React.FC = () => {
               <span>99,99€</span>
             </div>
           </div>
-          
+
           {error && (
             <div className="my-4">
               <ErrorMessage title="Errore Pagamento" message={error} onRetry={handleCheckout} />

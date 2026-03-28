@@ -73,7 +73,21 @@ export const adminService = {
 
   // Student Management
   async getStudents(page: number = 1, perPage: number = 20): Promise<PaginatedResponse<StudentListItem>> {
-    return apiClient.get<PaginatedResponse<StudentListItem>>(`/admin/students?page=${page}&per_page=${perPage}`);
+    const response = await apiClient.get<PaginatedResponse<any>>(`/admin/students?page=${page}&per_page=${perPage}`);
+    return {
+      ...response,
+      items: response.items.map((item: any) => ({
+        user_id: item.user_id,
+        email: item.email,
+        full_name: item.full_name || 'N/A',
+        subscription_status: item.subscription_status || 'active',
+        subscription_end_date: item.sub_end_date || item.subscription_end_date || new Date().toISOString(),
+        total_watch_time: item.total_watch_time || 0,
+        last_login: item.last_login || new Date().toISOString(),
+        purchase_date: item.created_at || item.purchase_date || new Date().toISOString(),
+        completion_percentage: item.completion_percentage || 0,
+      })),
+    };
   },
 
   // FIX: Aggiunta funzione per creare studente

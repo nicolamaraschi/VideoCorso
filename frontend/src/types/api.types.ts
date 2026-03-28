@@ -18,6 +18,7 @@ export interface CreateCheckoutRequest {
   course_id: string;
   success_url: string;
   cancel_url: string;
+  email?: string;
 }
 
 export interface CreateCheckoutResponse {
@@ -39,6 +40,7 @@ export interface GetVideoUrlResponse {
 export interface UpdateProgressRequest {
   lesson_id: string;
   watched_seconds: number;
+  total_seconds?: number;
   completed?: boolean;
 }
 
@@ -106,8 +108,9 @@ export interface AdminStats {
   }>;
   daily_access_chart: Array<{
     date: string;
-    unique_users: number;
+    active_users: number;
   }>;
+  _debug_dates?: string[];
 }
 
 export interface StudentListItem {

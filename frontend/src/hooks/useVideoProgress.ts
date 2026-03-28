@@ -21,7 +21,8 @@ export const useVideoProgress = ({ lessonId, videoElement }: UseVideoProgressPro
     if (!videoElement || !progress) return;
 
     // Set initial playback position
-    if (progress.watched_seconds > 0 && videoElement.currentTime === 0) {
+    // Only resume if NOT completed. If completed, start from beginning.
+    if (progress.watched_seconds > 0 && videoElement.currentTime === 0 && !progress.completed) {
       videoElement.currentTime = progress.watched_seconds;
     }
 
@@ -87,6 +88,7 @@ export const useVideoProgress = ({ lessonId, videoElement }: UseVideoProgressPro
       const response = await courseService.updateProgress({
         lesson_id: lessonId,
         watched_seconds: Math.floor(watchedSeconds),
+        total_seconds: Math.floor(totalSeconds),
         completed: false,
       });
 
@@ -107,6 +109,7 @@ export const useVideoProgress = ({ lessonId, videoElement }: UseVideoProgressPro
       const response = await courseService.updateProgress({
         lesson_id: lessonId,
         watched_seconds: Math.floor(watchedSeconds),
+        total_seconds: Math.floor(totalSeconds),
         completed: true,
       });
 

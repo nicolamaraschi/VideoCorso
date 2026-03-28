@@ -107,35 +107,77 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Daily Access Chart */}
+      {/* Daily Access Chart (SVG Implementation) */}
       <div className="bg-white rounded-lg border border-gray-200 p-6 mt-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
           <Users className="w-5 h-5 text-blue-600" />
           Daily Active Users (Last 7 Days)
         </h2>
-        <div className="h-64 flex items-end justify-between gap-2">
-          {stats.daily_access_chart.map((day) => {
-            const maxUsers = Math.max(
-              ...stats.daily_access_chart.map((d) => d.unique_users)
-            );
-            const height = (day.unique_users / maxUsers) * 100;
 
-            return (
-              <div key={day.date} className="flex-1 flex flex-col items-center">
-                <div className="w-full bg-primary-600 rounded-t-lg hover:bg-primary-700 transition-colors relative group" style={{ height: `${height}%` }}>
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-xs px-2 py-1 rounded">
-                    {day.unique_users} users
-                  </div>
-                </div>
-                <span className="text-xs text-gray-600 mt-2">
-                  {new Date(day.date).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                </span>
-              </div>
-            );
-          })}
+        <div className="w-full h-64">
+          <svg width="100%" height="100%" viewBox="0 0 800 200">
+            {stats.daily_access_chart.map((day, index) => {
+              const maxUsers = Math.max(
+                ...stats.daily_access_chart.map((d) => d.active_users),
+                1 // Avoid division by zero
+              );
+              // Dimensions
+              const barWidth = 60;
+              const gap = (800 - (barWidth * 7)) / 6;
+              const x = index * (barWidth + gap);
+
+              const chartHeight = 150;
+              const barHeight = (day.active_users / maxUsers) * chartHeight;
+              const y = chartHeight - barHeight;
+
+              const dateLabel = new Date(day.date).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+              });
+
+              return (
+                <g key={day.date}>
+                  {/* Bar */}
+                  <rect
+                    x={x}
+                    y={y}
+                    width={barWidth}
+                    height={Math.max(barHeight, 5)}
+                    fill="#2563eb"
+                    rx="4"
+                    className="hover:opacity-80 transition-opacity cursor-pointer"
+                  >
+                    <title>{day.active_users} users on {dateLabel}</title>
+                  </rect>
+
+                  {/* Value Label (only if > 0) */}
+                  {day.active_users > 0 && (
+                    <text
+                      x={x + barWidth / 2}
+                      y={y - 10}
+                      textAnchor="middle"
+                      fill="#374151"
+                      fontSize="14"
+                      fontWeight="bold"
+                    >
+                      {day.active_users}
+                    </text>
+                  )}
+
+                  {/* Date Label (axis) */}
+                  <text
+                    x={x + barWidth / 2}
+                    y={180}
+                    textAnchor="middle"
+                    fill="#6b7280"
+                    fontSize="12"
+                  >
+                    {dateLabel}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
         </div>
       </div>
     </div>

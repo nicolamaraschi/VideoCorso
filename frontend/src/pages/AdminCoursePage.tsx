@@ -102,6 +102,26 @@ export const AdminCoursePage: React.FC = () => {
     }
   };
 
+  const handleReorderChapters = async (items: { id: string; order_number: number }[]) => {
+    try {
+      setSaving(true);
+      await adminService.reorderChapters({ items });
+      await reload();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReorderLessons = async (items: { id: string; order_number: number }[]) => {
+    try {
+      setSaving(true);
+      await adminService.reorderLessons({ items });
+      await reload();
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {saving && (
@@ -118,6 +138,8 @@ export const AdminCoursePage: React.FC = () => {
         onCreateLesson={handleCreateLesson}
         onUpdateLesson={handleUpdateLesson}
         onDeleteLesson={handleDeleteLesson}
+        onReorderChapters={handleReorderChapters}
+        onReorderLessons={handleReorderLessons}
       />
     </div>
   );

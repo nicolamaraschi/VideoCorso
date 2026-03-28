@@ -8,6 +8,7 @@ import {
   Settings,
   SkipBack,
   SkipForward,
+  RotateCcw,
 } from 'lucide-react';
 import { formatDuration } from '../../utils/formatters';
 import { useVideoProgress } from '../../hooks/useVideoProgress';
@@ -213,9 +214,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
       {/* Controls Overlay */}
       <div
-        className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300 ${
-          showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300 ${showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
+          }`}
       >
         {/* Center Play Button */}
         {!isPlaying && (
@@ -250,6 +250,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             <div className="flex items-center gap-3">
               <button onClick={togglePlay} className="text-white hover:text-primary-400">
                 {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+              </button>
+
+              <button
+                onClick={() => {
+                  if (videoRef.current) videoRef.current.currentTime = 0;
+                  if (!isPlaying) togglePlay();
+                }}
+                className="text-white hover:text-primary-400"
+                title="Restart"
+              >
+                <RotateCcw className="w-5 h-5" />
               </button>
 
               <button onClick={() => skip(-10)} className="text-white hover:text-primary-400">
@@ -310,11 +321,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                         <button
                           key={rate}
                           onClick={() => changePlaybackRate(rate)}
-                          className={`w-full text-left px-3 py-1.5 rounded text-sm ${
-                            playbackRate === rate
-                              ? 'bg-primary-600 text-white'
-                              : 'text-white/80 hover:bg-white/10'
-                          }`}
+                          className={`w-full text-left px-3 py-1.5 rounded text-sm ${playbackRate === rate
+                            ? 'bg-primary-600 text-white'
+                            : 'text-white/80 hover:bg-white/10'
+                            }`}
                         >
                           {rate}x
                         </button>

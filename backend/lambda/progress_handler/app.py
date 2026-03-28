@@ -67,10 +67,17 @@ def update_progress(user_id, body):
     try:
         lesson_id = body.get('lesson_id')
         watched_seconds = body.get('watched_seconds')
+        total_seconds = body.get('total_seconds', 0)
         completed = body.get('completed', False)
 
         if not lesson_id or watched_seconds is None:
             return create_response(400, {'error': 'lesson_id e watched_seconds sono richiesti'})
+            
+        # Calcola Percentuale
+        progress_percent = 0
+        if total_seconds > 0:
+            progress_percent = int((watched_seconds / total_seconds) * 100)
+            if progress_percent > 100: progress_percent = 100
 
         # Cerca un progresso esistente
         progress_item = find_progress_item(user_id, lesson_id)
@@ -83,10 +90,13 @@ def update_progress(user_id, body):
             # Non sovrascrivere 'completed' se è già True
             if progress_item.get('completed', False):
                 completed = True
+                progress_percent = 100 # Se è completato, è 100%
                 
-            update_expression = "SET watched_seconds = :ws, completed = :c, last_watched = :lw"
+            update_expression = "SET watched_seconds = :ws, total_seconds = :ts, progress_percent = :pp, completed = :c, last_watched = :lw"
             expression_values = {
                 ':ws': Decimal(str(watched_seconds)),
+                ':ts': Decimal(str(total_seconds)),
+                ':pp': Decimal(str(progress_percent)),
                 ':c': completed,
                 ':lw': now_iso
             }
@@ -107,7 +117,8 @@ def update_progress(user_id, body):
                 'user_id': user_id,
                 'lesson_id': lesson_id,
                 'watched_seconds': Decimal(str(watched_seconds)),
-                'total_seconds': Decimal('0'), # Il frontend dovrebbe gestirlo
+                'total_seconds': Decimal(str(total_seconds)),
+                'progress_percent': Decimal(str(progress_percent)),
                 'completed': completed,
                 'last_watched': now_iso
             }

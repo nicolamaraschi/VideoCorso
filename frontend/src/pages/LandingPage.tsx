@@ -10,7 +10,7 @@ export const LandingPage: React.FC = () => {
         <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center">
             <div className="md:w-1/2 md:pr-12">
-              <motion.h1 
+              <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7 }}
@@ -18,7 +18,7 @@ export const LandingPage: React.FC = () => {
               >
                 Costruisci la tua <span className="text-primary-600">Impresa da Zero</span>
               </motion.h1>
-              <motion.p 
+              <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.2 }}
@@ -26,7 +26,7 @@ export const LandingPage: React.FC = () => {
               >
                 Il percorso definitivo per trasformare la tua idea in un business di successo. Impara le strategie pratiche, il mindset imprenditoriale e gli strumenti essenziali per lanciare, gestire e scalare la tua azienda senza commettere errori costosi.
               </motion.p>
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.4 }}
@@ -45,10 +45,10 @@ export const LandingPage: React.FC = () => {
                 transition={{ duration: 1, delay: 0.6 }}
                 className="mt-10 flex items-center text-gray-600"
               >
-                
+
               </motion.div>
             </div>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.7, delay: 0.3 }}
@@ -58,10 +58,10 @@ export const LandingPage: React.FC = () => {
                 <div className="absolute inset-0 bg-primary-200 rounded-lg transform -rotate-6"></div>
                 <div className="relative overflow-hidden rounded-lg shadow-xl">
                   {/* Nota: Assicurati di cambiare l'immagine in public/hero-image.jpg con una a tema business */}
-                  <img 
-                    className="w-full h-auto" 
-                    src="/hero-image.jpg" 
-                    alt="Corso Business Mastery" 
+                  <img
+                    className="w-full h-auto"
+                    src="/hero-image.jpg"
+                    alt="Corso Business Mastery"
                   />
                   <div className="absolute inset-0 bg-gradient-to-tr from-primary-900/30 to-transparent flex items-center justify-center">
                     <button className="bg-white/90 rounded-full p-4 shadow-lg hover:bg-white transition transform hover:scale-105">
@@ -75,7 +75,7 @@ export const LandingPage: React.FC = () => {
             </motion.div>
           </div>
         </div>
-        
+
         {/* Decorative background elements */}
         <div className="hidden lg:block absolute right-0 top-1/4 -z-10">
           <svg width="404" height="404" fill="none" viewBox="0 0 404 404" aria-hidden="true">
@@ -106,36 +106,36 @@ export const LandingPage: React.FC = () => {
             <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900">Cosa imparerai nel Master</h2>
             <p className="mt-4 text-lg text-gray-600">Un percorso strutturato in moduli strategici per guidarti dalla validazione dell'idea fino alla scalabilità aziendale.</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
-                icon: "🧠",
+                image: "/mindset.jpg",
                 title: "Mindset Imprenditoriale",
                 description: "Impara a pensare come un CEO. Gestione dello stress, focus, resilienza e come prendere decisioni difficili sotto pressione."
               },
               {
-                icon: "📊",
+                image: "/validazione.jpg",
                 title: "Validazione & Strategia",
                 description: "Come capire se la tua idea ha mercato prima di investire. Creazione del Business Model Canvas e analisi dei competitor."
               },
               {
-                icon: "💰",
+                image: "/finanziaria.jpg",
                 title: "Gestione Finanziaria",
                 description: "Cash flow, margini, P&L e tasse. Tutto ciò che devi sapere per non far fallire la tua azienda nei primi 12 mesi."
               },
               {
-                icon: "📣",
+                image: "/marketing.jpg",
                 title: "Marketing & Branding",
                 description: "Come posizionare il tuo brand, acquisire clienti a basso costo e creare un'offerta irresistibile."
               },
               {
-                icon: "🤝",
+                image: "/vendite.jpg",
                 title: "Vendite & Negoziazione",
                 description: "Tecniche avanzate per chiudere contratti, gestire obiezioni e aumentare il valore medio per cliente."
               },
               {
-                icon: "🚀",
+                image: "/team.jpg",
                 title: "Team & Scalabilità",
                 description: "Come delegare, assumere i talenti giusti e creare processi per far crescere l'azienda senza la tua presenza costante."
               }
@@ -146,22 +146,26 @@ export const LandingPage: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 viewport={{ once: true }}
-                className="bg-gray-50 rounded-xl p-8 shadow-sm hover:shadow-md transition"
+                className="bg-gray-50 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300"
               >
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-serif font-semibold text-gray-900 mb-3">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
+                <div className="h-48 overflow-hidden">
+                  <img src={feature.image} alt={feature.title} className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500" />
+                </div>
+                <div className="p-8">
+                  <h3 className="text-xl font-serif font-semibold text-gray-900 mb-3">{feature.title}</h3>
+                  <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+                </div>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
-      
+
       {/* Benefits Section */}
       <section id="vantaggi" className="py-20 bg-gradient-to-br from-primary-50 to-white">
         <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
@@ -171,7 +175,7 @@ export const LandingPage: React.FC = () => {
               {/* Nota: Aggiorna questa immagine con un grafico di crescita o un meeting aziendale */}
               <img src="/benefifts-image.jpg" alt="Crescita Aziendale" className="rounded-lg shadow-xl max-w-full" />
             </motion.div>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
@@ -179,13 +183,10 @@ export const LandingPage: React.FC = () => {
               className="md:w-1/2"
             >
               <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-6">Perché questo non è il solito corso</h2>
-              
+
               <div className="space-y-5">
                 {[
-                  {
-                    title: "Esperienza Reale, Non Teoria",
-                    description: "Impara direttamente da chi ha creato aziende milionarie partendo da zero, non da formatori teorici."
-                  },
+
                   {
                     title: "Strumenti Pronti all'Uso",
                     description: "Accesso a template, fogli di calcolo finanziari, contratti tipo e script di vendita che usiamo noi stessi."
@@ -214,7 +215,7 @@ export const LandingPage: React.FC = () => {
                   </div>
                 ))}
               </div>
-              
+
               <div className="mt-8">
                 <Link to="/checkout" className="px-8 py-3 bg-gray-800 text-white rounded-full font-medium hover:bg-gray-900 transition shadow-md hover:shadow-lg inline-block">
                   Accedi al Master Completo
@@ -232,10 +233,10 @@ export const LandingPage: React.FC = () => {
             <h2 className="text-3xl md:text-4xl font-serif font-bold">Anteprima delle Lezioni</h2>
             <p className="mt-4 text-lg text-gray-300">Dai un'occhiata al contenuto pratico e diretto che troverai all'interno della piattaforma.</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[1, 2, 3].map((video) => (
-              <motion.div 
+              <motion.div
                 key={video}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -258,11 +259,11 @@ export const LandingPage: React.FC = () => {
                     {video === 1 ? "Come trovare l'idea giusta" : video === 2 ? "Analisi dei Competitor" : "Il Business Plan in 1 Pagina"}
                   </h3>
                   <p className="text-gray-400">
-                    {video === 1 
-                      ? "Metodo pratico per validare la tua idea di business in 24 ore." 
-                      : video === 2 
-                      ? "Scopri i punti deboli dei tuoi concorrenti e usali a tuo favore." 
-                      : "Dimentica i documenti lunghi: impara a pianificare in modo snello."}
+                    {video === 1
+                      ? "Metodo pratico per validare la tua idea di business in 24 ore."
+                      : video === 2
+                        ? "Scopri i punti deboli dei tuoi concorrenti e usali a tuo favore."
+                        : "Dimentica i documenti lunghi: impara a pianificare in modo snello."}
                   </p>
                   <div className="mt-4 flex items-center text-sm text-gray-400">
                     <svg className="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -274,7 +275,7 @@ export const LandingPage: React.FC = () => {
               </motion.div>
             ))}
           </div>
-          
+
           <div className="mt-12 text-center">
             <p className="text-lg text-gray-300 mb-6">Oltre 50 ore di formazione, case studies e interviste a esperti del settore.</p>
             <Link to="/checkout" className="px-8 py-3 bg-gray-800 text-white rounded-full font-medium hover:bg-gray-900 transition shadow-md hover:shadow-lg inline-block">
@@ -291,7 +292,7 @@ export const LandingPage: React.FC = () => {
             <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900">Cosa dicono i nostri studenti</h2>
             <p className="mt-4 text-lg text-gray-600">Storie di chi è partito da zero e oggi gestisce un'attività profittevole.</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
@@ -349,7 +350,7 @@ export const LandingPage: React.FC = () => {
             <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900">Domande Frequenti</h2>
             <p className="mt-4 text-lg text-gray-600">Rispondiamo ai dubbi più comuni di chi vuole avviare un'impresa.</p>
           </div>
-          
+
           <div className="max-w-3xl mx-auto">
             {[
               {
@@ -373,7 +374,7 @@ export const LandingPage: React.FC = () => {
                 answer: "Avrai accesso alla nostra community privata di imprenditori e potrai partecipare alle sessioni di Q&A mensili dal vivo con i mentor."
               }
             ].map((faq, index) => (
-              <motion.div 
+              <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -394,8 +395,8 @@ export const LandingPage: React.FC = () => {
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-serif font-bold text-white mb-6">Sei pronto a prendere il controllo del tuo futuro?</h2>
           <p className="text-xl text-primary-100 mb-10 max-w-3xl mx-auto">Unisciti agli oltre 500 studenti che hanno smesso di sognare e hanno iniziato a costruire. Il momento migliore per piantare un albero era 20 anni fa. Il secondo momento migliore è oggi.</p>
-          
-          <motion.div 
+
+          <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="inline-block"
@@ -404,7 +405,7 @@ export const LandingPage: React.FC = () => {
               Iscriviti ora e inizia il business
             </Link>
           </motion.div>
-          
+
           <p className="mt-6 text-primary-100">Soddisfazione garantita o rimborso entro 30 giorni</p>
         </div>
       </section>

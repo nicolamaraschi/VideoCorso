@@ -21,6 +21,11 @@ Parameters:
     NoEcho: true
     Description: Stripe Webhook Secret
 
+  ResendApiKey:
+    Type: String
+    NoEcho: true
+    Description: Resend API Key
+
 Globals:
   Function:
     Runtime: python3.11
@@ -38,6 +43,7 @@ Globals:
         VIDEO_BUCKET: !Ref VideoBucket
         STRIPE_SECRET_KEY: !Ref StripeSecretKey
         STRIPE_WEBHOOK_SECRET: !Ref StripeWebhookSecret
+        RESEND_API_KEY: !Ref ResendApiKey
         # FIX: Aggiunta variabile d'ambiente globale per Cognito
         COGNITO_USER_POOL_ID: !Ref UserPool
   
@@ -414,6 +420,7 @@ Resources:
       Environment:
         Variables:
           COGNITO_USER_POOL_ID: !Ref UserPool
+          RESEND_API_KEY: !Ref ResendApiKey
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref CoursesTable
@@ -438,6 +445,7 @@ Resources:
               Action:
                 - cognito-idp:AdminCreateUser
                 - cognito-idp:AdminAddUserToGroup
+                - cognito-idp:AdminGetUser
               Resource: !GetAtt UserPool.Arn
       Events:
         CreateChapter:

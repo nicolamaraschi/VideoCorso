@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, GripVertical, Save, Play } from 'lucide-react';
+import { Reorder } from 'framer-motion';
 import type { Chapter, Lesson } from '../../types';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
@@ -17,6 +18,8 @@ interface CourseEditorProps {
   onCreateLesson: (chapterId: string, data: any) => Promise<void>;
   onUpdateLesson: (lessonId: string, data: any) => Promise<void>;
   onDeleteLesson: (lessonId: string) => Promise<void>;
+  onReorderChapters: (items: { id: string; order_number: number }[]) => Promise<void>;
+  onReorderLessons: (items: { id: string; order_number: number }[]) => Promise<void>;
 }
 
 export const CourseEditor: React.FC<CourseEditorProps> = ({
@@ -27,7 +30,45 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   onCreateLesson,
   onUpdateLesson,
   onDeleteLesson,
+  onReorderChapters,
+  onReorderLessons,
 }) => {
+  const [localChapters, setLocalChapters] = useState(chapters);
+
+  useEffect(() => {
+    setLocalChapters(chapters);
+  }, [chapters]);
+
+  const handleReorderChapters = (newOrder: Chapter[]) => {
+    setLocalChapters(newOrder);
+  };
+
+  const handleReorderLessonsLocal = (chapterId: string, newLessons: Lesson[]) => {
+    setLocalChapters(prev => prev.map(c =>
+      c.chapter_id === chapterId ? { ...c, lessons: newLessons } : c
+    ));
+  };
+
+  const handleSaveChapterOrder = () => {
+    const updates = localChapters.map((c, i) => ({
+      id: c.chapter_id,
+      order_number: i + 1,
+    }));
+    onReorderChapters(updates);
+  };
+
+  const handleSaveLessonOrder = (chapterId: string) => {
+    const chapter = localChapters.find(c => c.chapter_id === chapterId);
+    if (!chapter || !chapter.lessons) return;
+
+    const updates = chapter.lessons.map((l, i) => ({
+      id: l.lesson_id,
+      order_number: i + 1,
+    }));
+    onReorderLessons(updates);
+  };
+
+
   const [showChapterModal, setShowChapterModal] = useState(false);
   const [showLessonModal, setShowLessonModal] = useState(false);
   const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
@@ -49,10 +90,18 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     is_free_preview: false,
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleCreateChapter = async () => {
-    await onCreateChapter(chapterForm);
-    setShowChapterModal(false);
-    setChapterForm({ title: '', description: '' });
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onCreateChapter(chapterForm);
+      setShowChapterModal(false);
+      setChapterForm({ title: '', description: '' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleEditChapter = (chapter: Chapter) => {
@@ -65,11 +114,16 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   };
 
   const handleUpdateChapter = async () => {
-    if (!editingChapter) return;
-    await onUpdateChapter(editingChapter.chapter_id, chapterForm);
-    setShowChapterModal(false);
-    setEditingChapter(null);
-    setChapterForm({ title: '', description: '' });
+    if (!editingChapter || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onUpdateChapter(editingChapter.chapter_id, chapterForm);
+      setShowChapterModal(false);
+      setEditingChapter(null);
+      setChapterForm({ title: '', description: '' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCreateLesson = (chapterId: string) => {
@@ -85,14 +139,20 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   };
 
   const handleSaveLesson = async () => {
-    if (editingLesson) {
-      await onUpdateLesson(editingLesson.lesson_id, lessonForm);
-    } else if (selectedChapterId) {
-      await onCreateLesson(selectedChapterId, lessonForm);
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      if (editingLesson) {
+        await onUpdateLesson(editingLesson.lesson_id, lessonForm);
+      } else if (selectedChapterId) {
+        await onCreateLesson(selectedChapterId, lessonForm);
+      }
+      setShowLessonModal(false);
+      setEditingLesson(null);
+      setSelectedChapterId(null);
+    } finally {
+      setIsSubmitting(false);
     }
-    setShowLessonModal(false);
-    setEditingLesson(null);
-    setSelectedChapterId(null);
   };
 
   // FIX: Funzione per gestire l'anteprima del video
@@ -100,10 +160,10 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     try {
       setPreviewLoading(true);
       setShowPreviewModal(true);
-      
+
       // Chiamiamo lo stesso servizio usato dagli studenti
       const response = await courseService.getVideoUrl(lesson.lesson_id);
-      
+
       setPreviewVideoUrl(response.video_url);
       setPreviewLessonId(lesson.lesson_id); // Usato per il tracciamento
     } catch (err) {
@@ -142,114 +202,132 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
 
       {/* Chapters List */}
       <div className="space-y-4">
-        {chapters.map((chapter) => (
-          <div
-            key={chapter.chapter_id}
-            className="bg-white rounded-lg border border-gray-200 overflow-hidden"
-          >
-            {/* Chapter Header */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
-              <div className="flex items-center gap-3 flex-1">
-                <GripVertical className="w-5 h-5 text-gray-400 cursor-move" />
-                <div>
-                  <h3 className="font-semibold text-gray-900">
-                    Chapter {chapter.order_number}: {chapter.title}
-                  </h3>
-                  <p className="text-sm text-gray-600">{chapter.description}</p>
+        <Reorder.Group axis="y" values={localChapters} onReorder={handleReorderChapters} className="space-y-4">
+          {localChapters.map((chapter) => (
+            <Reorder.Item
+              key={chapter.chapter_id}
+              value={chapter}
+              onDragEnd={handleSaveChapterOrder}
+              className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+            >
+              {/* Chapter Header */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="cursor-move p-1 hover:bg-gray-200 rounded">
+                    <GripVertical className="w-5 h-5 text-gray-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">
+                      Chapter {chapter.order_number}: {chapter.title}
+                    </h3>
+                    <p className="text-sm text-gray-600">{chapter.description}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleCreateLesson(chapter.chapter_id)}
+                    className="pointer-events-auto"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Lesson
+                  </Button>
+                  <button
+                    onClick={() => handleEditChapter(chapter)}
+                    className="p-2 text-gray-600 hover:text-primary-600 pointer-events-auto"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm('Delete this chapter?')) {
+                        onDeleteChapter(chapter.chapter_id);
+                      }
+                    }}
+                    className="p-2 text-gray-600 hover:text-red-600 pointer-events-auto"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleCreateLesson(chapter.chapter_id)}
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Lesson
-                </Button>
-                <button
-                  onClick={() => handleEditChapter(chapter)}
-                  className="p-2 text-gray-600 hover:text-primary-600"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => {
-                    if (confirm('Delete this chapter?')) {
-                      onDeleteChapter(chapter.chapter_id);
-                    }
-                  }}
-                  className="p-2 text-gray-600 hover:text-red-600"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
 
-            {/* Lessons */}
-            {chapter.lessons && chapter.lessons.length > 0 && (
-              <div className="divide-y divide-gray-200">
-                {chapter.lessons.map((lesson) => (
-                  <div
-                    key={lesson.lesson_id}
-                    className="flex items-center justify-between p-4 hover:bg-gray-50"
+              {/* Lessons */}
+              {chapter.lessons && chapter.lessons.length > 0 && (
+                <div className="p-4 bg-gray-50/50">
+                  <Reorder.Group
+                    axis="y"
+                    values={chapter.lessons}
+                    onReorder={(newLessons) => handleReorderLessonsLocal(chapter.chapter_id, newLessons)}
+                    className="space-y-2"
                   >
-                    <div className="flex items-center gap-3 flex-1">
-                      <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          Lesson {lesson.order_number}: {lesson.title}
-                        </p>
-                        <p className="text-sm text-gray-600">{lesson.description}</p>
-                        {lesson.is_free_preview && (
-                          <span className="inline-block mt-1 text-xs font-medium text-primary-600 bg-primary-50 px-2 py-0.5 rounded">
-                            Free Preview
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {/* FIX: Pulsante Anteprima */}
-                      <button
-                        onClick={() => handlePreviewLesson(lesson)}
-                        className="p-2 text-gray-600 hover:text-blue-600"
-                        title="Preview Lesson"
+                    {chapter.lessons.map((lesson) => (
+                      <Reorder.Item
+                        key={lesson.lesson_id}
+                        value={lesson}
+                        onDragEnd={() => handleSaveLessonOrder(chapter.chapter_id)}
+                        className="flex items-center justify-between p-3 bg-white rounded border border-gray-200 shadow-sm"
                       >
-                        <Play className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingLesson(lesson);
-                          setLessonForm({
-                            title: lesson.title,
-                            description: lesson.description,
-                            duration_seconds: lesson.duration_seconds,
-                            video_s3_key: lesson.video_s3_key,
-                            is_free_preview: lesson.is_free_preview || false,
-                          });
-                          setShowLessonModal(true);
-                        }}
-                        className="p-2 text-gray-600 hover:text-primary-600"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm('Delete this lesson?')) {
-                            onDeleteLesson(lesson.lesson_id);
-                          }
-                        }}
-                        className="p-2 text-gray-600 hover:text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="cursor-move p-1 hover:bg-gray-100 rounded text-gray-400">
+                            <GripVertical className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900 text-sm">
+                              Lesson {lesson.order_number}: {lesson.title}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate max-w-md">{lesson.description}</p>
+                            {lesson.is_free_preview && (
+                              <span className="inline-block mt-1 text-[10px] font-medium text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded">
+                                Free Preview
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {/* FIX: Pulsante Anteprima */}
+                          <button
+                            onClick={() => handlePreviewLesson(lesson)}
+                            className="p-1.5 text-gray-500 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors"
+                            title="Preview Lesson"
+                          >
+                            <Play className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingLesson(lesson);
+                              setLessonForm({
+                                title: lesson.title,
+                                description: lesson.description,
+                                duration_seconds: lesson.duration_seconds,
+                                video_s3_key: lesson.video_s3_key,
+                                is_free_preview: lesson.is_free_preview || false,
+                              });
+                              setShowLessonModal(true);
+                            }}
+                            className="p-1.5 text-gray-500 hover:text-primary-600 rounded hover:bg-primary-50 transition-colors"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm('Delete this lesson?')) {
+                                onDeleteLesson(lesson.lesson_id);
+                              }
+                            }}
+                            className="p-1.5 text-gray-500 hover:text-red-600 rounded hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </Reorder.Item>
+                    ))}
+                  </Reorder.Group>
+                </div>
+              )}
+            </Reorder.Item>
+          ))}
+        </Reorder.Group>
       </div>
 
       {/* Chapter Modal */}
@@ -289,9 +367,10 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             onClick={editingChapter ? handleUpdateChapter : handleCreateChapter}
             variant="primary"
             fullWidth
+            disabled={isSubmitting || !chapterForm.title}
           >
             <Save className="w-4 h-4 mr-2" />
-            {editingChapter ? 'Update Chapter' : 'Create Chapter'}
+            {isSubmitting ? 'Saving...' : (editingChapter ? 'Update Chapter' : 'Create Chapter')}
           </Button>
         </div>
       </Modal>
@@ -357,22 +436,22 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                   console.log('Video S3 Key received:', videoKey);
                   console.log('Video duration received:', duration);
                   // Popola automaticamente sia la chiave che la durata
-                  setLessonForm({ 
-                    ...lessonForm, 
+                  setLessonForm({
+                    ...lessonForm,
                     video_s3_key: videoKey,
-                    duration_seconds: duration 
+                    duration_seconds: duration
                   });
                 }}
               />
             )}
           </div>
-          
+
           {/* Campo Durata nascosto, ma ancora nel modulo (viene popolato automaticamente) */}
           <input
             type="hidden"
             value={lessonForm.duration_seconds}
           />
-          
+
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -387,14 +466,14 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               Free Preview Lesson
             </label>
           </div>
-          <Button 
-            onClick={handleSaveLesson} 
-            variant="primary" 
+          <Button
+            onClick={handleSaveLesson}
+            variant="primary"
             fullWidth
-            disabled={!lessonForm.title || !lessonForm.video_s3_key}
+            disabled={!lessonForm.title || !lessonForm.video_s3_key || isSubmitting}
           >
             <Save className="w-4 h-4 mr-2" />
-            {editingLesson ? 'Update Lesson' : 'Create Lesson'}
+            {isSubmitting ? 'Saving...' : (editingLesson ? 'Update Lesson' : 'Create Lesson')}
           </Button>
         </div>
       </Modal>

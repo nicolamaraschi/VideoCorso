@@ -3,6 +3,9 @@ import os
 import boto3
 import uuid
 from datetime import datetime, timedelta
+import stripe
+import secrets
+import string
 
 # Inizializza Stripe
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
@@ -19,7 +22,22 @@ COGNITO_USER_POOL_ID = os.environ.get('COGNITO_USER_POOL_ID')
 users_table = dynamodb.Table(USERS_TABLE_NAME)
 purchases_table = dynamodb.Table(PURCHASES_TABLE_NAME)
 
+# Inizializza Resend (Lazy initialization to allow fallback if missing)
+try:
+    import resend
+    resend.api_key = os.environ.get('RESEND_API_KEY')
+except ImportError:
+    resend = None
+    print("WARNING: resend library not found")
+
 # --- Helpers ---
+
+def generate_temp_password(length=10):
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    password = ''.join(secrets.choice(alphabet) for i in range(length))
+    # Ensure at least one of each required char type for Cognito
+    password += "A1!" 
+    return password
 
 def create_response(status_code, body):
     return {
@@ -31,6 +49,35 @@ def create_response(status_code, body):
         'body': json.dumps(body)
     }
 
+def send_welcome_email(email, temp_password):
+    if not resend or not resend.api_key:
+        print("RESEND_API_KEY non configurata o libreria mancante. Email non inviata.")
+        return
+
+    try:
+        subject = "Benvenuto nel Corso PMU - Le tue credenziali"
+        html_content = f"""
+        <h1>Benvenuto!</h1>
+        <p>Grazie per aver acquistato il Corso Completo PMU.</p>
+        <p>Ecco le tue credenziali per accedere alla piattaforma:</p>
+        <ul>
+            <li><strong>Email:</strong> {email}</li>
+            <li><strong>Password Temporanea:</strong> {temp_password}</li>
+        </ul>
+        <p>Ti verrà chiesto di cambiare la password al primo accesso.</p>
+        <p><a href="https://tuo-sito.com/login">Accedi ora</a></p>
+        """
+        
+        r = resend.Emails.send({
+            "from": "Team Corso PMU <onboarding@resend.dev>", 
+            "to": email,
+            "subject": subject,
+            "html": html_content
+        })
+        print(f"Email inviata a {email}. ID: {r.get('id')}")
+    except Exception as e:
+        print(f"Errore invio email Resend: {e}")
+
 def handle_checkout_session(session):
     print("Handling checkout.session.completed")
     customer_email = session.get('customer_details', {}).get('email')
@@ -38,7 +85,7 @@ def handle_checkout_session(session):
     
     if not customer_email or not payment_intent_id:
         print("Errore: Email o Payment Intent ID mancante nella sessione")
-        return
+        return create_response(400, {'error': 'Dati mancanti'})
 
     # 1. Controlla se l'acquisto esiste già
     try:
@@ -51,6 +98,8 @@ def handle_checkout_session(session):
 
     # 2. Logica di creazione/aggiornamento utente
     user_id = None
+    temp_password = None
+    
     try:
         # Controlla se l'utente esiste in Cognito
         try:
@@ -66,16 +115,21 @@ def handle_checkout_session(session):
             # Crea l'utente se non esiste
             print(f"Utente {customer_email} non trovato. Creazione in corso...")
             
-            # FIX: Modificato per inviare l'email di invito con password temporanea
+            # Generiamo noi la password temporanea per essere SICURI di averla
+            temp_password = generate_temp_password()
+            print("Password temporanea generata manualmente.")
+
+            # Creiamo l'utente ma NON inviamo la mail di default di Cognito (SUPPRESS)
             new_user = cognito_client.admin_create_user(
                 UserPoolId=COGNITO_USER_POOL_ID,
                 Username=customer_email,
+                TemporaryPassword=temp_password,
                 UserAttributes=[
                     {'Name': 'email', 'Value': customer_email},
-                    # Rimuoviamo email_verified: 'true'. La verifica avverrà al primo login.
+                    {'Name': 'custom:subscription_status', 'Value': 'active'}
                 ],
-                DesiredDeliveryMediums=['EMAIL'], # Diciamo a Cognito di inviare l'email
-                MessageAction='RESEND' # Invia l'email di invito (che contiene la temp password)
+                DesiredDeliveryMediums=['EMAIL'],
+                MessageAction='SUPPRESS' # Sopprimiamo l'email automatica
             )
             
             # Estrai 'sub' (user_id) dagli attributi del nuovo utente
@@ -89,6 +143,10 @@ def handle_checkout_session(session):
                 GroupName='students'
             )
             print("Utente aggiunto al gruppo 'students'")
+            
+            # Invia email con Resend
+            if temp_password:
+                send_welcome_email(customer_email, temp_password)
 
     except Exception as e:
         print(f"Errore durante la gestione utente Cognito: {e}")
@@ -114,7 +172,6 @@ def handle_checkout_session(session):
                 'subscription_status': 'active',
                 'sub_end_date': expiration_date_iso, # Attributo corretto da template.yaml
                 'created_at': purchase_date_iso
-                # 'full_name' può essere aggiunto in un secondo momento dal profilo
             }
         )
         print("Tabella Users aggiornata.")
@@ -140,8 +197,6 @@ def handle_checkout_session(session):
     except Exception as e:
         print(f"Errore salvataggio acquisto in DynamoDB: {e}")
         return create_response(500, {'error': f"Errore DB Purchase: {e}"})
-        
-    # TODO: Inviare email di benvenuto personalizzata con AWS SES
 
     return create_response(200, {'message': 'Webhook processato con successo'})
 
@@ -150,6 +205,8 @@ def handle_checkout_session(session):
 def lambda_handler(event, context):
     path = event.get('path', '')
     http_method = event.get('httpMethod', '')
+
+    print(f"Richiesta: path={path}, method={http_method}")
 
     # Gestione OPTIONS pre-flight
     if http_method == 'OPTIONS':
@@ -161,7 +218,6 @@ def lambda_handler(event, context):
             body = json.loads(event.get('body', '{}'))
             
             # Prezzo fisso sul backend (99.99 EUR)
-            # In produzione, dovresti avere un ID Prodotto/Prezzo da Stripe
             session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
                 line_items=[{
@@ -183,6 +239,7 @@ def lambda_handler(event, context):
             
             return create_response(200, {'session_id': session.id, 'checkout_url': session.url})
         except Exception as e:
+            print(f"Errore create-checkout: {e}")
             return create_response(500, {'error': str(e)})
 
     # Webhook da Stripe
