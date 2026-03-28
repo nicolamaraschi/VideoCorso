@@ -48,7 +48,16 @@ export const CourseDetailPage: React.FC = () => {
 
       <section className="bg-white rounded-lg border border-gray-200 p-8">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-          <div className="max-w-3xl">
+          <div className="flex-1 max-w-4xl">
+            {course.cover_image_url && (
+              <div className="mb-6 overflow-hidden rounded-2xl border border-gray-200">
+                <img
+                  src={course.cover_image_url}
+                  alt={`Copertina ${course.title}`}
+                  className="w-full h-64 object-cover"
+                />
+              </div>
+            )}
             <h1 className="text-3xl font-bold text-gray-900">{course.title}</h1>
             <p className="text-gray-600 mt-3">{course.description}</p>
           </div>

@@ -43,6 +43,10 @@ def create_response(status_code: int, body: Any):
     }
 
 
+def build_public_s3_url(bucket: str, key: str) -> str:
+    return f'https://{bucket}.s3.amazonaws.com/{key}'
+
+
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
 
@@ -202,6 +206,119 @@ def list_admin_accounts():
     return sorted(items, key=lambda item: item.get('created_at', ''), reverse=True)
 
 
+def list_cognito_pool_users():
+    items = []
+    pagination_token = None
+
+    while True:
+        kwargs = {
+            'UserPoolId': COGNITO_USER_POOL_ID,
+            'Limit': 60,
+        }
+        if pagination_token:
+            kwargs['PaginationToken'] = pagination_token
+
+        response = cognito_client.list_users(**kwargs)
+        items.extend(response.get('Users', []))
+        pagination_token = response.get('PaginationToken')
+        if not pagination_token:
+            break
+
+    return items
+
+
+def get_cognito_attributes_map(user: dict[str, Any]) -> dict[str, Any]:
+    return {item['Name']: item['Value'] for item in user.get('Attributes', [])}
+
+
+def build_user_record_from_cognito(user: dict[str, Any]) -> dict[str, Any]:
+    attributes = get_cognito_attributes_map(user)
+    email = str(attributes.get('email', '')).strip().lower()
+    user_id = str(attributes.get('sub', '')).strip()
+    if not email or not user_id:
+        return {}
+
+    created_at = (
+        user.get('UserCreateDate').astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
+        if user.get('UserCreateDate') else now_iso()
+    )
+    updated_at = (
+        user.get('UserLastModifiedDate').astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
+        if user.get('UserLastModifiedDate') else created_at
+    )
+
+    return {
+        'user_id': user_id,
+        'email': email,
+        'full_name': attributes.get('custom:full_name') or attributes.get('name') or '',
+        'subscription_status': attributes.get('custom:subscription_status') or 'inactive',
+        'sub_end_date': attributes.get('custom:sub_end_date') or '',
+        'created_at': created_at,
+        'updated_at': updated_at,
+        'global_access': False,
+    }
+
+
+def merge_user_sources(table_item: Optional[dict[str, Any]], cognito_item: Optional[dict[str, Any]]) -> dict[str, Any]:
+    merged = dict(cognito_item or {})
+    if table_item:
+        merged.update(table_item)
+
+    if cognito_item:
+        merged['email'] = table_item.get('email') if table_item and table_item.get('email') else cognito_item.get('email', '')
+        merged['full_name'] = table_item.get('full_name') if table_item and table_item.get('full_name') else cognito_item.get('full_name', '')
+        merged['subscription_status'] = (
+            table_item.get('subscription_status')
+            if table_item and table_item.get('subscription_status')
+            else cognito_item.get('subscription_status', 'inactive')
+        )
+        merged['sub_end_date'] = (
+            table_item.get('sub_end_date')
+            if table_item and table_item.get('sub_end_date')
+            else cognito_item.get('sub_end_date', '')
+        )
+        merged['created_at'] = table_item.get('created_at') if table_item and table_item.get('created_at') else cognito_item.get('created_at', now_iso())
+        merged['updated_at'] = table_item.get('updated_at') if table_item and table_item.get('updated_at') else cognito_item.get('updated_at', merged['created_at'])
+
+    merged['global_access'] = normalize_bool(merged.get('global_access', False))
+    return merged
+
+
+def list_student_records() -> list[dict[str, Any]]:
+    table_items = {item['user_id']: item for item in list_all_items(TABLES['USERS']) if item.get('user_id')}
+    admin_emails = {str(item.get('email', '')).strip().lower() for item in list_admin_accounts()}
+    merged_items: dict[str, dict[str, Any]] = {}
+
+    for cognito_user in list_cognito_pool_users():
+        cognito_item = build_user_record_from_cognito(cognito_user)
+        if not cognito_item:
+            continue
+        if cognito_item['email'] in admin_emails:
+            continue
+
+        existing = table_items.pop(cognito_item['user_id'], None)
+        merged_items[cognito_item['user_id']] = merge_user_sources(existing, cognito_item)
+
+    for user_id, table_item in table_items.items():
+        email = str(table_item.get('email', '')).strip().lower()
+        if email and email in admin_emails:
+            continue
+        merged_items[user_id] = merge_user_sources(table_item, None)
+
+    return sorted(merged_items.values(), key=lambda item: item.get('created_at', ''), reverse=True)
+
+
+def resolve_student_record(student_id: str) -> dict[str, Any]:
+    user_item = get_user_item(student_id)
+    if user_item:
+        return user_item
+
+    for student in list_student_records():
+        if student.get('user_id') == student_id:
+            return student
+    return {}
+
+
 def parse_iso_datetime(value: Optional[str]):
     if not value:
         return None
@@ -230,6 +347,12 @@ def normalize_course(course: dict[str, Any]) -> dict[str, Any]:
     normalized['display_order'] = int(normalized.get('display_order', 999))
     if 'discounted_price' in normalized and normalized.get('discounted_price') not in (None, ''):
         normalized['discounted_price'] = Decimal(str(normalized['discounted_price']))
+    return normalized
+
+
+def normalize_chapter(chapter: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(chapter)
+    normalized['image_url'] = normalized.get('image_url', '')
     return normalized
 
 
@@ -451,7 +574,7 @@ def get_course_chapters(course_id: str) -> list[dict[str, Any]]:
         IndexName='CourseIndex',
         KeyConditionExpression=Key('course_id').eq(course_id),
     )
-    return sorted(chapters, key=lambda item: int(item.get('order_number', 0)))
+    return sorted((normalize_chapter(item) for item in chapters), key=lambda item: int(item.get('order_number', 0)))
 
 
 def get_chapter_lessons(chapter_id: str) -> list[dict[str, Any]]:
@@ -645,11 +768,12 @@ def create_chapter(body):
         'course_id': course_id,
         'title': body.get('title', ''),
         'description': body.get('description', ''),
+        'image_url': body.get('image_url', ''),
         'order_number': len(existing) + 1,
         'created_at': now_iso(),
     }
     TABLES['CHAPTERS'].put_item(Item=item)
-    return create_response(201, {'success': True, 'data': item})
+    return create_response(201, {'success': True, 'data': normalize_chapter(item)})
 
 
 def update_chapter(chapter_id, body):
@@ -670,7 +794,7 @@ def update_chapter(chapter_id, body):
         ExpressionAttributeValues=values,
         ReturnValues='ALL_NEW',
     )
-    return create_response(200, {'success': True, 'data': updated.get('Attributes')})
+    return create_response(200, {'success': True, 'data': normalize_chapter(updated.get('Attributes'))})
 
 
 def renormalize_chapters(course_id):
@@ -803,6 +927,30 @@ def get_presigned_upload_url(body):
     })
 
 
+def get_presigned_image_upload_url(body):
+    file_name = body.get('file_name')
+    file_type = body.get('file_type')
+    folder = (body.get('folder') or 'images').strip('/')
+    if not file_name or not file_type:
+        return create_response(400, {'error': 'file_name and file_type are required'})
+    if not str(file_type).startswith('image/'):
+        return create_response(400, {'error': 'Only image uploads are allowed'})
+
+    safe_name = str(file_name).replace(' ', '-')
+    s3_key = f"{folder}/{uuid.uuid4()}-{safe_name}"
+    url = s3_client.generate_presigned_url(
+        'put_object',
+        Params={'Bucket': THUMBNAIL_BUCKET, 'Key': s3_key, 'ContentType': file_type},
+        ExpiresIn=3600,
+    )
+    return create_response(200, {
+        'upload_url': url,
+        'image_s3_key': s3_key,
+        'image_url': build_public_s3_url(THUMBNAIL_BUCKET, s3_key),
+        'expires_at': now_iso(),
+    })
+
+
 def delete_video(video_id):
     if not video_id:
         return create_response(400, {'error': 'videoId is required'})
@@ -884,7 +1032,7 @@ def create_manual_student(body):
 
 
 def update_student(student_id, body):
-    user_item = get_user_item(student_id)
+    user_item = resolve_student_record(student_id)
     if not user_item:
         return create_response(404, {'error': 'Student not found'})
 
@@ -916,7 +1064,7 @@ def update_student(student_id, body):
 
 
 def get_students():
-    users = list_all_items(TABLES['USERS'])
+    users = list_student_records()
     items = [summarize_student(user) for user in sorted(users, key=lambda item: item.get('created_at', ''), reverse=True)]
     return create_response(200, {
         'items': items,
@@ -932,7 +1080,7 @@ def search_students(params):
     if not query:
         return create_response(200, [])
 
-    users = list_all_items(TABLES['USERS'])
+    users = list_student_records()
     matches = []
     for user in users:
         email = str(user.get('email', '')).lower()
@@ -943,7 +1091,7 @@ def search_students(params):
 
 
 def get_student_detail(student_id):
-    user_item = get_user_item(student_id)
+    user_item = resolve_student_record(student_id)
     if not user_item:
         return create_response(404, {'error': 'Student not found'})
 
@@ -1442,6 +1590,7 @@ TABLE_NAMES = {
 TABLES = {name: dynamodb.Table(table_name) for name, table_name in TABLE_NAMES.items() if table_name}
 
 VIDEO_BUCKET = os.environ.get('VIDEO_BUCKET')
+THUMBNAIL_BUCKET = os.environ.get('THUMBNAIL_BUCKET')
 COGNITO_USER_POOL_ID = os.environ.get('COGNITO_USER_POOL_ID')
 current_params = {}
 
@@ -1556,6 +1705,8 @@ def lambda_handler(event, context):
 
         if path == '/admin/video/upload' and http_method == 'POST':
             return get_presigned_upload_url(body)
+        if path == '/admin/image/upload' and http_method == 'POST':
+            return get_presigned_image_upload_url(body)
         if path.startswith('/admin/video/') and http_method == 'DELETE':
             return delete_video(path_parameters.get('videoId'))
         if path == '/admin/video/thumbnail' and http_method == 'POST':

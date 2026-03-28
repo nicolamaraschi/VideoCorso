@@ -33,6 +33,16 @@ export const LessonCard: React.FC<LessonCardProps> = ({
           : 'hover:bg-gray-50 border-l-4 border-transparent'
       } ${isLocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
     >
+      {lesson.thumbnail_url ? (
+        <div className="w-28 h-16 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 flex-shrink-0">
+          <img
+            src={lesson.thumbnail_url}
+            alt={`Copertina ${lesson.title}`}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      ) : null}
+
       {/* Icon */}
       <div className="flex-shrink-0">
         {isLocked ? (

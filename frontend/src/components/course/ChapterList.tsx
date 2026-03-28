@@ -71,6 +71,15 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                 )}
 
                 <div className="flex-1">
+                  {chapter.image_url && (
+                    <div className="mb-3 overflow-hidden rounded-xl border border-gray-200 bg-white">
+                      <img
+                        src={chapter.image_url}
+                        alt={`Copertina ${chapter.title}`}
+                        className="h-36 w-full object-cover"
+                      />
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-gray-900">
                       Chapter {chapter.order_number}

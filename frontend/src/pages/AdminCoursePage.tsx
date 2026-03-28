@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Save } from 'lucide-react';
 import { CourseEditor } from '../components/admin/CourseEditor';
+import { ImageUploader } from '../components/admin/ImageUploader';
 import { useCourse } from '../hooks/useCourse';
 import { adminService } from '../services/adminService';
 import { Loading } from '../components/common/Loading';
@@ -9,7 +10,7 @@ import { Button } from '../components/common/Button';
 import type { AdminCourseRequest, Chapter, Course, Lesson } from '../types';
 import { getErrorMessage } from '../utils/errors';
 
-type LessonEditorPayload = Pick<Lesson, 'title' | 'description' | 'duration_seconds' | 'video_s3_key'> & {
+type LessonEditorPayload = Pick<Lesson, 'title' | 'description' | 'duration_seconds' | 'video_s3_key' | 'thumbnail_url'> & {
   is_free_preview?: boolean;
 };
 
@@ -129,7 +130,7 @@ export const AdminCoursePage: React.FC = () => {
     }
   };
 
-  const handleCreateChapter = async (data: { title: string; description: string }) => {
+  const handleCreateChapter = async (data: { title: string; description: string; image_url?: string }) => {
     if (!courseStructure) {
       return;
     }
@@ -139,6 +140,7 @@ export const AdminCoursePage: React.FC = () => {
         course_id: courseStructure.course.course_id,
         title: data.title,
         description: data.description,
+        image_url: data.image_url,
         order_number: courseStructure.chapters.length + 1,
       });
       await reload();
@@ -181,6 +183,7 @@ export const AdminCoursePage: React.FC = () => {
         order_number: (chapter?.lessons?.length || 0) + 1,
         duration_seconds: data.duration_seconds,
         video_s3_key: data.video_s3_key,
+        thumbnail_url: data.thumbnail_url,
         is_free_preview: data.is_free_preview,
       });
       await reload();
@@ -279,113 +282,191 @@ export const AdminCoursePage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                type="text"
-                value={courseForm.title}
-                onChange={(event) => updateCourseField('title', event.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="Titolo corso"
-              />
-              <input
-                type="text"
-                value={courseForm.subtitle || ''}
-                onChange={(event) => updateCourseField('subtitle', event.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="Subtitle"
-              />
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Titolo corso</label>
+                <input
+                  type="text"
+                  value={courseForm.title}
+                  onChange={(event) => updateCourseField('title', event.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg w-full"
+                  placeholder="Nome principale del corso visibile ovunque"
+                />
+                <p className="text-xs text-gray-500">
+                  E il nome che il cliente vede in catalogo, checkout, dashboard e admin.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Subtitle</label>
+                <input
+                  type="text"
+                  value={courseForm.subtitle || ''}
+                  onChange={(event) => updateCourseField('subtitle', event.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg w-full"
+                  placeholder="Riga secondaria che spiega meglio il corso"
+                />
+                <p className="text-xs text-gray-500">
+                  Serve per chiarire in una frase breve a chi e utile il corso o qual e il focus.
+                </p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={courseForm.price}
-                onChange={(event) => updateCourseField('price', Number(event.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="Prezzo"
-              />
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={courseForm.discounted_price ?? ''}
-                onChange={(event) => updateCourseField('discounted_price', event.target.value === '' ? null : Number(event.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="Prezzo scontato"
-              />
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={courseForm.display_order ?? 999}
-                onChange={(event) => updateCourseField('display_order', Number(event.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="Posizione vetrina"
-              />
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Prezzo pieno</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={courseForm.price}
+                  onChange={(event) => updateCourseField('price', Number(event.target.value))}
+                  className="px-3 py-2 border border-gray-300 rounded-lg w-full"
+                  placeholder="Prezzo standard del corso"
+                />
+                <p className="text-xs text-gray-500">
+                  E il prezzo base del corso. Se non hai uno sconto attivo, e questo che viene usato.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Prezzo scontato</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={courseForm.discounted_price ?? ''}
+                  onChange={(event) => updateCourseField('discounted_price', event.target.value === '' ? null : Number(event.target.value))}
+                  className="px-3 py-2 border border-gray-300 rounded-lg w-full"
+                  placeholder="Prezzo promo opzionale"
+                />
+                <p className="text-xs text-gray-500">
+                  Se lo compili e piu basso del prezzo pieno, il corso viene mostrato come in offerta.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Posizione vetrina</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={courseForm.display_order ?? 999}
+                  onChange={(event) => updateCourseField('display_order', Number(event.target.value))}
+                  className="px-3 py-2 border border-gray-300 rounded-lg w-full"
+                  placeholder="Ordine nel catalogo pubblico"
+                />
+                <p className="text-xs text-gray-500">
+                  Numero piu basso = corso mostrato prima. `1` va in alto, `999` va in fondo.
+                </p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <select
-                value={courseForm.status || 'draft'}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Stato corso</label>
+                <select
+                  value={courseForm.status || 'draft'}
+                  onChange={(event) => {
+                    const status = event.target.value as AdminCourseRequest['status'];
+                    updateCourseField('status', status);
+                    updateCourseField('is_active', status === 'published');
+                  }}
+                  className="px-3 py-2 border border-gray-300 rounded-lg w-full"
+                >
+                  <option value="draft">Bozza</option>
+                  <option value="published">Pubblicato</option>
+                  <option value="hidden">Nascosto</option>
+                  <option value="archived">Archiviato</option>
+                </select>
+                <p className="text-xs text-gray-500">
+                  `Bozza` solo admin. `Pubblicato` pronto per la vetrina. `Nascosto` fuori vetrina ma gestibile. `Archiviato` fuori vendita.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Badge marketing</label>
+                <select
+                  value={courseForm.badge || ''}
+                  onChange={(event) => updateCourseField('badge', event.target.value as AdminCourseRequest['badge'])}
+                  className="px-3 py-2 border border-gray-300 rounded-lg w-full"
+                >
+                  <option value="">Nessun badge</option>
+                  <option value="bestseller">Bestseller</option>
+                  <option value="new">Nuovo</option>
+                  <option value="sale">In offerta</option>
+                </select>
+                <p className="text-xs text-gray-500">
+                  Etichetta visiva commerciale. Non cambia accessi o pagamenti, serve solo per la vetrina.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Slug pubblico</label>
+                <input
+                  type="text"
+                  value={courseForm.public_slug || ''}
+                  onChange={(event) => updateCourseField('public_slug', event.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg w-full"
+                  placeholder="nome-corso-negli-url"
+                />
+                <p className="text-xs text-gray-500">
+                  E il nome leggibile usato negli URL pubblici. Meglio corto, minuscolo e con trattini.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">URL immagine copertina</label>
+              <input
+                type="text"
+                value={courseForm.cover_image_url || ''}
+                onChange={(event) => updateCourseField('cover_image_url', event.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="Immagine principale del corso"
+              />
+              <p className="text-xs text-gray-500">
+                Immagine usata in catalogo, card corso e riepiloghi commerciali.
+              </p>
+              {courseForm.cover_image_url && (
+                <img
+                  src={courseForm.cover_image_url}
+                  alt="Anteprima copertina corso"
+                  className="max-h-48 w-full rounded-lg border border-gray-200 object-cover"
+                />
+              )}
+              <ImageUploader
+                folder="courses"
+                label="Copertina corso"
+                onUploadComplete={(imageUrl) => updateCourseField('cover_image_url', imageUrl)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Descrizione breve</label>
+              <input
+                type="text"
+                value={courseForm.short_description || ''}
                 onChange={(event) => {
-                  const status = event.target.value as AdminCourseRequest['status'];
-                  updateCourseField('status', status);
-                  updateCourseField('is_active', status === 'published');
+                  updateCourseField('short_description', event.target.value);
+                  updateCourseField('description', event.target.value);
                 }}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
-              >
-                <option value="draft">Bozza</option>
-                <option value="published">Pubblicato</option>
-                <option value="hidden">Nascosto</option>
-                <option value="archived">Archiviato</option>
-              </select>
-
-              <select
-                value={courseForm.badge || ''}
-                onChange={(event) => updateCourseField('badge', event.target.value as AdminCourseRequest['badge'])}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
-              >
-                <option value="">Nessun badge</option>
-                <option value="bestseller">Bestseller</option>
-                <option value="new">Nuovo</option>
-                <option value="sale">In offerta</option>
-              </select>
-
-              <input
-                type="text"
-                value={courseForm.public_slug || ''}
-                onChange={(event) => updateCourseField('public_slug', event.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="Slug pubblico"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="Testo corto per catalogo e checkout"
               />
+              <p className="text-xs text-gray-500">
+                Riassunto veloce del corso. E quello che conviene mostrare nelle card e nel checkout.
+              </p>
             </div>
 
-            <input
-              type="text"
-              value={courseForm.cover_image_url || ''}
-              onChange={(event) => updateCourseField('cover_image_url', event.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              placeholder="URL immagine copertina"
-            />
-
-            <input
-              type="text"
-              value={courseForm.short_description || ''}
-              onChange={(event) => {
-                updateCourseField('short_description', event.target.value);
-                updateCourseField('description', event.target.value);
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              placeholder="Descrizione breve"
-            />
-
-            <textarea
-              value={courseForm.long_description || ''}
-              onChange={(event) => updateCourseField('long_description', event.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[140px]"
-              placeholder="Descrizione lunga / sales copy"
-            />
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Descrizione lunga</label>
+              <textarea
+                value={courseForm.long_description || ''}
+                onChange={(event) => updateCourseField('long_description', event.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[140px]"
+                placeholder="Programma, benefici, destinatari, contenuti e dettagli vendita"
+              />
+              <p className="text-xs text-gray-500">
+                Testo completo del corso: cosa include, per chi e pensato, risultati, moduli e motivi per acquistarlo.
+              </p>
+            </div>
 
             <div className="flex flex-wrap gap-6 text-sm text-gray-700">
               <label className="flex items-center gap-3">
@@ -409,9 +490,11 @@ export const AdminCoursePage: React.FC = () => {
               </label>
             </div>
 
-            <p className="text-sm text-gray-500">
-              `published` + `acquistabile` mette il corso in vetrina e nel checkout pubblico. `hidden` lo nasconde dalla vetrina ma resta gestibile. `archived` lo toglie dalla vendita.
-            </p>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 space-y-1">
+              <p><strong className="text-gray-800">Corso acquistabile</strong>: se attivo, il corso puo essere comprato dal cliente.</p>
+              <p><strong className="text-gray-800">Flag tecnico attivo</strong>: e interno e segue lo stato del corso, non serve usarlo a mano.</p>
+              <p><strong className="text-gray-800">Regola pratica</strong>: `published` + `acquistabile` mette il corso in vetrina e nel checkout pubblico.</p>
+            </div>
           </div>
 
           <div className="w-full xl:w-[260px]">

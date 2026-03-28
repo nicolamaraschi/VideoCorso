@@ -5,6 +5,7 @@ import type { Chapter, Lesson } from '../../types';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { VideoUploader } from './VideoUploader';
+import { ImageUploader } from './ImageUploader';
 // FIX: Importa i componenti necessari per l'anteprima
 import { VideoPlayer } from '../course/VideoPlayer';
 import { courseService } from '../../services/courseService';
@@ -15,12 +16,13 @@ type LessonFormData = {
   description: string;
   duration_seconds: number;
   video_s3_key: string;
+  thumbnail_url?: string;
   is_free_preview: boolean;
 };
 
 interface CourseEditorProps {
   chapters: Chapter[];
-  onCreateChapter: (data: { title: string; description: string }) => Promise<void>;
+  onCreateChapter: (data: { title: string; description: string; image_url?: string }) => Promise<void>;
   onUpdateChapter: (chapterId: string, data: Partial<Chapter>) => Promise<void>;
   onDeleteChapter: (chapterId: string) => Promise<void>;
   onCreateLesson: (chapterId: string, data: LessonFormData) => Promise<void>;
@@ -43,17 +45,28 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
 }) => {
   const [localChapters, setLocalChapters] = useState(chapters);
 
+  const reindexLessons = (lessons: Lesson[]) => lessons.map((lesson, index) => ({
+    ...lesson,
+    order_number: index + 1,
+  }));
+
+  const reindexChapters = (chapterItems: Chapter[]) => chapterItems.map((chapter, index) => ({
+    ...chapter,
+    order_number: index + 1,
+    lessons: chapter.lessons ? reindexLessons(chapter.lessons) : chapter.lessons,
+  }));
+
   useEffect(() => {
     setLocalChapters(chapters);
   }, [chapters]);
 
   const handleReorderChapters = (newOrder: Chapter[]) => {
-    setLocalChapters(newOrder);
+    setLocalChapters(reindexChapters(newOrder));
   };
 
   const handleReorderLessonsLocal = (chapterId: string, newLessons: Lesson[]) => {
     setLocalChapters(prev => prev.map(c =>
-      c.chapter_id === chapterId ? { ...c, lessons: newLessons } : c
+      c.chapter_id === chapterId ? { ...c, lessons: reindexLessons(newLessons) } : c
     ));
   };
 
@@ -89,12 +102,13 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const [previewLessonId, setPreviewLessonId] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
-  const [chapterForm, setChapterForm] = useState({ title: '', description: '' });
+  const [chapterForm, setChapterForm] = useState({ title: '', description: '', image_url: '' });
   const [lessonForm, setLessonForm] = useState({
     title: '',
     description: '',
     duration_seconds: 0,
     video_s3_key: '',
+    thumbnail_url: '',
     is_free_preview: false,
   });
 
@@ -106,7 +120,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     try {
       await onCreateChapter(chapterForm);
       setShowChapterModal(false);
-      setChapterForm({ title: '', description: '' });
+      setChapterForm({ title: '', description: '', image_url: '' });
     } finally {
       setIsSubmitting(false);
     }
@@ -117,6 +131,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     setChapterForm({
       title: chapter.title,
       description: chapter.description,
+      image_url: chapter.image_url || '',
     });
     setShowChapterModal(true);
   };
@@ -128,7 +143,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       await onUpdateChapter(editingChapter.chapter_id, chapterForm);
       setShowChapterModal(false);
       setEditingChapter(null);
-      setChapterForm({ title: '', description: '' });
+      setChapterForm({ title: '', description: '', image_url: '' });
     } finally {
       setIsSubmitting(false);
     }
@@ -141,6 +156,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       description: '',
       duration_seconds: 0,
       video_s3_key: '',
+      thumbnail_url: '',
       is_free_preview: false,
     });
     setShowLessonModal(true);
@@ -150,10 +166,22 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
+      const lessonPayload: Partial<LessonFormData> = {
+        title: lessonForm.title,
+        description: lessonForm.description,
+        duration_seconds: lessonForm.duration_seconds,
+        thumbnail_url: lessonForm.thumbnail_url || '',
+        is_free_preview: lessonForm.is_free_preview,
+      };
+
+      if (lessonForm.video_s3_key) {
+        lessonPayload.video_s3_key = lessonForm.video_s3_key;
+      }
+
       if (editingLesson) {
-        await onUpdateLesson(editingLesson.lesson_id, lessonForm);
+        await onUpdateLesson(editingLesson.lesson_id, lessonPayload);
       } else if (selectedChapterId) {
-        await onCreateLesson(selectedChapterId, lessonForm);
+        await onCreateLesson(selectedChapterId, lessonPayload as LessonFormData);
       }
       setShowLessonModal(false);
       setEditingLesson(null);
@@ -198,7 +226,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         <Button
           onClick={() => {
             setEditingChapter(null);
-            setChapterForm({ title: '', description: '' });
+            setChapterForm({ title: '', description: '', image_url: '' });
             setShowChapterModal(true);
           }}
           variant="primary"
@@ -224,6 +252,13 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                   <div className="cursor-move p-1 hover:bg-gray-200 rounded">
                     <GripVertical className="w-5 h-5 text-gray-400" />
                   </div>
+                  {chapter.image_url ? (
+                    <img
+                      src={chapter.image_url}
+                      alt={chapter.title}
+                      className="h-20 w-28 rounded-lg border border-gray-200 object-cover bg-white"
+                    />
+                  ) : null}
                   <div>
                     <h3 className="font-semibold text-gray-900">
                       Chapter {chapter.order_number}: {chapter.title}
@@ -280,6 +315,17 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                           <div className="cursor-move p-1 hover:bg-gray-100 rounded text-gray-400">
                             <GripVertical className="w-4 h-4" />
                           </div>
+                          {lesson.thumbnail_url ? (
+                            <img
+                              src={lesson.thumbnail_url}
+                              alt={lesson.title}
+                              className="h-16 w-24 rounded-lg border border-gray-200 object-cover bg-gray-50"
+                            />
+                          ) : (
+                            <div className="flex h-16 w-24 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-[11px] font-medium text-gray-400">
+                              No cover
+                            </div>
+                          )}
                           <div>
                             <p className="font-medium text-gray-900 text-sm">
                               Lesson {lesson.order_number}: {lesson.title}
@@ -309,6 +355,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                                 description: lesson.description,
                                 duration_seconds: lesson.duration_seconds,
                                 video_s3_key: lesson.video_s3_key,
+                                thumbnail_url: lesson.thumbnail_url || '',
                                 is_free_preview: lesson.is_free_preview || false,
                               });
                               setShowLessonModal(true);
@@ -371,6 +418,34 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Chapter Image
+              </label>
+              <input
+                type="text"
+                value={chapterForm.image_url}
+                onChange={(e) =>
+                  setChapterForm({ ...chapterForm, image_url: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="URL immagine capitolo oppure carica da PC"
+              />
+            </div>
+            {chapterForm.image_url && (
+              <img
+                src={chapterForm.image_url}
+                alt="Anteprima immagine capitolo"
+                className="max-h-40 w-full rounded-lg border border-gray-200 object-cover"
+              />
+            )}
+            <ImageUploader
+              folder="chapters"
+              label="Copertina capitolo"
+              onUploadComplete={(imageUrl) => setChapterForm((prev) => ({ ...prev, image_url: imageUrl }))}
+            />
+          </div>
           <Button
             onClick={editingChapter ? handleUpdateChapter : handleCreateChapter}
             variant="primary"
@@ -427,7 +502,9 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               // Se un video è già stato caricato/collegato
               <div className="flex items-center justify-between gap-3 p-3 bg-green-50 rounded-lg">
                 <span className="text-sm text-gray-900 font-mono truncate">
-                  {lessonForm.video_s3_key}
+                  {lessonForm.video_s3_key.startsWith('http://') || lessonForm.video_s3_key.startsWith('https://')
+                    ? `URL video: ${lessonForm.video_s3_key}`
+                    : lessonForm.video_s3_key}
                 </span>
                 <Button
                   size="sm"
@@ -454,6 +531,53 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             )}
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Video URL o chiave manuale
+            </label>
+            <input
+              type="text"
+              value={lessonForm.video_s3_key}
+              onChange={(e) =>
+                setLessonForm({ ...lessonForm, video_s3_key: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="https://... oppure chiave S3 del video"
+            />
+            <p className="mt-2 text-xs text-gray-500">
+              Puoi caricare un file da PC oppure incollare un URL video diretto. Se stai solo aggiornando la copertina, puoi salvare senza sostituire il video gia esistente.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Lesson Cover
+              </label>
+              <input
+                type="text"
+                value={lessonForm.thumbnail_url}
+                onChange={(e) =>
+                  setLessonForm({ ...lessonForm, thumbnail_url: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="URL copertina lezione oppure carica da PC"
+              />
+            </div>
+            {lessonForm.thumbnail_url ? (
+              <img
+                src={lessonForm.thumbnail_url}
+                alt="Anteprima copertina lezione"
+                className="max-h-40 w-full rounded-lg border border-gray-200 object-cover"
+              />
+            ) : null}
+            <ImageUploader
+              folder="lessons"
+              label="Copertina lezione"
+              onUploadComplete={(imageUrl) => setLessonForm((prev) => ({ ...prev, thumbnail_url: imageUrl }))}
+            />
+          </div>
+
           {/* Campo Durata nascosto, ma ancora nel modulo (viene popolato automaticamente) */}
           <input
             type="hidden"
@@ -478,7 +602,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             onClick={handleSaveLesson}
             variant="primary"
             fullWidth
-            disabled={!lessonForm.title || !lessonForm.video_s3_key || isSubmitting}
+            disabled={!lessonForm.title || (!editingLesson && !lessonForm.video_s3_key) || isSubmitting}
           >
             <Save className="w-4 h-4 mr-2" />
             {isSubmitting ? 'Saving...' : (editingLesson ? 'Update Lesson' : 'Create Lesson')}

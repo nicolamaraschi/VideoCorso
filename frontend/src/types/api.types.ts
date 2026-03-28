@@ -64,6 +64,19 @@ export interface UploadVideoResponse {
   expires_at: string;
 }
 
+export interface UploadImageRequest {
+  file_name: string;
+  file_type: string;
+  folder?: string;
+}
+
+export interface UploadImageResponse {
+  upload_url: string;
+  image_s3_key: string;
+  image_url: string;
+  expires_at: string;
+}
+
 export interface AdminCourseRequest {
   title: string;
   description: string;
@@ -85,6 +98,7 @@ export interface CreateChapterRequest {
   course_id: string;
   title: string;
   description: string;
+  image_url?: string;
   order_number: number;
 }
 

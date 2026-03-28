@@ -76,6 +76,10 @@ def normalize_bool(value: Any) -> bool:
     return bool(value)
 
 
+def is_external_video_url(value: Any) -> bool:
+    return isinstance(value, str) and value.startswith(('http://', 'https://'))
+
+
 def get_user_item(user_id: str) -> dict[str, Any]:
     response = users_table.get_item(Key={'user_id': user_id})
     return response.get('Item') or {}
@@ -139,6 +143,13 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False):
     video_s3_key = lesson.get('video_s3_key')
     if not video_s3_key:
         return create_response(404, {'error': 'No video found for this lesson'})
+
+    if is_external_video_url(video_s3_key):
+        return create_response(200, {
+            'video_url': video_s3_key,
+            'expires_at': (datetime.utcnow() + timedelta(hours=1)).isoformat() + 'Z',
+            'course_id': course_id,
+        })
 
     try:
         presigned_url = s3_client.generate_presigned_url(

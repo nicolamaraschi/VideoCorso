@@ -104,7 +104,19 @@ export const DashboardPage: React.FC = () => {
         {ownedCourses.map((course) => {
           const progress = progressMap[course.course_id];
           return (
-            <div key={course.course_id} className="bg-white rounded-lg border border-gray-200 p-6">
+            <div key={course.course_id} className="overflow-hidden bg-white rounded-lg border border-gray-200">
+              <div className="aspect-[16/6] bg-gray-100 border-b border-gray-200">
+                {course.cover_image_url ? (
+                  <img
+                    src={course.cover_image_url}
+                    alt={`Copertina ${course.title}`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-slate-100 via-white to-slate-200" />
+                )}
+              </div>
+              <div className="p-6">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">{course.title}</h2>
@@ -151,6 +163,7 @@ export const DashboardPage: React.FC = () => {
                   </Link>
                 )}
               </div>
+              </div>
             </div>
           );
         })}
@@ -166,7 +179,19 @@ export const DashboardPage: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {availableCourses.map((course) => (
-            <div key={course.course_id} className="bg-white rounded-lg border border-gray-200 p-6">
+            <div key={course.course_id} className="overflow-hidden bg-white rounded-lg border border-gray-200">
+              <div className="aspect-[16/7] bg-gray-100 border-b border-gray-200">
+                {course.cover_image_url ? (
+                  <img
+                    src={course.cover_image_url}
+                    alt={`Copertina ${course.title}`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-gray-100 via-white to-gray-200" />
+                )}
+              </div>
+              <div className="p-6">
               <h3 className="text-xl font-semibold text-gray-900">{course.title}</h3>
               <p className="text-gray-600 mt-2">{course.description}</p>
               <div className="mt-4 flex items-center justify-between">
@@ -181,6 +206,7 @@ export const DashboardPage: React.FC = () => {
                     <Button variant="primary">Acquista</Button>
                   </Link>
                 </div>
+              </div>
               </div>
             </div>
           ))}

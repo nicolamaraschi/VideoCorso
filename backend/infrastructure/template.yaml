@@ -43,6 +43,7 @@ Globals:
         PROGRESS_TABLE: !Ref ProgressTable
         USERS_TABLE: !Ref UsersTable
         VIDEO_BUCKET: !Ref VideoBucket
+        THUMBNAIL_BUCKET: !Ref ThumbnailBucket
         STRIPE_SECRET_KEY: !Ref StripeSecretKey
         STRIPE_WEBHOOK_SECRET: !Ref StripeWebhookSecret
         RESEND_API_KEY: !Ref ResendApiKey
@@ -219,9 +220,32 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub '${Environment}-videocorso-thumbnails'
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - HEAD
+            AllowedOrigins:
+              - '*'
+            MaxAge: 3000
       PublicAccessBlockConfiguration:
         BlockPublicAcls: false
         BlockPublicPolicy: false
+
+  ThumbnailBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ThumbnailBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub '${ThumbnailBucket.Arn}/*'
 
   # ==================== Cognito User Pool ====================
   
@@ -537,6 +561,7 @@ Resources:
                 - cognito-idp:AdminEnableUser
                 - cognito-idp:AdminDisableUser
                 - cognito-idp:ListUsersInGroup
+                - cognito-idp:ListUsers
               Resource: !GetAtt UserPool.Arn
       Events:
         GetAdminAccounts:
@@ -604,6 +629,12 @@ Resources:
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /admin/video/upload
+            Method: POST
+        UploadImage:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/image/upload
             Method: POST
         DeleteVideo:
           Type: Api
