@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit, ExternalLink, Search } from 'lucide-react';
+import { Edit, ExternalLink, Search, Key, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { StudentListItem } from '../../types';
 import { formatDate, getSubscriptionStatusColor } from '../../utils/formatters';
@@ -9,9 +9,11 @@ import { Modal } from '../common/Modal';
 interface StudentTableProps {
   students: StudentListItem[];
   onUpdateStudent: (studentId: string, data: { subscription_end_date?: string; global_access?: boolean }) => Promise<void>;
+  onResetPassword: (studentId: string) => Promise<void>;
+  onDeleteStudent: (studentId: string) => Promise<void>;
 }
 
-export const StudentTable: React.FC<StudentTableProps> = ({ students, onUpdateStudent }) => {
+export const StudentTable: React.FC<StudentTableProps> = ({ students, onUpdateStudent, onResetPassword, onDeleteStudent }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [editingStudent, setEditingStudent] = useState<StudentListItem | null>(null);
@@ -108,14 +110,29 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, onUpdateSt
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-3">
-                      <button onClick={() => handleEditClick(student)} className="text-primary-600 hover:text-primary-800">
+                      <button
+                        onClick={() => void onResetPassword(student.user_id)}
+                        className="text-gray-600 hover:text-primary-600"
+                        title="Reset Password"
+                      >
+                        <Key className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleEditClick(student)} className="text-primary-600 hover:text-primary-800" title="Modifica accessi">
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => navigate(`/admin/students/${student.user_id}`)}
                         className="text-gray-600 hover:text-gray-900"
+                        title="Vedi dettaglio"
                       >
                         <ExternalLink className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => void onDeleteStudent(student.user_id)}
+                        className="text-red-600 hover:text-red-800 ml-2"
+                        title="Elimina Studente"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>

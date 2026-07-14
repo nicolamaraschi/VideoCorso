@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+@theme {
+  --color-primary-50: #FDF8F9;
+  --color-primary-100: #F8EBED;
+  --color-primary-200: #F0D4D8;
+  --color-primary-300: #E4B5BD;
+  --color-primary-400: #D48E9B;
+  --color-primary-500: #C26A7A;
+  --color-primary-600: #A95161;
+  --color-primary-700: #8D404F;
+  --color-primary-800: #753744;
+  --color-primary-900: #62313C;
+  --color-primary-950: #381b21;
+}
 @layer base {
   body {
     @apply font-sans antialiased;

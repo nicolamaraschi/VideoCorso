@@ -56,7 +56,7 @@ export const AdminDashboardPage: React.FC = () => {
       {/* Charts and Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
         {/* Most Viewed Lessons */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-primary-600" />
             Most Viewed Lessons
@@ -65,7 +65,7 @@ export const AdminDashboardPage: React.FC = () => {
             {stats.most_viewed_lessons.map((lesson, index) => (
               <div
                 key={lesson.lesson_id}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg"
               >
                 <div className="flex items-center gap-3">
                   <span className="text-2xl font-bold text-gray-400">
@@ -82,7 +82,7 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
 
         {/* Recent Purchases */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-green-600" />
             Recent Purchases
@@ -91,7 +91,7 @@ export const AdminDashboardPage: React.FC = () => {
             {stats.recent_purchases.map((purchase) => (
               <div
                 key={purchase.purchase_id}
-                className="flex items-center justify-between p-3 border-b border-gray-200 last:border-0"
+                className="flex items-center justify-between p-2 md:p-3 border-b border-gray-200 last:border-0"
               >
                 <div>
                   <p className="font-medium text-gray-900">{purchase.user_email}</p>
@@ -109,7 +109,7 @@ export const AdminDashboardPage: React.FC = () => {
       </div>
 
       {/* Daily Access Chart (SVG Implementation) */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 mt-8">
+      <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 mt-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
           <Users className="w-5 h-5 text-blue-600" />
           Daily Active Users (Last 7 Days)

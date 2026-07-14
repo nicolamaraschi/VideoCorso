@@ -167,7 +167,7 @@ export const AdminCouponsPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Coupon</h1>
           <p className="text-gray-600">Codici promo course-scoped con validazione, scadenza, limiti uso e free access.</p>
@@ -328,7 +328,7 @@ export const AdminCouponsPage: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Max redemption</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Utilizzi massimi</label>
               <input
                 type="number"
                 min="0"
@@ -364,7 +364,7 @@ export const AdminCouponsPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Scope corsi</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Corsi validi</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto rounded-lg border border-gray-200 p-3">
               {courseOptions.map((course) => (
                 <label key={course.value} className="flex items-center gap-2 text-sm text-gray-700">
@@ -412,7 +412,7 @@ export const AdminCouponsPage: React.FC = () => {
                 checked={couponForm.is_free_access}
                 onChange={(event) => setCouponForm((prev) => ({ ...prev, is_free_access: event.target.checked }))}
               />
-              Free access
+              Accesso gratuito
             </label>
           </div>
 

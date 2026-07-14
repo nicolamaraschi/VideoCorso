@@ -254,17 +254,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   if (videoRef.current) videoRef.current.currentTime = 0;
                   if (!isPlaying) togglePlay();
                 }}
-                className="text-white hover:text-primary-400"
+                className="text-white hover:text-primary-400 hidden sm:block"
                 title="Restart"
               >
                 <RotateCcw className="w-5 h-5" />
               </button>
 
-              <button onClick={() => skip(-10)} className="text-white hover:text-primary-400">
+              <button onClick={() => skip(-10)} className="text-white hover:text-primary-400 hidden sm:block">
                 <SkipBack className="w-5 h-5" />
               </button>
 
-              <button onClick={() => skip(10)} className="text-white hover:text-primary-400">
+              <button onClick={() => skip(10)} className="text-white hover:text-primary-400 hidden sm:block">
                 <SkipForward className="w-5 h-5" />
               </button>
 
@@ -286,7 +286,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   const val = parseFloat(e.target.value);
                   changeVolume(val - volume);
                 }}
-                className="w-20"
+                className="w-20 hidden sm:block"
               />
 
               <span className="text-white text-sm font-medium">

@@ -122,9 +122,27 @@ export const AdminCoursePage: React.FC = () => {
       if (created?.course_id) {
         setSelectedCourseId(created.course_id);
         setIsCreating(false);
+        alert('Corso creato con successo! Ora puoi aggiungere capitoli e lezioni.');
       }
     } catch (err) {
       alert(getErrorMessage(err, 'Failed to create course'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteCourse = async () => {
+    if (!selectedCourseId) return;
+    if (!window.confirm('Sei sicuro di voler eliminare DEFINITIVAMENTE questo corso, tutti i suoi capitoli e le sue lezioni? Questa azione non è annullabile!')) return;
+    
+    try {
+      setSaving(true);
+      await adminService.deleteCourse(selectedCourseId);
+      setSelectedCourseId('');
+      setIsCreating(false);
+      await loadCourses();
+    } catch (err) {
+      alert(getErrorMessage(err, 'Failed to delete course'));
     } finally {
       setSaving(false);
     }
@@ -241,53 +259,78 @@ export const AdminCoursePage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-28">
       {saving && (
         <div className="fixed top-4 right-4 bg-white rounded-lg shadow-lg p-4 z-50">
           <Loading size="sm" text="Saving..." />
         </div>
       )}
 
-      <section className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-6">
-          <div className="flex-1 space-y-5">
-            <div className="flex flex-wrap items-center gap-3">
-              <select
-                value={selectedCourseId}
-                onChange={(event) => {
-                  setSelectedCourseId(event.target.value);
-                  setIsCreating(false);
-                }}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
-              >
-                {courses.map((course) => (
-                  <option key={course.course_id} value={course.course_id}>
-                    {course.title} • {course.status || 'draft'}
-                  </option>
-                ))}
-              </select>
+      <div className="border-b border-gray-200 pb-5">
+        <h1 className="text-3xl font-bold text-gray-900">Gestione Corsi</h1>
+        <p className="text-gray-500 mt-2">Crea, modifica e gestisci i corsi del tuo catalogo</p>
+      </div>
 
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setIsCreating(true);
-                  setCourseForm({
-                    ...emptyCourseForm,
-                    public_slug: `corso-${Date.now()}`,
-                  });
-                }}
-              >
-                Nuovo corso
-              </Button>
-            </div>
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="w-full md:w-1/2">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Seleziona un corso da modificare</label>
+          <select
+            value={selectedCourseId}
+            onChange={(event) => {
+              setSelectedCourseId(event.target.value);
+              setIsCreating(false);
+            }}
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-primary-500 font-medium"
+          >
+            {courses.map((course) => (
+              <option key={course.course_id} value={course.course_id}>
+                {course.title} • {course.status || 'draft'}
+              </option>
+            ))}
+          </select>
+        </div>
 
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <span className="text-gray-400 font-medium hidden md:block">oppure</span>
+          <Button
+            variant="primary"
+            onClick={() => {
+              setIsCreating(true);
+              setCourseForm({
+                ...emptyCourseForm,
+                public_slug: '',
+              });
+            }}
+            className="w-full md:w-auto shadow-sm py-2.5"
+          >
+            + Crea nuovo corso
+          </Button>
+        </div>
+      </section>
+
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-bold text-gray-800">
+            {isCreating ? 'Impostazioni Nuovo Corso' : 'Impostazioni Corso'}
+          </h2>
+        </div>
+        
+        <div className="p-6 space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">Titolo corso</label>
                 <input
                   type="text"
                   value={courseForm.title}
-                  onChange={(event) => updateCourseField('title', event.target.value)}
+                  onChange={(event) => {
+                    const val = event.target.value;
+                    if (isCreating) {
+                      const newSlug = val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+                      setCourseForm((prev) => ({ ...prev, title: val, public_slug: newSlug }));
+                    } else {
+                      updateCourseField('title', val);
+                    }
+                  }}
                   className="px-3 py-2 border border-gray-300 rounded-lg w-full"
                   placeholder="Nome principale del corso visibile ovunque"
                 />
@@ -317,10 +360,10 @@ export const AdminCoursePage: React.FC = () => {
                   type="number"
                   min="0"
                   step="0.01"
-                  value={courseForm.price}
-                  onChange={(event) => updateCourseField('price', Number(event.target.value))}
+                  value={courseForm.price || ''}
+                  onChange={(event) => updateCourseField('price', event.target.value === '' ? 0 : Number(event.target.value))}
                   className="px-3 py-2 border border-gray-300 rounded-lg w-full"
-                  placeholder="Prezzo standard del corso"
+                  placeholder="Es. 1000 (Lascia vuoto per 0)"
                 />
                 <p className="text-xs text-gray-500">
                   E il prezzo base del corso. Se non hai uno sconto attivo, e questo che viene usato.
@@ -347,10 +390,10 @@ export const AdminCoursePage: React.FC = () => {
                   type="number"
                   min="0"
                   step="1"
-                  value={courseForm.display_order ?? 999}
-                  onChange={(event) => updateCourseField('display_order', Number(event.target.value))}
+                  value={courseForm.display_order === 999 ? '' : courseForm.display_order}
+                  onChange={(event) => updateCourseField('display_order', event.target.value === '' ? 999 : Number(event.target.value))}
                   className="px-3 py-2 border border-gray-300 rounded-lg w-full"
-                  placeholder="Ordine nel catalogo pubblico"
+                  placeholder="Lascia vuoto per la fine"
                 />
                 <p className="text-xs text-gray-500">
                   Numero piu basso = corso mostrato prima. `1` va in alto, `999` va in fondo.
@@ -495,22 +538,45 @@ export const AdminCoursePage: React.FC = () => {
               <p><strong className="text-gray-800">Flag tecnico attivo</strong>: e interno e segue lo stato del corso, non serve usarlo a mano.</p>
               <p><strong className="text-gray-800">Regola pratica</strong>: `published` + `acquistabile` mette il corso in vetrina e nel checkout pubblico.</p>
             </div>
-          </div>
-
-          <div className="w-full xl:w-[260px]">
-            <Button
-              onClick={() => void (isCreating ? handleCreateCourse() : handleSaveCourse())}
-              variant="primary"
-              fullWidth
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {isCreating ? 'Crea corso' : 'Salva impostazioni'}
-            </Button>
-          </div>
         </div>
       </section>
 
-      {loading ? (
+      {!isCreating && (
+        <section className="bg-red-50 rounded-xl border border-red-200 p-6 flex flex-col md:flex-row items-center justify-between gap-4 mt-8">
+          <div>
+            <h3 className="text-red-800 font-bold text-lg">Zona Pericolosa</h3>
+            <p className="text-red-600 text-sm mt-1">L'eliminazione del corso e di tutti i suoi contenuti è irreversibile.</p>
+          </div>
+          <Button
+            onClick={() => void handleDeleteCourse()}
+            variant="outline"
+            className="border-red-300 text-red-700 hover:bg-red-100 hover:text-red-800 whitespace-nowrap"
+          >
+            Elimina definitivamente
+          </Button>
+        </section>
+      )}
+
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-end">
+          <Button
+            onClick={() => void (isCreating ? handleCreateCourse() : handleSaveCourse())}
+            variant="primary"
+            size="lg"
+            className="min-w-[200px] shadow-sm"
+          >
+            <Save className="w-5 h-5 mr-2" />
+            {isCreating ? 'Crea corso' : 'Salva impostazioni'}
+          </Button>
+        </div>
+      </div>
+
+      {isCreating ? (
+        <div className="bg-white rounded-lg shadow border border-gray-200 p-8 text-center text-gray-500">
+          <p className="text-lg font-medium">Salva il corso per iniziare ad aggiungere i contenuti</p>
+          <p className="mt-2 text-sm">Dopo aver salvato, potrai creare capitoli e lezioni.</p>
+        </div>
+      ) : loading ? (
         <Loading fullScreen text="Loading course structure..." />
       ) : error || !courseStructure ? (
         <ErrorMessage variant="card" message={error || 'Failed to load course structure'} onRetry={reload} />

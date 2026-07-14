@@ -221,7 +221,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h2 className="text-2xl font-bold text-gray-900">Course Structure</h2>
         <Button
           onClick={() => {
@@ -247,8 +247,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               className="bg-white rounded-lg border border-gray-200 overflow-hidden"
             >
               {/* Chapter Header */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
-                <div className="flex items-center gap-3 flex-1">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 border-b border-gray-200 gap-4">
+                <div className="flex items-center gap-3 w-full sm:w-auto overflow-hidden">
                   <div className="cursor-move p-1 hover:bg-gray-200 rounded">
                     <GripVertical className="w-5 h-5 text-gray-400" />
                   </div>
@@ -259,14 +259,14 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                       className="h-20 w-28 rounded-lg border border-gray-200 object-cover bg-white"
                     />
                   ) : null}
-                  <div>
-                    <h3 className="font-semibold text-gray-900">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-gray-900 truncate">
                       Chapter {chapter.order_number}: {chapter.title}
                     </h3>
-                    <p className="text-sm text-gray-600">{chapter.description}</p>
+                    <p className="text-sm text-gray-600 truncate">{chapter.description}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end sm:justify-start">
                   <Button
                     size="sm"
                     variant="ghost"

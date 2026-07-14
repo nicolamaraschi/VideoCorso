@@ -1,5 +1,6 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuthContext } from '../auth/useAuthContext';
 import {
   Home,
   Users,
@@ -9,14 +10,25 @@ import {
   CreditCard,
   Shield,
   TicketPercent,
+  User,
+  LogOut,
 } from 'lucide-react';
 
 interface SidebarProps {
   isAdmin?: boolean;
+  mobileMenuOpen?: boolean;
+  setMobileMenuOpen?: (open: boolean) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false, mobileMenuOpen, setMobileMenuOpen }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuthContext();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   const studentLinks = [
     { to: '/dashboard', icon: Home, label: 'I Miei Corsi' },
@@ -34,8 +46,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
   const links = isAdmin ? adminLinks : studentLinks;
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 min-h-screen sticky top-16 overflow-y-auto">
-      <nav className="p-4 space-y-1">
+    <aside className={`
+      fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out
+      ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+      md:relative md:translate-x-0 md:h-[calc(100vh-4rem)] md:sticky md:top-16 flex flex-col
+    `}>
+      <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
         {links.map((link) => {
           const Icon = link.icon;
           const isActive = location.pathname === link.to || location.pathname.startsWith(`${link.to}/`);
@@ -44,6 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
             <Link
               key={link.to}
               to={link.to}
+              onClick={() => setMobileMenuOpen && setMobileMenuOpen(false)}
               className={`flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
                   ? 'bg-primary-50 text-primary-700 font-medium'
@@ -59,6 +76,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
           );
         })}
       </nav>
+
+      <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center gap-3 mb-4 px-2 overflow-hidden">
+           <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center flex-shrink-0">
+             <User className="w-5 h-5 text-white" />
+           </div>
+           <div className="text-sm font-medium text-gray-700 truncate">
+             {user?.fullName || user?.email}
+           </div>
+        </div>
+        <button
+          onClick={() => void handleLogout()}
+          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-red-50 hover:text-red-700 w-full transition-colors"
+        >
+          <LogOut className="w-5 h-5" />
+          <span>Logout</span>
+        </button>
+      </div>
     </aside>
   );
 };

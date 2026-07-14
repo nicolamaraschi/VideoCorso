@@ -6,22 +6,20 @@ export const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-gray-900 text-white border-t border-gray-800 mt-auto">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+    <footer className="bg-primary-950 text-white border-t border-primary-900 mt-auto">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 mb-8 md:mb-12">
           
           {/* Brand & Description */}
           <div className="col-span-1 lg:col-span-1">
-            <Link to="/" className="flex items-center gap-3 mb-6">
-              {/* Placeholder Logo - Sostituire con SVG o IMG reale se disponibile */}
+            <Link to="/" className="flex items-center gap-3 mb-4 md:mb-6">
               <div className="h-10 w-10 bg-primary-600 rounded-lg flex items-center justify-center font-bold text-xl shadow-lg">
-                B
+                CM
               </div>
-              <span className="font-serif text-2xl tracking-tight">StartBusiness</span>
+              <span className="font-serif text-2xl tracking-tight">Chiara Morocutti Academy</span>
             </Link>
-            <p className="text-gray-400 text-sm leading-relaxed mb-6">
-              La piattaforma educativa definitiva per la nuova generazione di imprenditori. 
-              Trasformiamo idee in aziende profittevoli attraverso formazione pratica e mentoring.
+            <p className="text-gray-400 text-sm leading-relaxed mb-4 md:mb-6">
+              L'accademia di formazione d'eccellenza per le professioniste del Permanent Make Up e dell'estetica avanzata.
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-gray-400 hover:text-primary-400 transition-colors duration-300">
@@ -45,10 +43,10 @@ export const Footer: React.FC = () => {
 
           {/* Navigation Links */}
           <div>
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-6">
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4 md:mb-6">
               Esplora
             </h3>
-            <ul className="space-y-4">
+            <ul className="space-y-2 md:space-y-4">
               <li>
                 <Link to="/" className="text-base text-gray-400 hover:text-white transition-colors">
                   Home
@@ -74,13 +72,13 @@ export const Footer: React.FC = () => {
 
           {/* Resources Links */}
           <div>
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-6">
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4 md:mb-6">
               Risorse
             </h3>
-            <ul className="space-y-4">
+            <ul className="space-y-2 md:space-y-4">
               <li>
                 <a href="#" className="text-base text-gray-400 hover:text-white transition-colors">
-                  Blog Imprenditoriale
+                  Blog Estetica & PMU
                 </a>
               </li>
               <li>
@@ -103,10 +101,10 @@ export const Footer: React.FC = () => {
 
           {/* Legal Links */}
           <div>
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-6">
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4 md:mb-6">
               Legale
             </h3>
-            <ul className="space-y-4">
+            <ul className="space-y-2 md:space-y-4">
               <li>
                 <a href="#" className="text-base text-gray-400 hover:text-white transition-colors">
                   Privacy Policy
@@ -134,11 +132,11 @@ export const Footer: React.FC = () => {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
           <p className="text-base text-gray-500 text-center md:text-left">
-            &copy; {currentYear} StartBusiness. Tutti i diritti riservati. P.IVA 12345678901
+            &copy; {currentYear} Chiara Morocutti Academy. Tutti i diritti riservati. P.IVA 12345678901
           </p>
           <div className="mt-4 md:mt-0 flex space-x-6">
             <span className="text-sm text-gray-600">
-              Designed for Leaders
+              Designed for Beauty Professionals
             </span>
           </div>
         </div>

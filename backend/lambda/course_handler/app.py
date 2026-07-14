@@ -210,21 +210,39 @@ def get_chapter_lessons(chapter_id: str):
     return sorted(lessons, key=lambda item: int(item.get('order_number', 0)))
 
 
-def filter_lesson_for_access(lesson: dict[str, Any], has_access: bool):
+def get_user_groups(event):
+    if not event:
+        return []
+    try:
+        groups = event.get('requestContext', {}).get('authorizer', {}).get('claims', {}).get('cognito:groups', '')
+        if isinstance(groups, str):
+            return groups.split(',') if groups else []
+        if isinstance(groups, list):
+            return groups
+    except KeyError:
+        pass
+    return []
+
+def is_admin(event):
+    return 'admin' in get_user_groups(event)
+
+def filter_lesson_for_access(lesson: dict[str, Any], has_access: bool, is_user_admin: bool = False):
     lesson_copy = dict(lesson)
     lesson_copy['is_free_preview'] = normalize_bool(lesson_copy.get('is_free_preview', False))
     lesson_copy['is_locked'] = not (has_access or lesson_copy['is_free_preview'])
-    lesson_copy.pop('video_s3_key', None)
+    if not is_user_admin:
+        lesson_copy.pop('video_s3_key', None)
     return lesson_copy
 
 
 def build_course_structure(course: dict[str, Any], user_id: Optional[str]):
     has_access = can_access_course(user_id, course['course_id'])
+    is_user_admin = is_admin(current_event)
     chapters = []
     for chapter in get_course_chapters(course['course_id']):
         chapter_copy = dict(chapter)
         chapter_copy['lessons'] = [
-            filter_lesson_for_access(lesson, has_access)
+            filter_lesson_for_access(lesson, has_access, is_user_admin)
             for lesson in get_chapter_lessons(chapter['chapter_id'])
         ]
         chapters.append(chapter_copy)

@@ -88,6 +88,10 @@ export const adminService = {
     return apiClient.put<ApiResponse<Course>>(`/admin/course/${courseId}`, data);
   },
 
+  async deleteCourse(courseId: string): Promise<ApiResponse> {
+    return apiClient.delete<ApiResponse>(`/admin/course/${courseId}`);
+  },
+
   async createChapter(data: CreateChapterRequest): Promise<ApiResponse<Chapter>> {
     return apiClient.post<ApiResponse<Chapter>>('/admin/course/chapter', data);
   },
@@ -140,8 +144,20 @@ export const adminService = {
     return apiClient.patch<ApiResponse<User>>(`/admin/student/${studentId}`, data);
   },
 
+  async deleteStudent(studentId: string): Promise<ApiResponse> {
+    return apiClient.delete<ApiResponse>(`/admin/student/${studentId}`);
+  },
+
   async resendInvite(studentId: string): Promise<ApiResponse> {
     return apiClient.post<ApiResponse>(`/admin/student/${studentId}/resend-invite`);
+  },
+
+  async grantCourse(studentId: string, courseId: string): Promise<ApiResponse> {
+    return apiClient.post<ApiResponse>(`/admin/student/${studentId}/grant-course`, { course_id: courseId });
+  },
+
+  async resetPassword(studentId: string): Promise<ApiResponse> {
+    return apiClient.post<ApiResponse>(`/admin/student/${studentId}/reset-password`);
   },
 
   async getPurchases(filters?: { status?: string; course_id?: string; email?: string; origin?: string }): Promise<PurchaseRecord[]> {

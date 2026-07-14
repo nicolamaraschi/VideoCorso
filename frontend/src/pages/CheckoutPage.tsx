@@ -113,14 +113,14 @@ export const CheckoutPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-primary-50/30 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
-        <section className="bg-white rounded-lg shadow-lg p-8 border border-gray-200">
-          <div className="flex items-start justify-between gap-6 mb-6">
+        <section className="bg-white rounded-2xl shadow-soft p-8 border border-primary-100">
+          <div className="flex items-start justify-between gap-6 mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Scegli il corso da acquistare</h1>
-              <p className="text-gray-600">
-                Qui il cliente vede solo i corsi attivi e vendibili pubblicamente.
+              <h1 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-2">Scegli la tua Masterclass</h1>
+              <p className="text-gray-500">
+                Seleziona il percorso formativo più adatto alle tue esigenze.
               </p>
             </div>
             <div className="text-sm text-gray-500">
@@ -138,8 +138,8 @@ export const CheckoutPage: React.FC = () => {
                   onClick={() => handleSelectCourse(item)}
                   className={`text-left rounded-xl border p-5 transition-all ${
                     isSelected
-                      ? 'border-primary-600 bg-primary-50 shadow-sm'
-                      : 'border-gray-200 bg-white hover:border-primary-300 hover:bg-gray-50'
+                      ? 'border-primary-400 bg-primary-50 shadow-md ring-1 ring-primary-400'
+                      : 'border-gray-200 bg-white hover:border-primary-200 hover:shadow-sm'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3 mb-3">
@@ -164,7 +164,7 @@ export const CheckoutPage: React.FC = () => {
                         € {Number(item.discounted_price ?? item.price).toFixed(2)}
                       </span>
                     </div>
-                    <span className="text-sm text-primary-700 font-medium">
+                    <span className={`text-sm font-medium ${isSelected ? 'text-primary-700' : 'text-gray-500'}`}>
                       {selectedCourseIndex === index ? 'Pronto al checkout' : 'Seleziona'}
                     </span>
                   </div>
@@ -175,9 +175,9 @@ export const CheckoutPage: React.FC = () => {
         </section>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-        <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6" style={{ fontFamily: 'Abhaya Libre, serif' }}>
-            Cosa stai acquistando
+        <div className="bg-white rounded-2xl shadow-soft p-8 border border-primary-100">
+          <h2 className="text-2xl font-serif font-bold text-gray-900 mb-6">
+            Riepilogo Ordine
           </h2>
 
           <div className="mb-6">
@@ -197,15 +197,19 @@ export const CheckoutPage: React.FC = () => {
             })}
           </ul>
 
-          <div className="text-center">
-            <img src={guaranteeImageUrl} alt="Garanzia Soddisfatta o Rimborsata" className="mx-auto w-48 mb-4" />
-            <h4 className="font-semibold text-gray-800">Garanzia 14 Giorni</h4>
-            <p className="text-sm text-gray-600">Se il corso non fa per te, puoi richiedere assistenza al team.</p>
+          <div className="mt-8 p-6 bg-primary-50/50 rounded-xl border border-primary-100">
+            <div className="flex items-center gap-3 mb-2">
+              <Shield className="w-5 h-5 text-primary-600" />
+              <h4 className="font-semibold text-gray-900">Garanzia 14 Giorni</h4>
+            </div>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Il tuo acquisto è protetto. Se il corso non rispetta le tue aspettative, puoi richiedere assistenza o un rimborso completo entro 14 giorni.
+            </p>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-200 h-fit">
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-6">Completa il tuo acquisto</h2>
+        <div className="bg-white rounded-2xl shadow-soft p-8 border border-primary-100 h-fit">
+          <h2 className="text-2xl font-serif font-bold text-gray-900 mb-6">Pagamento Sicuro</h2>
 
           <div className="space-y-3 mb-6">
             <div className="flex justify-between text-gray-600">
@@ -219,7 +223,7 @@ export const CheckoutPage: React.FC = () => {
                 value={couponCode}
                 onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
                 placeholder="Inserisci coupon se disponibile"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none"
               />
             </div>
             <div className="flex justify-between text-2xl font-bold text-gray-900 pt-3 border-t">

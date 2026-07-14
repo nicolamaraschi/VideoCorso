@@ -188,7 +188,7 @@ export const useAuth = () => {
       const { name } = getAuthErrorDetails(err);
       let msg = "Impossibile inviare il codice. Controlla l'email e riprova.";
       if (name === 'LimitExceededException') msg = "Troppi tentativi. Riprova più tardi.";
-      if (name === 'UserNotFoundException') msg = "Nessun account trovato con questa email.";
+      if (name === 'UserNotFoundException') msg = "Nessun account registrato con questa email. Hai già acquistato il corso?";
       
       setError(msg);
       return { success: false, error: msg };

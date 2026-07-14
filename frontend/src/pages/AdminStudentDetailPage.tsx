@@ -2,8 +2,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Mail, RefreshCcw } from 'lucide-react';
 import { adminService } from '../services/adminService';
-import type { StudentDetail } from '../types';
+import type { StudentDetail, Course } from '../types';
 import { Loading } from '../components/common/Loading';
+import { Modal } from '../components/common/Modal';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { Button } from '../components/common/Button';
 import { formatDate } from '../utils/formatters';
@@ -15,6 +16,11 @@ export const AdminStudentDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sendingInvite, setSendingInvite] = useState(false);
+
+  const [showGrantModal, setShowGrantModal] = useState(false);
+  const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState('');
+  const [granting, setGranting] = useState(false);
 
   const loadDetail = useCallback(async () => {
     if (!studentId) {
@@ -51,6 +57,33 @@ export const AdminStudentDetailPage: React.FC = () => {
     }
   };
 
+  const handleOpenGrantModal = async () => {
+    setShowGrantModal(true);
+    try {
+      const courses = await adminService.getCourses();
+      setAvailableCourses(courses);
+      if (courses.length > 0) {
+        setSelectedCourseId(courses[0].course_id);
+      }
+    } catch (err) {
+      alert("Failed to load courses");
+    }
+  };
+
+  const handleConfirmGrant = async () => {
+    if (!studentId || !selectedCourseId) return;
+    try {
+      setGranting(true);
+      await adminService.grantCourse(studentId, selectedCourseId);
+      setShowGrantModal(false);
+      await loadDetail();
+    } catch (err) {
+      alert(getErrorMessage(err, 'Failed to grant course'));
+    } finally {
+      setGranting(false);
+    }
+  };
+
   if (loading) {
     return <Loading fullScreen text="Loading student detail..." />;
   }
@@ -67,7 +100,7 @@ export const AdminStudentDetailPage: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <Link to="/admin/students" className="text-sm text-primary-600 hover:text-primary-700">
             Torna agli studenti
@@ -101,9 +134,14 @@ export const AdminStudentDetailPage: React.FC = () => {
       </section>
 
       <section className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <RefreshCcw className="w-5 h-5 text-gray-600" />
-          <h2 className="text-xl font-semibold text-gray-900">Accessi attivi</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <RefreshCcw className="w-5 h-5 text-gray-600" />
+            <h2 className="text-xl font-semibold text-gray-900">Accessi attivi</h2>
+          </div>
+          <Button onClick={handleOpenGrantModal} variant="secondary" size="sm">
+            + Assegna Corso
+          </Button>
         </div>
         <div className="flex flex-wrap gap-3">
           {accessible_courses.map((course) => (
@@ -167,6 +205,45 @@ export const AdminStudentDetailPage: React.FC = () => {
           ))}
         </div>
       </section>
+
+      {showGrantModal && (
+        <Modal title="Assegna Corso Manualmente" onClose={() => setShowGrantModal(false)}>
+          <div className="p-4 space-y-4">
+            <p className="text-sm text-gray-600">
+              Seleziona il corso da assegnare gratuitamente a {student.full_name}.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Corso
+              </label>
+              <select
+                value={selectedCourseId}
+                onChange={(e) => setSelectedCourseId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                {availableCourses.map((c) => (
+                  <option key={c.course_id} value={c.course_id}>
+                    {c.title} ({c.status})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="ghost" onClick={() => setShowGrantModal(false)}>
+                Annulla
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleConfirmGrant}
+                loading={granting}
+                disabled={!selectedCourseId}
+              >
+                Assegna
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

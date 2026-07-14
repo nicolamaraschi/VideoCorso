@@ -66,6 +66,26 @@ export const AdminStudentsPage: React.FC = () => {
     }
   };
 
+  const handleResetPassword = async (studentId: string): Promise<void> => {
+    if (!window.confirm('Sei sicuro di voler resettare la password di questo studente? Riceverà un\'email con le istruzioni per impostare una nuova password.')) return;
+    try {
+      await adminService.resetPassword(studentId);
+      alert('Richiesta di reset password inviata con successo.');
+    } catch (err) {
+      alert(getErrorMessage(err, 'Failed to reset password'));
+    }
+  };
+
+  const handleDeleteStudent = async (studentId: string): Promise<void> => {
+    if (!window.confirm('Sei sicuro di voler eliminare definitivamente questo studente? Questa azione non può essere annullata.')) return;
+    try {
+      await adminService.deleteStudent(studentId);
+      await loadStudents();
+    } catch (err) {
+      alert(getErrorMessage(err, 'Failed to delete student'));
+    }
+  };
+
 
   if (loading) {
     return <Loading fullScreen text="Loading students..." />;
@@ -85,7 +105,7 @@ export const AdminStudentsPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4 md:mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Students</h1>
           <p className="text-gray-600">
@@ -104,7 +124,7 @@ export const AdminStudentsPage: React.FC = () => {
         </Button>
       </div>
 
-      <StudentTable students={students} onUpdateStudent={handleUpdateStudent} />
+      <StudentTable students={students} onUpdateStudent={handleUpdateStudent} onResetPassword={handleResetPassword} onDeleteStudent={handleDeleteStudent} />
 
       <Modal
         isOpen={showCreateModal}

@@ -757,6 +757,30 @@ def get_courses():
     return create_response(200, {'items': normalized})
 
 
+def delete_course(course_id):
+    course = get_course(course_id)
+    if not course:
+        return create_response(404, {'error': 'Course not found'})
+    
+    response = TABLES['COURSE_CONTENT'].query(
+        KeyConditionExpression='course_id = :cid',
+        ExpressionAttributeValues={':cid': course_id}
+    )
+    items = response.get('Items', [])
+    
+    with TABLES['COURSE_CONTENT'].batch_writer() as batch:
+        for item in items:
+            batch.delete_item(
+                Key={
+                    'course_id': item['course_id'],
+                    'sk': item['sk']
+                }
+            )
+            
+    TABLES['COURSES'].delete_item(Key={'course_id': course_id})
+    return create_response(200, {'success': True, 'message': 'Course deleted'})
+
+
 def create_chapter(body):
     course_id = body.get('course_id')
     if not get_course(course_id):
@@ -1029,6 +1053,57 @@ def create_manual_student(body):
         item['created_at'] = existing.get('created_at', item['created_at'])
     TABLES['USERS'].put_item(Item=item)
     return create_response(201, {'success': True, 'data': item})
+
+
+def grant_course_to_student(student_id, body):
+    course_id = body.get('course_id')
+    if not course_id:
+        return create_response(400, {'error': 'course_id is required'})
+    
+    user_item = get_user_item(student_id)
+    if not user_item:
+        return create_response(404, {'error': 'Student not found'})
+        
+    course = get_course(course_id)
+    if not course:
+        return create_response(404, {'error': 'Course not found'})
+    
+    purchase_id = f"MANUAL_{uuid.uuid4().hex[:16]}"
+    purchase_item = {
+        'purchase_id': purchase_id,
+        'user_id': user_item['user_id'],
+        'email': user_item.get('email', ''),
+        'course_id': course_id,
+        'course_title': course.get('title', course_id),
+        'amount': Decimal('0.00'),
+        'currency': 'eur',
+        'status': 'completed',
+        'purchase_date': now_iso(),
+        'manual_grant': True,
+        'stripe_session_id': 'manual_grant',
+    }
+    TABLES['PURCHASES'].put_item(Item=purchase_item)
+    return create_response(200, {'success': True, 'purchase': purchase_item})
+
+
+def delete_student(student_id):
+    user_item = resolve_student_record(student_id)
+    if not user_item:
+        return create_response(404, {'error': 'Student not found'})
+
+    email = user_item.get('email')
+    if email:
+        try:
+            cognito_client.admin_delete_user(
+                UserPoolId=COGNITO_USER_POOL_ID,
+                Username=email
+            )
+        except ClientError as e:
+            if e.response['Error']['Code'] != 'UserNotFoundException':
+                print(f"Error deleting user from Cognito: {e}")
+
+    TABLES['USERS'].delete_item(Key={'user_id': user_item.get('user_id', student_id)})
+    return create_response(200, {'success': True, 'message': 'Student deleted successfully'})
 
 
 def update_student(student_id, body):
@@ -1635,6 +1710,13 @@ def lambda_handler(event, context):
             and http_method == 'PUT'
         ):
             return update_course(path_parameters.get('courseId'), body)
+        if (
+            path.startswith('/admin/course/')
+            and not path.startswith('/admin/course/chapter/')
+            and not path.startswith('/admin/course/lesson/')
+            and http_method == 'DELETE'
+        ):
+            return delete_course(path_parameters.get('courseId'))
         if path == '/admin/coupons' and http_method == 'GET':
             return get_coupons()
         if path == '/admin/coupon' and http_method == 'POST':
@@ -1678,10 +1760,23 @@ def lambda_handler(event, context):
             )
             send_welcome_email(student['email'], temp_password)
             return create_response(200, {'success': True, 'message': 'Invite resent'})
+        if path.startswith('/admin/student/') and path.endswith('/grant-course') and http_method == 'POST':
+            return grant_course_to_student(path_parameters.get('studentId'), body)
+        if path.startswith('/admin/student/') and path.endswith('/reset-password') and http_method == 'POST':
+            student = get_user_item(path_parameters.get('studentId'))
+            if not student:
+                return create_response(404, {'error': 'Student not found'})
+            cognito_client.admin_reset_user_password(
+                UserPoolId=COGNITO_USER_POOL_ID,
+                Username=student['email']
+            )
+            return create_response(200, {'success': True, 'message': 'Password reset initiated'})
         if path.startswith('/admin/student/') and http_method == 'GET':
             return get_student_detail(path_parameters.get('studentId'))
         if path.startswith('/admin/student/') and http_method == 'PATCH':
             return update_student(path_parameters.get('studentId'), body)
+        if path.startswith('/admin/student/') and http_method == 'DELETE':
+            return delete_student(path_parameters.get('studentId'))
 
         if path == '/admin/students' and http_method == 'GET':
             return get_students()
