@@ -1704,11 +1704,14 @@ def lambda_handler(event, context):
         if path == '/admin/account' and http_method == 'POST':
             return create_admin_account(body)
         if path.startswith('/admin/account/') and path.endswith('/resend-invite') and http_method == 'POST':
-            return resend_admin_invite(path_parameters.get('email'))
+            email = unquote(path_parameters.get('email', ''))
+            return resend_admin_invite(email)
         if path.startswith('/admin/account/') and http_method == 'PATCH':
-            return update_admin_account(event, path_parameters.get('email'), body)
+            email = unquote(path_parameters.get('email', ''))
+            return update_admin_account(event, email, body)
         if path.startswith('/admin/account/') and http_method == 'DELETE':
-            return delete_admin_account(event, path_parameters.get('email'))
+            email = unquote(path_parameters.get('email', ''))
+            return delete_admin_account(event, email)
 
         if path == '/admin/courses' and http_method == 'GET':
             return get_courses()
