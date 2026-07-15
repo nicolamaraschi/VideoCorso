@@ -399,8 +399,8 @@ export const LandingPage: React.FC = () => {
                   className="bg-white rounded-2xl overflow-hidden shadow-lg flex flex-col transform hover:-translate-y-2 transition duration-300 border border-primary-100"
                 >
                   <div className="relative h-56">
-                    {course.image_url ? (
-                      <img src={course.image_url} alt={course.title} className="w-full h-full object-cover" />
+                    {course.cover_image_url ? (
+                      <img src={course.cover_image_url} alt={course.title} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-primary-100 flex items-center justify-center text-primary-400 font-serif">
                         Corso Beauty

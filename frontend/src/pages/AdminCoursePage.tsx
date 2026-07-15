@@ -471,7 +471,7 @@ export const AdminCoursePage: React.FC = () => {
                 <img
                   src={courseForm.cover_image_url}
                   alt="Anteprima copertina corso"
-                  className="max-h-48 w-full rounded-lg border border-gray-200 object-cover"
+                  className="max-h-64 w-auto rounded-lg border border-gray-200 object-contain mx-auto"
                 />
               )}
               <ImageUploader

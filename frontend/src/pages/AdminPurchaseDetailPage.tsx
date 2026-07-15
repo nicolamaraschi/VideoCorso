@@ -105,19 +105,19 @@ export const AdminPurchaseDetailPage: React.FC = () => {
         <div className="flex flex-wrap justify-end gap-3">
           <Button variant="secondary" loading={actionLoading === 'resync'} onClick={() => void runAction('resync')}>
             <RefreshCcw className="w-4 h-4 mr-2" />
-            Risincronizza Stripe
+            Risincronizza da Stripe
           </Button>
           <Button variant="primary" loading={actionLoading === 'unlock'} onClick={() => void runAction('unlock')}>
             <ShieldCheck className="w-4 h-4 mr-2" />
-            Forza sblocco
+            Forza sblocco del corso
           </Button>
           <Button variant="danger" loading={actionLoading === 'revoke'} onClick={() => void runAction('revoke')}>
             <ShieldX className="w-4 h-4 mr-2" />
-            Revoca accesso
+            Revoca accesso al corso
           </Button>
           <Button variant="ghost" loading={actionLoading === 'verify'} onClick={() => void runAction('verify')}>
             <CheckCircle2 className="w-4 h-4 mr-2" />
-            Segna verificato
+            Segna come verificato
           </Button>
         </div>
       </div>

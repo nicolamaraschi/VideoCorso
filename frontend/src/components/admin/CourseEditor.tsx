@@ -437,7 +437,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               <img
                 src={chapterForm.image_url}
                 alt="Anteprima immagine capitolo"
-                className="max-h-40 w-full rounded-lg border border-gray-200 object-cover"
+                className="max-h-40 w-auto rounded-lg border border-gray-200 object-contain mx-auto"
               />
             )}
             <ImageUploader
@@ -568,7 +568,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               <img
                 src={lessonForm.thumbnail_url}
                 alt="Anteprima copertina lezione"
-                className="max-h-40 w-full rounded-lg border border-gray-200 object-cover"
+                className="max-h-40 w-auto rounded-lg border border-gray-200 object-contain mx-auto"
               />
             ) : null}
             <ImageUploader
