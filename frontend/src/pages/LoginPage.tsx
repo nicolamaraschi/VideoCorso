@@ -1,8 +1,21 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { LoginForm } from '../components/auth/LoginForm';
+import { CheckCircle } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
+  const location = useLocation();
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('payment') === 'success') {
+      setShowSuccess(true);
+      // Clean up the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [location]);
+
   return (
     <div className="min-h-screen flex">
       {/* Left Column: Form */}
@@ -17,6 +30,29 @@ export const LoginPage: React.FC = () => {
               Accedi per continuare il tuo percorso formativo nella Masterclass.
             </p>
           </div>
+
+          {showSuccess && (
+            <div className="mb-8 bg-green-50 border border-green-200 rounded-xl p-5 shadow-sm animate-fade-in">
+              <div className="flex items-start gap-4">
+                <div className="bg-green-100 p-2 rounded-full">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-green-900 mb-1">
+                    Grazie per il tuo acquisto! 🎉
+                  </h3>
+                  <p className="text-green-800 text-sm leading-relaxed">
+                    Ti abbiamo appena inviato un'email con una <strong>password temporanea</strong> per accedere. 
+                    Al tuo primo accesso ti verrà chiesto di scegliere la tua password definitiva.
+                    <br/><br/>
+                    <span className="text-green-700 text-xs italic">
+                      (Se non la trovi, controlla anche nella casella Spam)
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Login Form */}
           <LoginForm />

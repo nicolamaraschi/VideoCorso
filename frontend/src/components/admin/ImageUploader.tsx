@@ -21,7 +21,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const handleSelect = (selectedFile: File) => {
+  const handleSelect = async (selectedFile: File) => {
     if (!selectedFile.type.startsWith('image/')) {
       setError('Seleziona un file immagine valido.');
       return;
@@ -29,22 +29,16 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     setFile(selectedFile);
     setError(null);
     setSuccess(false);
-  };
-
-  const handleUpload = async () => {
-    if (!file) {
-      return;
-    }
-
+    
+    // Auto-upload
     try {
       setUploading(true);
-      setError(null);
       const uploadData = await adminService.getImageUploadUrl({
-        file_name: file.name,
-        file_type: file.type,
+        file_name: selectedFile.name,
+        file_type: selectedFile.type,
         folder,
       });
-      await adminService.uploadImageToS3(uploadData.upload_url, file);
+      await adminService.uploadImageToS3(uploadData.upload_url, selectedFile);
       onUploadComplete(uploadData.image_url);
       setSuccess(true);
       setFile(null);
@@ -56,6 +50,10 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleUpload = async () => {
+    // Keep this just in case, but it's no longer the primary way
   };
 
   return (

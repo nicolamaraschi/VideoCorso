@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-10"
 Transform: AWS::Serverless-2016-10-31
 Description: VideoCorso Platform - Complete Serverless Backend
 
@@ -49,14 +49,14 @@ Globals:
         RESEND_API_KEY: !Ref ResendApiKey
         # FIX: Aggiunta variabile d'ambiente globale per Cognito
         COGNITO_USER_POOL_ID: !Ref UserPool
-  
+
 Resources:
   # ==================== DynamoDB Tables ====================
-  
+
   CoursesTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub '${Environment}-videocorso-courses'
+      TableName: !Sub "${Environment}-videocorso-courses"
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: course_id
@@ -68,7 +68,7 @@ Resources:
   ChaptersTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub '${Environment}-videocorso-chapters'
+      TableName: !Sub "${Environment}-videocorso-chapters"
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: chapter_id
@@ -89,7 +89,7 @@ Resources:
   LessonsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub '${Environment}-videocorso-lessons'
+      TableName: !Sub "${Environment}-videocorso-lessons"
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: lesson_id
@@ -110,7 +110,7 @@ Resources:
   PurchasesTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub '${Environment}-videocorso-purchases'
+      TableName: !Sub "${Environment}-videocorso-purchases"
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: purchase_id
@@ -131,7 +131,7 @@ Resources:
   CouponsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub '${Environment}-videocorso-coupons'
+      TableName: !Sub "${Environment}-videocorso-coupons"
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: coupon_id
@@ -143,7 +143,7 @@ Resources:
   WebhookEventsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub '${Environment}-videocorso-webhook-events'
+      TableName: !Sub "${Environment}-videocorso-webhook-events"
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: event_id
@@ -155,7 +155,7 @@ Resources:
   ProgressTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub '${Environment}-videocorso-progress'
+      TableName: !Sub "${Environment}-videocorso-progress"
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: progress_id
@@ -184,7 +184,7 @@ Resources:
   UsersTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub '${Environment}-videocorso-users'
+      TableName: !Sub "${Environment}-videocorso-users"
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: user_id
@@ -194,21 +194,21 @@ Resources:
           KeyType: HASH
 
   # ==================== S3 Buckets ====================
-  
+
   VideoBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub '${Environment}-videocorso-content'
+      BucketName: !Sub "${Environment}-videocorso-content"
       CorsConfiguration:
         CorsRules:
           - AllowedHeaders:
-              - '*'
+              - "*"
             AllowedMethods:
               - GET
               - PUT
               - POST
             AllowedOrigins:
-              - '*'
+              - "*"
             MaxAge: 3000
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
@@ -219,18 +219,18 @@ Resources:
   ThumbnailBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub '${Environment}-videocorso-thumbnails'
+      BucketName: !Sub "${Environment}-videocorso-thumbnails"
       CorsConfiguration:
         CorsRules:
           - AllowedHeaders:
-              - '*'
+              - "*"
             AllowedMethods:
               - GET
               - PUT
               - POST
               - HEAD
             AllowedOrigins:
-              - '*'
+              - "*"
             MaxAge: 3000
       PublicAccessBlockConfiguration:
         BlockPublicAcls: false
@@ -243,16 +243,18 @@ Resources:
       PolicyDocument:
         Statement:
           - Effect: Allow
-            Principal: '*'
-            Action: 's3:GetObject'
-            Resource: !Sub '${ThumbnailBucket.Arn}/*'
+            Principal: "*"
+            Action: "s3:GetObject"
+            Resource: !Sub "${ThumbnailBucket.Arn}/*"
 
   # ==================== Cognito User Pool ====================
-  
+
   UserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: !Sub '${Environment}-videocorso-users'
+      UserPoolName: !Sub "${Environment}-videocorso-users"
+      AdminCreateUserConfig:
+        UnusedAccountValidityDays: 365
       UsernameAttributes:
         - email
       AutoVerifiedAttributes:
@@ -280,7 +282,7 @@ Resources:
   UserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
-      ClientName: !Sub '${Environment}-videocorso-web-client'
+      ClientName: !Sub "${Environment}-videocorso-web-client"
       UserPoolId: !Ref UserPool
       ExplicitAuthFlows:
         - ALLOW_USER_PASSWORD_AUTH
@@ -308,7 +310,7 @@ Resources:
   ApiGateway:
     Type: AWS::Serverless::Api
     Properties:
-      Name: !Sub '${Environment}-videocorso-api'
+      Name: !Sub "${Environment}-videocorso-api"
       StageName: !Ref Environment
       Cors:
         AllowMethods: "'GET,POST,PUT,DELETE,PATCH,OPTIONS'"
@@ -326,7 +328,7 @@ Resources:
   PaymentHandler:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub '${Environment}-videocorso-payment-handler'
+      FunctionName: !Sub "${Environment}-videocorso-payment-handler"
       CodeUri: ../lambda/payment_handler/
       Handler: app.lambda_handler
       Policies:
@@ -340,7 +342,7 @@ Resources:
             TableName: !Ref WebhookEventsTable
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
-        - Version: '2012-10-17'
+        - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
@@ -353,7 +355,7 @@ Resources:
             - Effect: Allow
               Action:
                 - ses:SendEmail
-              Resource: '*'
+              Resource: "*"
       Events:
         CreateCheckout:
           Type: Api
@@ -383,7 +385,7 @@ Resources:
   CourseHandler:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub '${Environment}-videocorso-course-handler'
+      FunctionName: !Sub "${Environment}-videocorso-course-handler"
       CodeUri: ../lambda/course_handler/
       Handler: app.lambda_handler
       Policies:
@@ -436,7 +438,7 @@ Resources:
   VideoHandler:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub '${Environment}-videocorso-video-handler'
+      FunctionName: !Sub "${Environment}-videocorso-video-handler"
       CodeUri: ../lambda/video_handler/
       Handler: app.lambda_handler
       Environment:
@@ -464,7 +466,7 @@ Resources:
   ProgressHandler:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub '${Environment}-videocorso-progress-handler'
+      FunctionName: !Sub "${Environment}-videocorso-progress-handler"
       CodeUri: ../lambda/progress_handler/
       Handler: app.lambda_handler
       Policies:
@@ -521,7 +523,7 @@ Resources:
   AdminHandler:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub '${Environment}-videocorso-admin-handler'
+      FunctionName: !Sub "${Environment}-videocorso-admin-handler"
       CodeUri: ../lambda/admin_handler/
       Handler: app.lambda_handler
       # FIX: Aggiunta variabile d'ambiente COGNITO_USER_POOL_ID
@@ -549,7 +551,7 @@ Resources:
         - S3CrudPolicy:
             BucketName: !Ref ThumbnailBucket
         # FIX: Aggiunta policy per gestire utenti Cognito
-        - Version: '2012-10-17'
+        - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
@@ -746,6 +748,12 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /admin/student/{studentId}/resend-invite
             Method: POST
+        ResetPassword:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/student/{studentId}/reset-password
+            Method: POST
         GetPurchases:
           Type: Api
           Properties:
@@ -790,7 +798,7 @@ Resources:
             Method: POST
 
   # ==================== CloudFront ====================
-  
+
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -800,7 +808,7 @@ Resources:
           - Id: VideoBucketOrigin
             DomainName: !GetAtt VideoBucket.RegionalDomainName
             S3OriginConfig:
-              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOAI}'
+              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontOAI}"
         DefaultCacheBehavior:
           TargetOriginId: VideoBucketOrigin
           ViewerProtocolPolicy: https-only
@@ -822,7 +830,7 @@ Resources:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
     Properties:
       CloudFrontOriginAccessIdentityConfig:
-        Comment: !Sub 'OAI for ${Environment}-videocorso'
+        Comment: !Sub "OAI for ${Environment}-videocorso"
 
   VideoBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -832,31 +840,31 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              AWS: !Sub 'arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOAI}'
-            Action: 's3:GetObject'
-            Resource: !Sub '${VideoBucket.Arn}/*'
+              AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOAI}"
+            Action: "s3:GetObject"
+            Resource: !Sub "${VideoBucket.Arn}/*"
 
 Outputs:
   ApiEndpoint:
     Description: API Gateway endpoint URL
-    Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}"
     Export:
-      Name: !Sub '${Environment}-ApiEndpoint'
+      Name: !Sub "${Environment}-ApiEndpoint"
 
   UserPoolId:
     Description: Cognito User Pool ID
     Value: !Ref UserPool
     Export:
-      Name: !Sub '${Environment}-UserPoolId'
+      Name: !Sub "${Environment}-UserPoolId"
 
   UserPoolClientId:
     Description: Cognito User Pool Client ID
     Value: !Ref UserPoolClient
     Export:
-      Name: !Sub '${Environment}-UserPoolClientId'
+      Name: !Sub "${Environment}-UserPoolClientId"
 
   CloudFrontDomain:
     Description: CloudFront Distribution Domain
     Value: !GetAtt CloudFrontDistribution.DomainName
     Export:
-      Name: !Sub '${Environment}-CloudFrontDomain'
+      Name: !Sub "${Environment}-CloudFrontDomain"

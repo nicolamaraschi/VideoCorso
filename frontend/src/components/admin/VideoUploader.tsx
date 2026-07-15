@@ -43,19 +43,6 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
     }
   };
 
-  const handleFileSelect = (selectedFile: File) => {
-    const validation = validateVideoFile(selectedFile);
-
-    if (!validation.valid) {
-      setError(validation.error || 'Invalid file');
-      return;
-    }
-
-    setFile(selectedFile);
-    setError(null);
-    setSuccess(false);
-  };
-
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -79,9 +66,19 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
     });
   };
 
-  const handleUpload = async () => {
-    if (!file) return;
+  const handleFileSelect = async (selectedFile: File) => {
+    const validation = validateVideoFile(selectedFile);
 
+    if (!validation.valid) {
+      setError(validation.error || 'Invalid file');
+      return;
+    }
+
+    setFile(selectedFile);
+    setError(null);
+    setSuccess(false);
+
+    // Auto-upload the video
     try {
       setUploading(true);
       setError(null);
@@ -90,15 +87,15 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
       // FIX: Ottieni la durata prima di iniziare l'upload
       let duration = 0;
       try {
-        duration = await getVideoDuration(file);
+        duration = await getVideoDuration(selectedFile);
       } catch (err) {
         console.error(err);
       }
 
       // Get pre-signed URL
       const uploadData = await adminService.getUploadUrl({
-        file_name: file.name,
-        file_type: file.type,
+        file_name: selectedFile.name,
+        file_type: selectedFile.type,
         lesson_id: lessonId,
       });
 
@@ -125,29 +122,31 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
             setProgress(0);
           }, 2000);
         } else {
-          throw new Error('Upload failed');
+          setError('Upload failed');
+          setUploading(false);
         }
       });
 
       xhr.addEventListener('error', () => {
-        throw new Error('Upload failed');
+        setError('Upload failed');
+        setUploading(false);
       });
 
       xhr.open('PUT', uploadData.upload_url);
-      xhr.setRequestHeader('Content-Type', file.type);
-      xhr.send(file);
+      xhr.setRequestHeader('Content-Type', selectedFile.type);
+      xhr.send(selectedFile);
 
-      await new Promise((resolve, reject) => {
-        xhr.addEventListener('load', resolve);
-        xhr.addEventListener('error', reject);
-      });
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to upload video'));
       setProgress(0);
-    } finally {
       setUploading(false);
     }
   };
+
+  const handleUpload = async () => {
+    // Keep this just in case, but it's no longer the primary way
+  };
+
 
   const removeFile = () => {
     setFile(null);

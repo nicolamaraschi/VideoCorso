@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
+import ReactPlayer from 'react-player';
 import {
   Play,
   Pause,
@@ -24,7 +25,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   lessonId,
   onEnded,
 }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const playerRef = useRef<ReactPlayer>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
@@ -37,80 +38,67 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [showControls, setShowControls] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
 
-  useVideoProgress({
-    lessonId,
-    videoElement: videoRef.current,
-  });
+  const {
+    progress,
+    handleTimeUpdate,
+    saveProgress,
+    markComplete,
+    seekToSeconds,
+    clearSeekTo
+  } = useVideoProgress({ lessonId });
 
+  // Handle seeking from progress load
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    if (seekToSeconds !== null && playerRef.current) {
+      playerRef.current.seekTo(seekToSeconds, 'seconds');
+      clearSeekTo();
+    }
+  }, [seekToSeconds, clearSeekTo]);
 
-    const handleTimeUpdate = () => {
-      setCurrentTime(video.currentTime);
-    };
-
-    const handleDurationChange = () => {
-      setDuration(video.duration);
-    };
-
-    const handleEnded = () => {
-      setIsPlaying(false);
-      if (onEnded) onEnded();
-    };
-
-    video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('durationchange', handleDurationChange);
-    video.addEventListener('ended', handleEnded);
-
+  // Handle unmount save
+  useEffect(() => {
     return () => {
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('durationchange', handleDurationChange);
-      video.removeEventListener('ended', handleEnded);
+      if (currentTime > 0 && duration > 0) {
+        saveProgress(currentTime, duration);
+      }
     };
-  }, [onEnded]);
+  }, [currentTime, duration, saveProgress]);
 
   const togglePlay = useCallback(() => {
-    if (!videoRef.current) return;
-
+    if (!playerRef.current) return;
+    
+    // If saving pause progress manually
     if (isPlaying) {
-      videoRef.current.pause();
-    } else {
-      videoRef.current.play();
+      saveProgress(currentTime, duration);
     }
     setIsPlaying(!isPlaying);
-  }, [isPlaying]);
+  }, [isPlaying, currentTime, duration, saveProgress]);
 
   const skip = useCallback((seconds: number) => {
-    if (!videoRef.current) return;
-    videoRef.current.currentTime += seconds;
-  }, []);
+    if (!playerRef.current) return;
+    const newTime = Math.max(0, Math.min(currentTime + seconds, duration));
+    playerRef.current.seekTo(newTime, 'seconds');
+  }, [currentTime, duration]);
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!videoRef.current || !progressBarRef.current) return;
+    if (!playerRef.current || !progressBarRef.current) return;
 
     const rect = progressBarRef.current.getBoundingClientRect();
     const pos = (e.clientX - rect.left) / rect.width;
-    videoRef.current.currentTime = pos * duration;
+    playerRef.current.seekTo(pos, 'fraction');
   };
 
   const changeVolume = useCallback((delta: number) => {
-    if (!videoRef.current) return;
     const newVolume = Math.max(0, Math.min(1, volume + delta));
     setVolume(newVolume);
-    videoRef.current.volume = newVolume;
     if (newVolume > 0) setIsMuted(false);
   }, [volume]);
 
   const toggleMute = useCallback(() => {
-    if (!videoRef.current) return;
-    videoRef.current.muted = !isMuted;
     setIsMuted(!isMuted);
   }, [isMuted]);
 
   const changePlaybackRate = (rate: number) => {
-    if (!videoRef.current) return;
-    videoRef.current.playbackRate = rate;
     setPlaybackRate(rate);
     setShowSettings(false);
   };
@@ -128,7 +116,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (!videoRef.current) return;
+      if (!playerRef.current) return;
 
       switch (e.key) {
         case ' ':
@@ -202,138 +190,176 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       className="relative bg-black rounded-lg overflow-hidden group video-player"
     >
       {/* Video Element */}
-      <video
-        ref={videoRef}
-        src={videoUrl}
-        className="w-full aspect-video"
-        onClick={togglePlay}
-      />
+      <div className="w-full aspect-video pointer-events-none">
+        <ReactPlayer
+          ref={playerRef}
+          url={videoUrl}
+          width="100%"
+          height="100%"
+          playing={isPlaying}
+          volume={volume}
+          muted={isMuted}
+          playbackRate={playbackRate}
+          onProgress={({ playedSeconds }) => {
+            setCurrentTime(playedSeconds);
+            handleTimeUpdate(playedSeconds, duration);
+          }}
+          onDuration={setDuration}
+          onEnded={() => {
+            setIsPlaying(false);
+            markComplete(currentTime, duration);
+            if (onEnded) onEnded();
+          }}
+          style={{ position: 'absolute', top: 0, left: 0 }}
+          config={{
+            youtube: {
+              playerVars: {
+                controls: 0,
+                modestbranding: 1,
+                rel: 0,
+                showinfo: 0,
+                iv_load_policy: 3
+              }
+            }
+          }}
+        />
+      </div>
 
       {/* Controls Overlay */}
-      <div
-        className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300 ${showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
-          }`}
+      <div 
+        className="absolute inset-0 z-10" 
+        onClick={(e) => {
+          if (e.target === e.currentTarget) togglePlay();
+        }}
       >
-        {/* Center Play Button */}
-        {!isPlaying && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <button
-              onClick={togglePlay}
-              className="w-20 h-20 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all backdrop-blur-sm"
-            >
-              <Play className="w-10 h-10 text-white ml-1" />
-            </button>
-          </div>
-        )}
-
-        {/* Bottom Controls */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2">
-          {/* Progress Bar */}
-          <div
-            ref={progressBarRef}
-            onClick={handleProgressClick}
-            className="w-full h-1 bg-white/30 rounded-full cursor-pointer hover:h-2 transition-all"
-          >
-            <div
-              className="h-full bg-primary-600 rounded-full relative"
-              style={{ width: `${progressPercentage}%` }}
-            >
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100" />
-            </div>
-          </div>
-
-          {/* Control Buttons */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button onClick={togglePlay} className="text-white hover:text-primary-400">
-                {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
-              </button>
-
+        <div
+          className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none transition-opacity duration-300 ${showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
+            }`}
+        >
+          {/* Center Play Button */}
+          {!isPlaying && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <button
-                onClick={() => {
-                  if (videoRef.current) videoRef.current.currentTime = 0;
-                  if (!isPlaying) togglePlay();
+                onClick={(e) => {
+                  e.stopPropagation();
+                  togglePlay();
                 }}
-                className="text-white hover:text-primary-400 hidden sm:block"
-                title="Restart"
+                className="w-20 h-20 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all backdrop-blur-sm pointer-events-auto"
               >
-                <RotateCcw className="w-5 h-5" />
+                <Play className="w-10 h-10 text-white ml-1" />
               </button>
+            </div>
+          )}
 
-              <button onClick={() => skip(-10)} className="text-white hover:text-primary-400 hidden sm:block">
-                <SkipBack className="w-5 h-5" />
-              </button>
-
-              <button onClick={() => skip(10)} className="text-white hover:text-primary-400 hidden sm:block">
-                <SkipForward className="w-5 h-5" />
-              </button>
-
-              <button onClick={toggleMute} className="text-white hover:text-primary-400">
-                {isMuted || volume === 0 ? (
-                  <VolumeX className="w-5 h-5" />
-                ) : (
-                  <Volume2 className="w-5 h-5" />
-                )}
-              </button>
-
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.1"
-                value={volume}
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value);
-                  changeVolume(val - volume);
-                }}
-                className="w-20 hidden sm:block"
-              />
-
-              <span className="text-white text-sm font-medium">
-                {formatDuration(currentTime)} / {formatDuration(duration)}
-              </span>
+          {/* Bottom Controls */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2 pointer-events-auto">
+            {/* Progress Bar */}
+            <div
+              ref={progressBarRef}
+              onClick={handleProgressClick}
+              className="w-full h-1 bg-white/30 rounded-full cursor-pointer hover:h-2 transition-all"
+            >
+              <div
+                className="h-full bg-primary-600 rounded-full relative"
+                style={{ width: `${progressPercentage}%` }}
+              >
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100" />
+              </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              {/* Settings Menu */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowSettings(!showSettings)}
-                  className="text-white hover:text-primary-400"
-                >
-                  <Settings className="w-5 h-5" />
+            {/* Control Buttons */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button onClick={togglePlay} className="text-white hover:text-primary-400">
+                  {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
                 </button>
 
-                {showSettings && (
-                  <>
-                    <div
-                      className="fixed inset-0"
-                      onClick={() => setShowSettings(false)}
-                    />
-                    <div className="absolute bottom-full right-0 mb-2 bg-black/90 rounded-lg p-2 min-w-[150px]">
-                      <div className="text-white text-xs font-semibold mb-2 px-2">
-                        Playback Speed
-                      </div>
-                      {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
-                        <button
-                          key={rate}
-                          onClick={() => changePlaybackRate(rate)}
-                          className={`w-full text-left px-3 py-1.5 rounded text-sm ${playbackRate === rate
-                            ? 'bg-primary-600 text-white'
-                            : 'text-white/80 hover:bg-white/10'
-                            }`}
-                        >
-                          {rate}x
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
+                <button
+                  onClick={() => {
+                    if (playerRef.current) playerRef.current.seekTo(0);
+                    if (!isPlaying) togglePlay();
+                  }}
+                  className="text-white hover:text-primary-400 hidden sm:block"
+                  title="Restart"
+                >
+                  <RotateCcw className="w-5 h-5" />
+                </button>
+
+                <button onClick={() => skip(-10)} className="text-white hover:text-primary-400 hidden sm:block">
+                  <SkipBack className="w-5 h-5" />
+                </button>
+
+                <button onClick={() => skip(10)} className="text-white hover:text-primary-400 hidden sm:block">
+                  <SkipForward className="w-5 h-5" />
+                </button>
+
+                <button onClick={toggleMute} className="text-white hover:text-primary-400">
+                  {isMuted || volume === 0 ? (
+                    <VolumeX className="w-5 h-5" />
+                  ) : (
+                    <Volume2 className="w-5 h-5" />
+                  )}
+                </button>
+
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={volume}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    changeVolume(val - volume);
+                  }}
+                  className="w-20 hidden sm:block"
+                />
+
+                <span className="text-white text-sm font-medium">
+                  {formatDuration(currentTime)} / {formatDuration(duration)}
+                </span>
               </div>
 
-              <button onClick={toggleFullscreen} className="text-white hover:text-primary-400">
-                <Maximize className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-3">
+                {/* Settings Menu */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowSettings(!showSettings)}
+                    className="text-white hover:text-primary-400"
+                  >
+                    <Settings className="w-5 h-5" />
+                  </button>
+
+                  {showSettings && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setShowSettings(false)}
+                      />
+                      <div className="absolute bottom-full right-0 mb-2 bg-black/90 rounded-lg p-2 min-w-[150px] z-20">
+                        <div className="text-white text-xs font-semibold mb-2 px-2">
+                          Playback Speed
+                        </div>
+                        {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
+                          <button
+                            key={rate}
+                            onClick={() => changePlaybackRate(rate)}
+                            className={`w-full text-left px-3 py-1.5 rounded text-sm ${playbackRate === rate
+                              ? 'bg-primary-600 text-white'
+                              : 'text-white/80 hover:bg-white/10'
+                              }`}
+                          >
+                            {rate}x
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <button onClick={toggleFullscreen} className="text-white hover:text-primary-400">
+                  <Maximize className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

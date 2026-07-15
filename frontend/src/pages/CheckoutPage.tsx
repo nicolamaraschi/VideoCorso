@@ -66,7 +66,7 @@ export const CheckoutPage: React.FC = () => {
       setError(null);
       const checkoutResponse = await paymentService.createCheckoutSession({
         course_id: course.course_id,
-        success_url: `${window.location.origin}/dashboard?payment=success`,
+        success_url: `${window.location.origin}/login?payment=success`,
         cancel_url: `${window.location.origin}/checkout?courseId=${course.public_slug || course.course_id}&payment=cancelled`,
         email: user?.email,
         coupon_code: couponCode.trim() || undefined,
