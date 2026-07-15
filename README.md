@@ -138,6 +138,29 @@ VideoCorso/
 
    Use these values in your frontend `.env` file.
 
+## 🌊 Core Business Flows
+
+### 1. Payment & Account Creation Flow (Stripe + Cognito)
+- User completes a purchase via Stripe Checkout.
+- A Stripe Webhook (`checkout.session.completed`) triggers the `payment_handler` Lambda.
+- The Lambda automatically creates a new AWS Cognito user with a randomly generated **temporary password**.
+- The Lambda sends a welcome email via Resend containing the temporary credentials.
+
+### 2. First Login & Password Management
+- The user logs in for the first time using the temporary password.
+- AWS Cognito enforces the `NEW_PASSWORD_REQUIRED` flow.
+- The frontend intercepts this and forces the user to set their own **personal, permanent password**.
+- *Note:* Temporary passwords are valid for **365 days** (configured in `template.yaml` via `UnusedAccountValidityDays`) to ensure users have ample time to activate their accounts without requiring support.
+
+### 3. Email Delivery (Resend vs AWS SES)
+- **AWS SES** is the default AWS email service, but it requires a strict manual review process (Sandbox removal) to send emails to unverified recipients, which delays production readiness.
+- **Resend** is used as the primary transactional email provider. It bypasses the SES Sandbox limitations, allowing immediate delivery of welcome emails and password resets to real customers.
+
+### 4. Admin Support & Account Recovery
+- If a user loses their welcome email or struggles to log in initially, the Admin can intervene via the Admin Panel.
+- In the "Students" section, the Admin can view the user's active purchases.
+- The Admin can click **"Resend Welcome Email"**, which triggers the `admin_handler` Lambda to generate a *new* temporary password and re-send the welcome email to the user.
+
 ## 🔐 AWS Cognito Setup
 
 ### Create Admin User
