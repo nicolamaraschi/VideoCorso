@@ -1,163 +1,682 @@
-# Documentazione Progetto: Corso Video Chiara
+# VideoCorso - Complete Video Course Platform
 
-Questo documento raccoglie tutte le informazioni sull'architettura, i flussi, e le procedure di sviluppo e messa in produzione per la piattaforma del corso video. È la guida principale (master) da cui partire per orientarsi nel progetto.
+A comprehensive video course platform built with React, AWS Serverless, Stripe payments, and AWS Cognito authentication.
 
-## Indice
-
-1. [Architettura del Sistema](#1-architettura-del-sistema)
-2. [Flussi Principali](#2-flussi-principali)
-3. [Configurazione e Sviluppo Locale](#3-configurazione-e-sviluppo-locale)
-4. [Deploy Backend (AWS)](#4-deploy-backend-aws)
-5. [Messa in Produzione (Go Live)](#5-messa-in-produzione-go-live)
-6. [Credenziali e Output Utili](#6-credenziali-e-output-utili)
-
----
-
-## 1. Architettura del Sistema
-
-Il progetto è diviso in due macro-componenti:
-
-*   **Frontend**: Sviluppato in React 18, TypeScript, Vite, Tailwind CSS. Ospitato su AWS Amplify.
-*   **Backend (Serverless)**: Architettura su AWS definita tramite AWS SAM (Serverless Application Model).
-    *   **API**: AWS API Gateway
-    *   **Compute**: AWS Lambda (in Python 3.11)
-    *   **Database**: Amazon DynamoDB
-    *   **Storage & CDN**: Amazon S3 + CloudFront (per lo storage dei video e la distribuzione sicura)
-    *   **Autenticazione**: Amazon Cognito
-    *   **Email**: Resend (via API) per l'invio delle email di benvenuto e di sistema.
-    *   **Pagamenti**: Stripe (Checkout e Webhook)
-
----
-
-## 2. Flussi Principali
-
-
-### 2.1 Flusso Utente (Acquisto e Fruizione)
-1. **Esplorazione Catalogo**: L'utente atterra sulla landing page pubblica, che ora interroga dinamicamente il backend per mostrare in vetrina tutti i corsi con stato "Pubblicato".
-2. **Checkout**: L'utente seleziona un corso e atterra nel carrello. Il frontend chiama `POST /payment/create-checkout` che restituisce il link al Checkout di Stripe. L'utente viene reindirizzato e inserisce la carta di credito.
-3. **Pagamento ed Evento**: A pagamento completato con successo, Stripe invia un Webhook asincrono (`checkout.session.completed`) all'endpoint API Gateway `/payment/webhook`.
-4. **Elaborazione Webhook (Lambda)**: La funzione `payment_handler` riceve l'evento da Stripe ed effettua queste operazioni critiche:
-   * Registra l'acquisto in DynamoDB (tabella Purchases).
-   * Crea l'utente in AWS Cognito.
-   * Genera una **Password Temporanea** (che ha una validità massima estesa a **365 giorni**).
-   * Invia l'email di benvenuto con la password temporanea utilizzando l'API di **Resend** (bypassa la Sandbox di AWS SES per evitare blocchi).
-5. **Login e Cambio Password**: L'utente accede tramite Cognito (con la propria email e la password temporanea). Cognito forza il cambio password (`NEW_PASSWORD_REQUIRED`) e il frontend chiede all'utente di inserire la sua password personale e definitiva.
-6. **Fruizione Video**: Il frontend richiede la visione di un video (`GET /course/video/{lesson_id}`). La Lambda del backend verifica che l'utente abbia acquistato il corso e restituisce un **URL pre-firmato (Presigned URL)** per CloudFront, garantendo che i video siano protetti e non possano essere scaricati illegalmente.
-
-### 2.2 Flusso Amministratore (Caricamento e Gestione)
-1. **Login Admin**: Un account flaggato come amministratore (tramite Cognito Group) effettua l'accesso.
-2. **Upload Video**: L'admin chiede un link di upload sicuro (`POST /admin/video/upload`). Il frontend carica poi il file video (anche di grosse dimensioni) direttamente dal browser al bucket S3 usando questo link firmato (S3 Presigned URL for PutObject).
-3. **Gestione Corsi**: L'admin può usare gli endpoint dedicati per creare, modificare e riordinare i Capitoli e le Lezioni (salvati su DynamoDB). Può anche consultare l'elenco degli iscritti e le metriche di base.
-4. **Assegnazione Manuale (Enrollment)**: L'admin può assegnare un corso a uno studente manualmente dalla dashboard (`POST /admin/student/{studentId}/grant-course`). Questo genera un acquisto fittizio a importo 0, sbloccando i contenuti (utile per regali o bonifici).
-5. **Recupero Password / Assistenza**: Se uno studente perde l'email di benvenuto, l'admin può andare nella scheda "Studenti", cliccare su "Invia di nuovo email di benvenuto", e il backend genererà una *nuova* password temporanea reinviando l'email in automatico.
-
----
-
-
-## 3. Configurazione e Sviluppo Locale
+## 🏗️ Architecture
 
 ### Frontend
-Per avviare il frontend in locale per lo sviluppo:
+- **Framework**: React 18 + TypeScript + Vite
+- **Styling**: Tailwind CSS
+- **State Management**: React Hooks
+- **Authentication**: AWS Amplify + Cognito
+- **Routing**: React Router v6
+- **Payments**: Stripe Checkout
+- **Hosting**: AWS Amplify Hosting
+
+### Backend (AWS Serverless)
+- **API**: AWS API Gateway REST API
+- **Compute**: AWS Lambda (Python 3.11)
+- **Database**: DynamoDB
+- **Storage**: S3 + CloudFront
+- **Authentication**: AWS Cognito
+- **Payments**: Stripe
+- **Email**: AWS SES
+
+## 📁 Project Structure
+
+```
+VideoCorso/
+├── frontend/                 # React application
+│   ├── src/
+│   │   ├── pages/           # Page components
+│   │   ├── components/      # Reusable components
+│   │   ├── hooks/           # Custom React hooks
+│   │   ├── services/        # API services
+│   │   ├── types/           # TypeScript types
+│   │   ├── utils/           # Utility functions
+│   │   └── styles/          # Custom CSS
+│   └── package.json
+│
+├── backend/                 # AWS Serverless backend
+│   ├── infrastructure/      # AWS SAM/CloudFormation
+│   │   └── template.yaml   # Complete infrastructure
+│   └── lambda/              # Lambda functions
+│       ├── payment_handler/
+│       ├── course_handler/
+│       ├── video_handler/
+│       ├── progress_handler/
+│       └── admin_handler/
+│
+└── README.md
+```
+
+## 🚀 Complete Deployment Guide
+
+
+## Prerequisites
+
+Before starting, ensure you have:
+
+- [x] AWS Account with admin access
+- [x] AWS CLI installed and configured
+- [x] AWS SAM CLI installed
+- [x] Node.js 18+ installed
+- [x] Python 3.11 installed
+- [x] Stripe account
+- [x] Domain name (optional)
+
+## Deployment Steps
+
+### Step 1: Prepare AWS Account
+
+1. **Create IAM user with appropriate permissions** (if not using admin):
+   ```bash
+   # Required permissions:
+   # - Lambda full access
+   # - DynamoDB full access
+   # - S3 full access
+   # - CloudFront full access
+   # - Cognito full access
+   # - API Gateway full access
+   # - CloudFormation full access
+   # - IAM role creation
+   # - SES send email
+   ```
+
+2. **Configure AWS CLI**:
+   ```bash
+   aws configure
+   # Enter your AWS Access Key ID
+   # Enter your AWS Secret Access Key
+   # Enter your default region (e.g., us-east-1)
+   # Enter your default output format (json)
+   ```
+
+### Step 2: Set Up Stripe
+
+1. **Create Stripe account**: https://dashboard.stripe.com/register
+
+2. **Get API keys**:
+   - Go to Developers → API keys
+   - Copy "Publishable key" (starts with `pk_`)
+   - Copy "Secret key" (starts with `sk_`)
+
+3. **Create webhook**:
+   - Go to Developers → Webhooks
+   - Click "Add endpoint"
+   - URL: `https://YOUR_API_GATEWAY_URL/prod/payment/webhook` (update after deployment)
+   - Events: Select `checkout.session.completed` and `payment_intent.succeeded`
+   - Copy webhook signing secret (starts with `whsec_`)
+
+### Step 3: Deploy Backend Infrastructure
+
+1. **Navigate to infrastructure directory**:
+   ```bash
+   cd backend/infrastructure
+   ```
+
+2. **Build the SAM application**:
+   ```bash
+   sam build
+   ```
+
+3. **Deploy with guided setup** (first time):
+   ```bash
+   sam deploy --guided
+   ```
+
+   Answer the prompts:
+   ```
+   Stack Name []: videocorso-prod
+   AWS Region []: us-east-1
+   Parameter Environment [prod]: prod
+   Parameter StripeSecretKey []: sk_test_YOUR_STRIPE_SECRET_KEY
+   Parameter StripeWebhookSecret []: whsec_YOUR_WEBHOOK_SECRET
+   Confirm changes before deploy [Y/n]: Y
+   Allow SAM CLI IAM role creation [Y/n]: Y
+   Disable rollback [y/N]: N
+   Save arguments to configuration file [Y/n]: Y
+   SAM configuration file [samconfig.toml]: samconfig.toml
+   SAM configuration environment [default]: default
+   ```
+
+4. **Note the outputs**:
+   ```
+   Key                 Value
+   ----------------------------------------
+   ApiEndpoint        https://abc123.execute-api.us-east-1.amazonaws.com/prod
+   UserPoolId         us-east-1_ABC123
+   UserPoolClientId   1234567890abcdef
+   CloudFrontDomain   d1234567890abc.cloudfront.net
+   ```
+
+   **Save these values** - you'll need them for frontend configuration!
+
+5. **Update Stripe webhook URL**:
+   - Go back to Stripe Dashboard → Webhooks
+   - Update endpoint URL with your actual API Gateway URL
+   - URL format: `https://abc123.execute-api.us-east-1.amazonaws.com/prod/payment/webhook`
+
+### Step 4: Configure AWS SES
+
+1. **Verify sender email**:
+   ```bash
+   aws ses verify-email-identity --email-address noreply@yourdomain.com
+   ```
+
+2. **Check verification email** in your inbox and click the link
+
+3. **Request production access** (to send to any email):
+   - Go to AWS SES Console
+   - Click "Request Production Access"
+   - Fill out the form explaining your use case
+   - Wait for approval (usually 24-48 hours)
+
+   > Note: In sandbox mode, you can only send to verified emails. Verify test email addresses:
+   ```bash
+   aws ses verify-email-identity --email-address test@example.com
+   ```
+
+### Step 5: Create Admin User
+
+1. **Get User Pool ID** from SAM outputs
+
+2. **Create admin user**:
+   ```bash
+   aws cognito-idp admin-create-user \
+     --user-pool-id YOUR_USER_POOL_ID \
+     --username chiara@yourdomain.com \
+     --user-attributes \
+       Name=email,Value=chiara@yourdomain.com \
+       Name=email_verified,Value=true \
+       Name=custom:full_name,Value="Chiara Admin" \
+       Name=custom:subscription_status,Value=active \
+       Name=custom:subscription_end_date,Value=2099-12-31T23:59:59Z \
+     --temporary-password TempPass123! \
+     --message-action SUPPRESS
+   ```
+
+3. **Add to admin group**:
+   ```bash
+   aws cognito-idp admin-add-user-to-group \
+     --user-pool-id YOUR_USER_POOL_ID \
+     --username chiara@yourdomain.com \
+     --group-name admin
+   ```
+
+4. **Note the temporary password** - you'll need it for first login
+
+### Step 6: Deploy Frontend
+
+#### Option A: Deploy to AWS Amplify (Recommended)
+
+1. **Push code to GitHub**:
+   ```bash
+   git add .
+   git commit -m "Initial VideoCorso platform setup"
+   git push origin claude/video-course-platform-aws-011CUzH6FBhgYLq2PrHPAvFf
+   ```
+
+2. **Set up Amplify Hosting**:
+   - Go to AWS Amplify Console
+   - Click "New app" → "Host web app"
+   - Connect GitHub repository
+   - Select repository: `VideoCorso`
+   - Select branch: `claude/video-course-platform-aws-011CUzH6FBhgYLq2PrHPAvFf`
+   - Build settings (auto-detected):
+     ```yaml
+     version: 1
+     frontend:
+       phases:
+         preBuild:
+           commands:
+             - cd frontend
+             - npm ci
+         build:
+           commands:
+             - npm run build
+       artifacts:
+         baseDirectory: frontend/dist
+         files:
+           - '**/*'
+       cache:
+         paths:
+           - frontend/node_modules/**/*
+     ```
+   - Click "Next" → "Save and deploy"
+
+3. **Add environment variables in Amplify**:
+   - Go to App settings → Environment variables
+   - Add variables:
+     ```
+     VITE_COGNITO_USER_POOL_ID = YOUR_USER_POOL_ID
+     VITE_COGNITO_USER_POOL_CLIENT_ID = YOUR_CLIENT_ID
+     VITE_API_BASE_URL = YOUR_API_GATEWAY_URL
+     VITE_STRIPE_PUBLIC_KEY = YOUR_STRIPE_PUBLISHABLE_KEY
+     VITE_AWS_REGION = us-east-1
+     ```
+   - Click "Save"
+
+4. **Trigger redeploy**:
+   - Go to your app in Amplify
+   - Click "Redeploy this version"
+
+5. **Note your Amplify URL**: `https://branchname.d1234567890abc.amplifyapp.com`
+
+#### Option B: Deploy to S3 + CloudFront
+
+1. **Create `.env` file**:
+   ```bash
+   cd frontend
+   cp .env.example .env
+   ```
+
+2. **Edit `.env` with your values**:
+   ```env
+   VITE_COGNITO_USER_POOL_ID=us-east-1_ABC123
+   VITE_COGNITO_USER_POOL_CLIENT_ID=1234567890abcdef
+   VITE_API_BASE_URL=https://abc123.execute-api.us-east-1.amazonaws.com/prod
+   VITE_STRIPE_PUBLIC_KEY=pk_test_YOUR_STRIPE_KEY
+   VITE_AWS_REGION=us-east-1
+   ```
+
+3. **Build the frontend**:
+   ```bash
+   npm install
+   npm run build
+   ```
+
+4. **Create S3 bucket for hosting**:
+   ```bash
+   aws s3 mb s3://videocorso-frontend-prod --region us-east-1
+   ```
+
+5. **Enable static website hosting**:
+   ```bash
+   aws s3 website s3://videocorso-frontend-prod --index-document index.html --error-document index.html
+   ```
+
+6. **Upload build files**:
+   ```bash
+   aws s3 sync dist/ s3://videocorso-frontend-prod --delete
+   ```
+
+7. **Set public read permissions**:
+   ```bash
+   aws s3api put-bucket-policy --bucket videocorso-frontend-prod --policy '{
+     "Version": "2012-10-17",
+     "Statement": [{
+       "Sid": "PublicReadGetObject",
+       "Effect": "Allow",
+       "Principal": "*",
+       "Action": "s3:GetObject",
+       "Resource": "arn:aws:s3:::videocorso-frontend-prod/*"
+     }]
+   }'
+   ```
+
+### Step 7: Test the Platform
+
+1. **Access the frontend**:
+   - Amplify: `https://branchname.d1234567890abc.amplifyapp.com`
+   - S3: `http://videocorso-frontend-prod.s3-website-us-east-1.amazonaws.com`
+
+2. **Test admin login**:
+   - Go to `/login`
+   - Email: `chiara@yourdomain.com`
+   - Password: `TempPass123!` (temporary password)
+   - You'll be prompted to change password
+
+3. **Test payment flow**:
+   - Go to `/checkout`
+   - Use Stripe test card: `4242 4242 4242 4242`
+   - Any future expiry date
+   - Any CVC
+   - Complete purchase
+
+4. **Verify user creation**:
+   - Check DynamoDB `purchases` table
+   - Check Cognito users list
+   - Check email inbox for welcome email
+
+5. **Test video upload** (as admin):
+   - Go to `/admin/upload`
+   - Upload a test video
+   - Note the S3 key
+
+6. **Create test course structure** (as admin):
+   - Go to `/admin/course`
+   - Create a chapter
+   - Create a lesson with the uploaded video's S3 key
+   - Set duration in seconds
+
+7. **Test student experience**:
+   - Login as the newly created user
+   - Go to `/dashboard`
+   - Click on a lesson
+   - Verify video plays
+   - Check progress tracking
+
+### Step 8: Configure Custom Domain (Optional)
+
+#### For Amplify:
+
+1. **Add custom domain in Amplify Console**:
+   - Go to App settings → Domain management
+   - Click "Add domain"
+   - Enter your domain (e.g., `videocorso.com`)
+   - Follow DNS configuration instructions
+
+#### For S3/CloudFront:
+
+1. **Request SSL certificate in ACM**:
+   ```bash
+   aws acm request-certificate \
+     --domain-name videocorso.com \
+     --domain-name www.videocorso.com \
+     --validation-method DNS \
+     --region us-east-1
+   ```
+
+2. **Create CloudFront distribution for frontend**
+3. **Configure Route53** or your DNS provider
+
+### Step 9: Production Checklist
+
+- [ ] Backend deployed successfully
+- [ ] Frontend deployed successfully
+- [ ] Admin user created and tested
+- [ ] Stripe test payment successful
+- [ ] SES email verified (production access requested)
+- [ ] Test video upload works
+- [ ] Test course creation works
+- [ ] Test student registration works
+- [ ] Test video streaming works
+- [ ] Test progress tracking works
+- [ ] Stripe webhook configured and tested
+- [ ] CloudWatch logs accessible
+- [ ] Custom domain configured (if applicable)
+- [ ] SSL certificate installed
+- [ ] Backup strategy in place
+- [ ] Monitoring alerts configured
+
+### Step 10: Ongoing Maintenance
+
+#### Update Frontend:
 ```bash
-# Entra nella cartella frontend
 cd frontend
+# Make changes
+npm run build
+# Amplify: git push (auto-deploys)
+# S3: aws s3 sync dist/ s3://videocorso-frontend-prod --delete
+```
 
-# Assicurati di usare Node v20 (come indicato nel file avvio.txt)
-nvm use 20
+#### Update Backend:
+```bash
+cd backend/infrastructure
+# Make changes to template.yaml or Lambda functions
+sam build
+sam deploy
+```
 
-# Installazione dipendenze
+#### Monitor:
+```bash
+# View Lambda logs
+aws logs tail /aws/lambda/prod-videocorso-payment-handler --follow
+
+# View API Gateway metrics
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/ApiGateway \
+  --metric-name Count \
+  --dimensions Name=ApiName,Value=prod-videocorso-api \
+  --start-time 2024-01-01T00:00:00Z \
+  --end-time 2024-01-02T00:00:00Z \
+  --period 3600 \
+  --statistics Sum
+```
+
+## Troubleshooting
+
+### Frontend Issues
+
+**Problem**: `Cannot read property of undefined` errors
+- **Solution**: Check that all environment variables are set correctly
+
+**Problem**: API calls fail with CORS errors
+- **Solution**: Verify API Gateway CORS configuration in SAM template
+
+### Backend Issues
+
+**Problem**: Lambda timeout
+- **Solution**: Increase timeout in SAM template (max 900 seconds)
+
+**Problem**: DynamoDB throttling
+- **Solution**: Switch to on-demand billing or increase provisioned capacity
+
+**Problem**: Stripe webhook fails
+- **Solution**: Verify webhook secret is correct and endpoint URL matches
+
+### Payment Issues
+
+**Problem**: Payment succeeds but user not created
+- **Solution**: Check Lambda logs for `payment_handler` function
+
+**Problem**: Welcome email not sent
+- **Solution**: Verify SES email is verified and check Lambda permissions
+
+## Support
+
+For issues or questions:
+- Check CloudWatch logs
+- Review SAM deployment outputs
+- Verify all environment variables
+- Test with Stripe test cards
+- Check IAM permissions
+
+## Security Notes
+
+- Never commit `.env` files
+- Rotate Stripe keys regularly
+- Enable MFA for AWS account
+- Use secrets manager for production
+- Enable CloudTrail for audit logs
+- Configure WAF rules for API Gateway
+- Enable S3 bucket versioning
+- Set up automated backups
+
+## Cost Optimization
+
+- Use CloudFront cache effectively
+- Set DynamoDB to on-demand if traffic is unpredictable
+- Use S3 lifecycle policies for old videos
+- Monitor and set billing alarms
+- Use Lambda reserved concurrency only if needed
+
+---
+
+Deployment guide last updated: 2024
+
+
+## 📚 Features
+
+### Student Features
+- ✅ Purchase course via Stripe
+- ✅ Automatic account creation after payment
+- ✅ Video streaming with CloudFront
+- ✅ Progress tracking
+- ✅ Resume from where you left off
+- ✅ Video player with controls (speed, quality, fullscreen)
+- ✅ Keyboard shortcuts
+- ✅ Mobile responsive design
+- ✅ Course completion tracking
+
+### Admin Features
+- ✅ Upload videos to S3
+- ✅ Create and organize chapters
+- ✅ Create and manage lessons
+- ✅ Reorder content
+- ✅ View student list and progress
+- ✅ Manage subscriptions
+- ✅ View statistics dashboard
+- ✅ Track most viewed videos
+- ✅ Monitor revenue
+
+## 🔒 Security Features
+
+- ✅ CloudFront signed URLs for video protection
+- ✅ Cognito authentication
+- ✅ API Gateway authorization
+- ✅ WAF protection
+- ✅ HTTPS everywhere
+- ✅ Rate limiting
+- ✅ CORS configuration
+- ✅ SQL injection protection
+- ✅ XSS protection
+
+## 📱 Frontend Routes
+
+### Public Routes
+- `/` - Landing page
+- `/login` - Login page
+- `/checkout` - Purchase page
+
+### Student Routes (Protected)
+- `/dashboard` - Student dashboard
+- `/video/:lessonId` - Video player
+
+### Admin Routes (Protected, Admin Only)
+- `/admin` - Admin dashboard
+- `/admin/upload` - Upload videos
+- `/admin/course` - Manage course structure
+- `/admin/students` - Manage students
+
+## 🔧 Backend API Endpoints
+
+### Public Endpoints
+- `POST /payment/create-checkout` - Create Stripe checkout
+- `POST /payment/webhook` - Stripe webhook handler
+- `POST /auth/register` - User registration
+- `POST /auth/login` - User login
+
+### Student Endpoints (Authenticated)
+- `GET /course/structure` - Get course structure
+- `GET /course/video/{lesson_id}` - Get signed video URL
+- `POST /progress/update` - Update progress
+- `GET /progress/user` - Get user progress
+- `GET /user/subscription` - Get subscription info
+
+### Admin Endpoints (Admin Only)
+- `POST /admin/video/upload` - Get pre-signed upload URL
+- `POST /admin/course/chapter` - Create chapter
+- `POST /admin/course/lesson` - Create lesson
+- `PUT /admin/course/reorder` - Reorder content
+- `GET /admin/students` - List students
+- `PATCH /admin/student/{id}` - Update student
+- `GET /admin/stats` - Get statistics
+- `DELETE /admin/video/{id}` - Delete video
+
+## 🗄️ Database Schema
+
+### DynamoDB Tables
+
+1. **Courses**: Course information
+2. **Chapters**: Chapter organization
+3. **Lessons**: Video lessons
+4. **Purchases**: Payment records
+5. **Progress**: Student progress
+6. **Users**: User profiles
+
+## 🎨 Customization
+
+### Branding
+- Update colors in `tailwind.config.js`
+- Replace logo in components
+- Modify landing page content
+
+### Course Price
+- Update price in `CheckoutPage.tsx`
+- Update Stripe product configuration
+
+### Email Templates
+- Modify SES email templates in Lambda functions
+
+## 🐛 Troubleshooting
+
+### Frontend Issues
+- **Build fails**: Check Node.js version (18+)
+- **API errors**: Verify environment variables
+- **Auth errors**: Check Cognito configuration
+
+### Backend Issues
+- **Lambda timeout**: Increase timeout in SAM template
+- **DynamoDB errors**: Check IAM permissions
+- **Stripe webhook fails**: Verify webhook secret
+
+## 📈 Monitoring
+
+- **CloudWatch**: Lambda logs and metrics
+- **X-Ray**: Request tracing
+- **CloudFront**: CDN metrics
+- **API Gateway**: API usage metrics
+
+## 💰 Cost Estimation
+
+### AWS Services (Monthly, assuming 100 students)
+- **Lambda**: ~$5
+- **DynamoDB**: ~$10 (on-demand)
+- **S3**: ~$20 (100GB video storage)
+- **CloudFront**: ~$30 (1TB transfer)
+- **Cognito**: Free tier
+- **SES**: Free tier (62,000 emails)
+- **API Gateway**: ~$3.50
+
+**Total**: ~$68.50/month
+
+## 📄 License
+
+This project is proprietary and confidential.
+
+## 👥 Support
+
+For issues or questions, contact the development team.
+
+## 🚢 Deployment Checklist
+
+- [ ] Frontend build succeeds
+- [ ] Backend SAM deployment succeeds
+- [ ] Cognito admin user created
+- [ ] Stripe webhook configured
+- [ ] SES email verified
+- [ ] Amplify hosting configured
+- [ ] Environment variables set
+- [ ] Test payment flow
+- [ ] Test video playback
+- [ ] Test admin functions
+- [ ] Configure custom domain (optional)
+- [ ] Enable CloudWatch alarms
+- [ ] Set up backup strategy
+
+## 🔄 Updates and Maintenance
+
+### Frontend Updates
+```bash
+cd frontend
 npm install
-
-# Avvio server di sviluppo sulla porta 5173
-npm run dev
+npm run build
+# Deploy via Amplify (automatic on git push)
 ```
 
-Nel file `.env` del frontend devono essere impostate le variabili che AWS genera dopo aver deployato il backend:
-```env
-VITE_COGNITO_USER_POOL_ID=us-east-1_YMVsKScIc
-VITE_COGNITO_USER_POOL_CLIENT_ID=4uppkbmvv3e2sinb8gpgauv32c
-VITE_API_BASE_URL=https://nyer89lvbj.execute-api.us-east-1.amazonaws.com/prod
-VITE_AWS_REGION=us-east-1
-# Aggiungere anche VITE_STRIPE_PUBLIC_KEY
-```
-
----
-
-## 4. Deploy Backend (AWS)
-
-Il backend è gestito interamente come "Infrastructure as Code" tramite AWS SAM. Tutte le operazioni vanno eseguite dalla cartella `backend/infrastructure`, utilizzando il profilo AWS locale `personale`.
-
-**Comandi per Build e Deploy:**
-```bash
-cd backend/infrastructure
-
-# 1. Costruisci il progetto (Pacchettizza il codice Lambda e le dipendenze Python)
-sam build
-
-# 2. Deploy rapido per sviluppi e modifiche al codice (Usa valori fittizi per saltare i controlli delle chiavi)
-sam deploy --stack-name corso-video-chiara \
-  --parameter-overrides \
-    Environment=prod \
-    StripeSecretKey=dummy \
-    StripeWebhookSecret=dummy \
-    ResendApiKey=dummy \
-  --capabilities CAPABILITY_IAM \
-  --resolve-s3 \
-  --profile personale
-
-# (Nota: se devi configurare i secrets VERI per la prima volta in produzione, sostituisci i valori "dummy" con le chiavi reali)
-```
-
-> [!TIP]
-> Dopo ogni esecuzione di `sam deploy`, il terminale restituisce una tabella "Outputs". Qui troverai gli identificatori chiave (ApiEndpoint, UserPoolId, ecc.) da inserire nel file `.env` del frontend.
-
----
-
-## 5. Messa in Produzione (Go Live)
-
-Per lanciare realmente il progetto al pubblico e incassare denaro reale, è necessario seguire questi tre step:
-
-### 5.1 Configurare Resend (Anti Spam)
-1. Vai su Resend.com -> **Domains**.
-2. Aggiungi il dominio ufficiale (es. `chiarapmu.it`) e ottieni i record DNS (`TXT`, `MX`, `CNAME`).
-3. Inserisci questi record nel pannello del provider (Aruba, GoDaddy, ecc.) e attendi lo stato "Verified" (tutto verde).
-4. **Modifica il Codice**: In `backend/lambda/payment_handler/app.py` e `admin_handler/app.py`, sostituisci il mittente di test con quello ufficiale, ad es. `"Chiara Morocutti <info@chiarapmu.it>"`.
-
-### 5.2 Passare Stripe in Modalità Live
-1. Dalla dashboard di Stripe, disattiva l'interruttore **"Test Mode"** (in alto a destra).
-2. Vai su **Developers -> API Keys** e copia la **Secret Key Live** (`sk_live_...`).
-3. Vai su **Developers -> Webhooks** e clicca "Add endpoint".
-4. Inserisci l'URL dell'API: `https://nyer89lvbj.execute-api.us-east-1.amazonaws.com/prod/payment/webhook`.
-5. Seleziona l'evento `checkout.session.completed` (e aggiungi l'endpoint).
-6. Copia il nuovo **Signing secret Live** (`whsec_...`).
-
-### 5.3 Deploy Finale (Live Keys)
-Torna nel terminale e fai l'ultimo deploy passando le nuove chiavi Live:
-
+### Backend Updates
 ```bash
 cd backend/infrastructure
 sam build
-
-sam deploy --stack-name corso-video-chiara \
-  --parameter-overrides \
-    Environment=prod \
-    StripeSecretKey=sk_live_TUA_CHIAVE_SEGRETA_QUI \
-    StripeWebhookSecret=whsec_TUA_CHIAVE_WEBHOOK_QUI \
-    ResendApiKey=re_TUA_CHIAVE_RESEND \
-  --capabilities CAPABILITY_IAM \
-  --resolve-s3
+sam deploy
 ```
 
-> [!CAUTION]
-> Quando esegui questo comando, il tuo server inizierà ad accettare pagamenti reali (e rifiuterà quelli con le carte di test). Controlla che le chiavi non contengano refusi.
+### Database Migrations
+- Create migration scripts in `backend/migrations/`
+- Run via Lambda or locally with AWS SDK
 
 ---
 
-## 6. Credenziali e Output Attuali
-
-Di seguito gli "Outputs" dell'infrastruttura attualmente rilasciata (ambiente prod). Questi valori sono vitali per la configurazione del Frontend:
-
-*   **API Gateway URL**: `https://nyer89lvbj.execute-api.us-east-1.amazonaws.com/prod`
-*   **Cognito User Pool ID**: `us-east-1_YMVsKScIc`
-*   **Cognito User Pool Client ID**: `4uppkbmvv3e2sinb8gpgauv32c`
-*   **CloudFront Domain**: `d39fyhcntf368y.cloudfront.net`
+Built with ❤️ for Chiara's Video Course Platform
