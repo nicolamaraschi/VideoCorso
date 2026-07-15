@@ -109,30 +109,35 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, onUpdateSt
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      <button
-                        onClick={() => void onResetPassword(student.user_id)}
-                        className="text-gray-600 hover:text-primary-600"
-                        title="Reset Password"
-                      >
-                        <Key className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleEditClick(student)} className="text-primary-600 hover:text-primary-800" title="Modifica accessi">
-                        <Edit className="w-4 h-4" />
-                      </button>
+                    <div className="flex items-center justify-end gap-2 flex-wrap">
                       <button
                         onClick={() => navigate(`/admin/students/${student.user_id}`)}
-                        className="text-gray-600 hover:text-gray-900"
-                        title="Vedi dettaglio"
+                        className="flex items-center px-2 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
                       >
-                        <ExternalLink className="w-4 h-4" />
+                        <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                        Dettaglio
+                      </button>
+                      <button
+                        onClick={() => handleEditClick(student)}
+                        className="flex items-center px-2 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-md transition-colors"
+                      >
+                        <Edit className="w-3.5 h-3.5 mr-1.5" />
+                        Modifica
+                      </button>
+                      <button
+                        onClick={() => void onResetPassword(student.user_id)}
+                        className="flex items-center px-2 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-md transition-colors"
+                        title="Re-invia invito o resetta password"
+                      >
+                        <Key className="w-3.5 h-3.5 mr-1.5" />
+                        Reset Pwd
                       </button>
                       <button
                         onClick={() => void onDeleteStudent(student.user_id)}
-                        className="text-red-600 hover:text-red-800 ml-2"
+                        className="flex items-center px-2 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-md transition-colors"
                         title="Elimina Studente"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </td>
