@@ -462,10 +462,11 @@ export const AdminCoursePage: React.FC = () => {
                 value={courseForm.cover_image_url || ''}
                 onChange={(event) => updateCourseField('cover_image_url', event.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="Immagine principale del corso"
+                placeholder="es: https://sito.com/immagine.jpg"
               />
               <p className="text-xs text-gray-500">
-                Immagine usata in catalogo, card corso e riepiloghi commerciali.
+                Usa il riquadro <b>"Carica immagine da PC"</b> qui sotto per caricare un file (il link si compilerà da solo).<br/>
+                Se inserisci un link manuale, deve essere un <b>link diretto a un'immagine</b> (es. che finisce per .jpg o .png), non la pagina di un sito.
               </p>
               {courseForm.cover_image_url && (
                 <img

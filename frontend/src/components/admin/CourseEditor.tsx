@@ -561,7 +561,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                   setLessonForm({ ...lessonForm, thumbnail_url: e.target.value })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="URL copertina lezione oppure carica da PC"
+                placeholder="es: https://sito.com/immagine.jpg"
               />
             </div>
             {lessonForm.thumbnail_url ? (
