@@ -138,12 +138,18 @@ def send_welcome_email(email: str, temp_password: str):
         resend.Emails.send({
             'from': 'Team VideoCorso <onboarding@resend.dev>',
             'to': email,
-            'subject': 'Accesso piattaforma corsi',
+            'subject': 'Accesso piattaforma corsi - Chiara Morocutti Academy',
             'html': (
-                '<h1>Benvenuto!</h1>'
-                '<p>Il tuo account e stato creato manualmente dall amministrazione.</p>'
-                f'<p>Email: {email}<br />Password temporanea: {temp_password}</p>'
-                '<p>Al primo accesso ti verra chiesto di cambiare password.</p>'
+                '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 8px;">'
+                '<h2 style="color: #c2697b; text-align: center;">Benvenuta in Chiara Morocutti Academy!</h2>'
+                '<p style="font-size: 16px; color: #333;">Il tuo account per accedere alla piattaforma corsi è stato creato con successo.</p>'
+                '<div style="background-color: #f9f9f9; padding: 15px; border-radius: 6px; margin: 20px 0;">'
+                f'<p style="margin: 0; font-size: 15px;"><strong>Email:</strong> {email}</p>'
+                f'<p style="margin: 10px 0 0 0; font-size: 15px;"><strong>Password temporanea:</strong> <span style="font-family: monospace; background: #eee; padding: 2px 6px; border-radius: 4px;">{temp_password}</span></p>'
+                '</div>'
+                '<p style="font-size: 14px; color: #666;">Al tuo primo accesso ti verrà richiesto di impostare una nuova password personalizzata in modo da mantenere il tuo account sicuro.</p>'
+                '<p style="font-size: 14px; color: #666; margin-top: 30px;">A presto,<br>Il Team di Chiara Morocutti</p>'
+                '</div>'
             ),
         })
     except Exception as exc:
@@ -161,10 +167,15 @@ def send_admin_welcome_email(email: str, temp_password: str):
             'to': email,
             'subject': 'Accesso amministratore piattaforma',
             'html': (
-                '<h1>Accesso admin attivato</h1>'
-                '<p>Il tuo account amministratore e stato creato.</p>'
-                f'<p>Email: {email}<br />Password temporanea: {temp_password}</p>'
-                '<p>Al primo accesso ti verra chiesto di cambiare password.</p>'
+                '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 8px;">'
+                '<h2 style="color: #333; text-align: center;">Accesso Admin Attivato</h2>'
+                '<p style="font-size: 16px; color: #333;">Il tuo account amministratore è stato creato con successo.</p>'
+                '<div style="background-color: #f9f9f9; padding: 15px; border-radius: 6px; margin: 20px 0;">'
+                f'<p style="margin: 0; font-size: 15px;"><strong>Email:</strong> {email}</p>'
+                f'<p style="margin: 10px 0 0 0; font-size: 15px;"><strong>Password temporanea:</strong> <span style="font-family: monospace; background: #eee; padding: 2px 6px; border-radius: 4px;">{temp_password}</span></p>'
+                '</div>'
+                '<p style="font-size: 14px; color: #666;">Al tuo primo accesso ti verrà richiesto di cambiare password.</p>'
+                '</div>'
             ),
         })
     except Exception as exc:
@@ -1766,11 +1777,22 @@ def lambda_handler(event, context):
             student = get_user_item(path_parameters.get('studentId'))
             if not student:
                 return create_response(404, {'error': 'Student not found'})
-            cognito_client.admin_reset_user_password(
-                UserPoolId=COGNITO_USER_POOL_ID,
-                Username=student['email']
-            )
-            return create_response(200, {'success': True, 'message': 'Password reset initiated'})
+            
+            try:
+                cognito_client.admin_reset_user_password(
+                    UserPoolId=COGNITO_USER_POOL_ID,
+                    Username=student['email']
+                )
+                return create_response(200, {'success': True, 'message': 'Password reset initiated'})
+            except cognito_client.exceptions.InvalidParameterException as e:
+                print(f"Reset password failed (InvalidParameterException): {e}")
+                return create_response(400, {'error': 'Impossibile resettare la password. L\'utente potrebbe non aver ancora effettuato il primo accesso. Usa "Re-invia invito" invece.'})
+            except cognito_client.exceptions.NotAuthorizedException as e:
+                print(f"Reset password failed (NotAuthorizedException): {e}")
+                return create_response(400, {'error': 'Impossibile resettare la password: stato utente non autorizzato.'})
+            except Exception as e:
+                print(f"Reset password failed: {e}")
+                return create_response(500, {'error': 'Si è verificato un errore durante il reset della password.'})
         if path.startswith('/admin/student/') and http_method == 'GET':
             return get_student_detail(path_parameters.get('studentId'))
         if path.startswith('/admin/student/') and http_method == 'PATCH':
