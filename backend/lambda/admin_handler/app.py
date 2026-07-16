@@ -124,6 +124,11 @@ def get_current_admin_email(event) -> str:
     return str(claims.get('email', '')).strip().lower()
 
 
+def get_current_admin_username(event) -> str:
+    claims = get_claims(event)
+    return str(claims.get('cognito:username', '')).strip()
+
+
 def generate_temp_password(length: int = 12) -> str:
     alphabet = string.ascii_letters + string.digits + '!@#$%^&*'
     return ''.join(secrets.choice(alphabet) for _ in range(length)) + 'A1!'
@@ -1503,7 +1508,7 @@ def create_admin_account(body):
 
 
 def update_admin_account(event, email, body):
-    current_admin_email = get_current_admin_email(event)
+    current_admin_username = get_current_admin_username(event)
     username = (email or '').strip().lower()
     if not username:
         return create_response(400, {'error': 'Admin username is required'})
@@ -1524,7 +1529,7 @@ def update_admin_account(event, email, body):
 
     if enabled is not None:
         normalized_enabled = normalize_bool(enabled)
-        if not normalized_enabled and username == current_admin_email:
+        if not normalized_enabled and username == current_admin_username:
             return create_response(400, {'error': 'Non puoi disattivare il tuo stesso account admin'})
         if normalized_enabled:
             cognito_client.admin_enable_user(UserPoolId=COGNITO_USER_POOL_ID, Username=username)
@@ -1535,12 +1540,12 @@ def update_admin_account(event, email, body):
 
 
 def delete_admin_account(event, email):
-    current_admin_email = get_current_admin_email(event)
+    current_admin_username = get_current_admin_username(event)
     username = (email or '').strip().lower()
     if not username:
         return create_response(400, {'error': 'Admin username is required'})
 
-    if username == current_admin_email:
+    if username == current_admin_username:
         return create_response(400, {'error': 'Non puoi eliminare il tuo stesso account admin'})
 
     cognito_client.admin_delete_user(
