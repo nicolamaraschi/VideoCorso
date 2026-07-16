@@ -778,20 +778,25 @@ def delete_course(course_id):
     if not course:
         return create_response(404, {'error': 'Course not found'})
     
-    response = TABLES['COURSE_CONTENT'].query(
+    chapters = query_all(
+        TABLES['CHAPTERS'],
+        IndexName='CourseIndex',
         KeyConditionExpression='course_id = :cid',
         ExpressionAttributeValues={':cid': course_id}
     )
-    items = response.get('Items', [])
-    
-    with TABLES['COURSE_CONTENT'].batch_writer() as batch:
-        for item in items:
-            batch.delete_item(
-                Key={
-                    'course_id': item['course_id'],
-                    'sk': item['sk']
-                }
-            )
+    for chapter in chapters:
+        chapter_id = chapter['chapter_id']
+        lessons = query_all(
+            TABLES['LESSONS'],
+            IndexName='ChapterIndex',
+            KeyConditionExpression='chapter_id = :chid',
+            ExpressionAttributeValues={':chid': chapter_id}
+        )
+        if lessons:
+            with TABLES['LESSONS'].batch_writer() as batch:
+                for lesson in lessons:
+                    batch.delete_item(Key={'lesson_id': lesson['lesson_id']})
+        TABLES['CHAPTERS'].delete_item(Key={'chapter_id': chapter_id})
             
     TABLES['COURSES'].delete_item(Key={'course_id': course_id})
     return create_response(200, {'success': True, 'message': 'Course deleted'})
