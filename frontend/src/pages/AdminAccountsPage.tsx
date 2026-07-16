@@ -70,7 +70,7 @@ export const AdminAccountsPage: React.FC = () => {
 
     try {
       setSaving(true);
-      await adminService.updateAdminAccount(editingAccount.email, editForm);
+      await adminService.updateAdminAccount(editingAccount.username, editForm);
       setEditingAccount(null);
       await loadAccounts();
     } catch (err) {
@@ -80,22 +80,22 @@ export const AdminAccountsPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (email: string) => {
-    if (!confirm(`Eliminare l'account admin ${email}?`)) {
+  const handleDelete = async (account: AdminAccount) => {
+    if (!confirm(`Eliminare l'account admin ${account.email}?`)) {
       return;
     }
 
     try {
-      await adminService.deleteAdminAccount(email);
+      await adminService.deleteAdminAccount(account.username);
       await loadAccounts();
     } catch (err) {
       alert(getErrorMessage(err, 'Failed to delete admin account'));
     }
   };
 
-  const handleResendInvite = async (email: string) => {
+  const handleResendInvite = async (account: AdminAccount) => {
     try {
-      await adminService.resendAdminInvite(email);
+      await adminService.resendAdminInvite(account.username);
       alert('Invito admin reinviato con una nuova password temporanea.');
     } catch (err) {
       alert(getErrorMessage(err, 'Failed to resend admin invite'));
@@ -167,13 +167,13 @@ export const AdminAccountsPage: React.FC = () => {
                   <td className="px-6 py-4 text-sm text-gray-700">{formatDate(account.created_at)}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => handleResendInvite(account.email)} className="p-2 text-gray-600 hover:text-primary-700">
+                      <button onClick={() => handleResendInvite(account)} className="p-2 text-gray-600 hover:text-primary-700">
                         <Mail className="w-4 h-4" />
                       </button>
                       <button onClick={() => handleOpenEdit(account)} className="p-2 text-gray-600 hover:text-primary-700">
                         <Pencil className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDelete(account.email)} className="p-2 text-gray-600 hover:text-red-700">
+                      <button onClick={() => handleDelete(account)} className="p-2 text-gray-600 hover:text-red-700">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
