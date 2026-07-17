@@ -1454,6 +1454,14 @@ def update_coupon(coupon_id, body):
     return create_response(200, {'success': True, 'data': updated})
 
 
+def delete_coupon(coupon_id):
+    coupon = get_coupon(coupon_id)
+    if not coupon:
+        return create_response(404, {'error': 'Coupon not found'})
+    TABLES['COUPONS'].delete_item(Key={'coupon_id': coupon['coupon_id']})
+    return create_response(200, {'success': True})
+
+
 def test_coupon(body):
     coupon = get_coupon(body.get('code'))
     course_ref = body.get('course_id')
@@ -1747,6 +1755,8 @@ def lambda_handler(event, context):
             return create_coupon(body)
         if path.startswith('/admin/coupon/') and http_method == 'PUT':
             return update_coupon(path_parameters.get('couponId'), body)
+        if path.startswith('/admin/coupon/') and http_method == 'DELETE':
+            return delete_coupon(path_parameters.get('couponId'))
         if path == '/admin/coupon/test' and http_method == 'POST':
             return test_coupon(body)
 

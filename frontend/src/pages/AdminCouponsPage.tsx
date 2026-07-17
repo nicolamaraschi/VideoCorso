@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pencil, Plus, TicketPercent } from 'lucide-react';
+import { Pencil, Plus, TicketPercent, Trash2 } from 'lucide-react';
 import { adminService } from '../services/adminService';
 import type { Coupon, CouponRequest, Course } from '../types';
 import { Loading } from '../components/common/Loading';
@@ -129,6 +129,18 @@ export const AdminCouponsPage: React.FC = () => {
       alert(getErrorMessage(err, 'Failed to save coupon'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteCoupon = async (coupon: Coupon) => {
+    if (!window.confirm(`Sei sicuro di voler eliminare il coupon ${coupon.code}?`)) {
+      return;
+    }
+    try {
+      await adminService.deleteCoupon(coupon.coupon_id);
+      await loadData();
+    } catch (err) {
+      alert(getErrorMessage(err, 'Failed to delete coupon'));
     }
   };
 
@@ -276,8 +288,11 @@ export const AdminCouponsPage: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button onClick={() => openEditModal(coupon)} className="p-2 text-gray-600 hover:text-primary-700">
+                    <button onClick={() => openEditModal(coupon)} className="p-2 text-gray-600 hover:text-primary-700" title="Modifica">
                       <Pencil className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDeleteCoupon(coupon)} className="p-2 text-red-600 hover:text-red-800" title="Elimina">
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </td>
                 </tr>

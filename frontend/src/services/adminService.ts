@@ -212,6 +212,10 @@ export const adminService = {
     return apiClient.put<ApiResponse<Coupon>>(`/admin/coupon/${couponId}`, data);
   },
 
+  async deleteCoupon(couponId: string): Promise<ApiResponse> {
+    return apiClient.delete<ApiResponse>(`/admin/coupon/${couponId}`);
+  },
+
   async testCoupon(data: { code: string; course_id?: string; email?: string }): Promise<{ valid: boolean; reason: string; final_total?: number }> {
     return apiClient.post<{ valid: boolean; reason: string; final_total?: number }>('/admin/coupon/test', data);
   },
