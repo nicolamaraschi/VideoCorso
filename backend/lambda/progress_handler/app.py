@@ -116,7 +116,9 @@ def user_has_global_access(user_item: dict[str, Any]) -> bool:
     return status == 'active' and not user_item.get('sub_end_date')
 
 
-def can_access_course(user_id: str, course_id: str) -> bool:
+def can_access_course(user_id: str, course_id: str, admin_status: bool = False) -> bool:
+    if admin_status:
+        return True
     user_item = get_user_item(user_id)
     if user_has_global_access(user_item):
         return True
@@ -198,8 +200,8 @@ def get_progress_items(user_id: str) -> list[dict[str, Any]]:
     )
 
 
-def build_course_progress(user_id: str, course_id: str):
-    if not can_access_course(user_id, course_id):
+def build_course_progress(user_id: str, course_id: str, admin_status: bool = False):
+    if not can_access_course(user_id, course_id, admin_status):
         return create_response(403, {'error': 'Course access required'})
 
     lessons = get_course_lessons(course_id)
@@ -261,11 +263,11 @@ def build_course_progress(user_id: str, course_id: str):
     })
 
 
-def get_user_progress(user_id: str):
+def get_user_progress(user_id: str, admin_status: bool = False):
     accessible_course_ids = [
         course['course_id']
         for course in list_all_items(courses_table)
-        if can_access_course(user_id, course['course_id'])
+        if can_access_course(user_id, course['course_id'], admin_status)
     ]
 
     lesson_ids = set()
@@ -308,7 +310,7 @@ def get_user_progress(user_id: str):
     })
 
 
-def update_progress(user_id: str, body: dict[str, Any]):
+def update_progress(user_id: str, body: dict[str, Any], admin_status: bool = False):
     lesson_id = body.get('lesson_id')
     watched_seconds = body.get('watched_seconds')
     total_seconds = body.get('total_seconds', 0)
@@ -326,7 +328,7 @@ def update_progress(user_id: str, body: dict[str, Any]):
         return create_response(404, {'error': 'Chapter not found'})
 
     course_id = chapter.get('course_id')
-    if not lesson.get('is_free_preview') and not can_access_course(user_id, course_id):
+    if not lesson.get('is_free_preview') and not can_access_course(user_id, course_id, admin_status):
         return create_response(403, {'error': 'Course access required'})
 
     progress_percent = 0
@@ -375,7 +377,7 @@ def update_progress(user_id: str, body: dict[str, Any]):
     return create_response(201, {'success': True, 'data': item})
 
 
-def get_lesson_progress(user_id: str, lesson_id: str):
+def get_lesson_progress(user_id: str, lesson_id: str, admin_status: bool = False):
     lesson = get_lesson(lesson_id)
     if not lesson:
         return create_response(404, {'error': 'Lesson not found'})
@@ -384,7 +386,7 @@ def get_lesson_progress(user_id: str, lesson_id: str):
     if not chapter:
         return create_response(404, {'error': 'Chapter not found'})
 
-    if not lesson.get('is_free_preview') and not can_access_course(user_id, chapter.get('course_id')):
+    if not lesson.get('is_free_preview') and not can_access_course(user_id, chapter.get('course_id'), admin_status):
         return create_response(403, {'error': 'Course access required'})
 
     progress_item = find_progress_item(user_id, lesson_id)
@@ -402,13 +404,13 @@ def get_lesson_progress(user_id: str, lesson_id: str):
     })
 
 
-def get_subscription(user_id: str):
+def get_subscription(user_id: str, admin_status: bool = False):
     user_item = get_user_item(user_id)
     purchases = get_user_purchases(user_id)
 
     accessible_courses = []
     for course in list_all_items(courses_table):
-        if can_access_course(user_id, course['course_id']):
+        if can_access_course(user_id, course['course_id'], admin_status):
             accessible_courses.append({
                 'course_id': course['course_id'],
                 'title': course.get('title', ''),
@@ -421,12 +423,12 @@ def get_subscription(user_id: str):
     primary_course = accessible_courses[0] if accessible_courses else None
 
     return create_response(200, {
-        'is_active': bool(accessible_courses or user_has_global_access(user_item)),
+        'is_active': bool(accessible_courses or user_has_global_access(user_item) or admin_status),
         'days_remaining': None,
         'purchase': latest_purchase,
         'course': primary_course,
         'accessible_courses': accessible_courses,
-        'global_access': user_has_global_access(user_item),
+        'global_access': user_has_global_access(user_item) or admin_status,
     })
 
 
@@ -447,6 +449,17 @@ def lambda_handler(event, context):
     path_parameters = event.get('pathParameters') or {}
     user_id = get_user_id(event)
 
+    try:
+        groups = event['requestContext']['authorizer']['claims'].get('cognito:groups', '')
+        if isinstance(groups, str):
+            admin_status = 'admin' in (groups.split(',') if groups else [])
+        elif isinstance(groups, list):
+            admin_status = 'admin' in groups
+        else:
+            admin_status = False
+    except KeyError:
+        admin_status = False
+
     if http_method == 'OPTIONS':
         return create_response(200, {})
 
@@ -454,24 +467,24 @@ def lambda_handler(event, context):
         return create_response(401, {'error': 'Unauthorized'})
 
     if path == '/progress/update' and http_method == 'POST':
-        return update_progress(user_id, json.loads(event.get('body') or '{}'))
+        return update_progress(user_id, json.loads(event.get('body') or '{}'), admin_status)
 
     if path == '/progress/user' and http_method == 'GET':
-        return get_user_progress(user_id)
+        return get_user_progress(user_id, admin_status)
 
     if path.startswith('/progress/lesson/') and http_method == 'GET':
-        return get_lesson_progress(user_id, path_parameters.get('lessonId'))
+        return get_lesson_progress(user_id, path_parameters.get('lessonId'), admin_status)
 
     if path == '/progress/complete' and http_method == 'POST':
         body = json.loads(event.get('body') or '{}')
         body['completed'] = True
         body['watched_seconds'] = body.get('watched_seconds', body.get('total_seconds', 0))
-        return update_progress(user_id, body)
+        return update_progress(user_id, body, admin_status)
 
     if path == '/user/subscription' and http_method == 'GET':
-        return get_subscription(user_id)
+        return get_subscription(user_id, admin_status)
 
     if path.startswith('/me/courses/') and path.endswith('/progress') and http_method == 'GET':
-        return build_course_progress(user_id, path_parameters.get('courseId'))
+        return build_course_progress(user_id, path_parameters.get('courseId'), admin_status)
 
     return create_response(404, {'error': 'Not found'})
