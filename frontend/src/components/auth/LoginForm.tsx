@@ -13,6 +13,7 @@ export const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [code, setCode] = useState('');
   
   const [error, setError] = useState('');
@@ -68,8 +69,14 @@ export const LoginForm: React.FC = () => {
         }
 
       } else {
-        if (!newPassword) {
-          setError('Per favore inserisci la tua nuova password');
+        if (!newPassword || !confirmNewPassword) {
+          setError('Per favore inserisci e conferma la tua nuova password');
+          setLoading(false);
+          return;
+        }
+
+        if (newPassword !== confirmNewPassword) {
+          setError('Le password non corrispondono');
           setLoading(false);
           return;
         }
@@ -117,8 +124,13 @@ export const LoginForm: React.FC = () => {
     setError('');
     setMessage('');
 
-    if (!code || !newPassword) {
+    if (!code || !newPassword || !confirmNewPassword) {
       setError('Per favore compila tutti i campi');
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setError('Le password non corrispondono');
       return;
     }
 
@@ -131,6 +143,7 @@ export const LoginForm: React.FC = () => {
       setView('login');
       setPassword(''); 
       setNewPassword('');
+      setConfirmNewPassword('');
       setCode('');
     } else {
       setError(result.error || 'Impossibile reimpostare la password.');
@@ -174,6 +187,24 @@ export const LoginForm: React.FC = () => {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all outline-none"
+              required
+              autoComplete="new-password"
+            />
+          </div>
+        </div>
+        <div>
+          <label htmlFor="confirmNewPassword" className="block text-sm font-medium text-gray-700 mb-2">
+            Conferma Nuova Password
+          </label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              id="confirmNewPassword"
+              type="password"
+              value={confirmNewPassword}
+              onChange={(e) => setConfirmNewPassword(e.target.value)}
               placeholder="••••••••"
               className="w-full pl-10 pr-4 py-3 border border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all outline-none"
               required
@@ -260,6 +291,24 @@ export const LoginForm: React.FC = () => {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all outline-none"
+              required
+              autoComplete="new-password"
+            />
+          </div>
+        </div>
+        <div>
+          <label htmlFor="confirmNewPasswordReset" className="block text-sm font-medium text-gray-700 mb-2">
+            Conferma Nuova Password
+          </label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              id="confirmNewPasswordReset"
+              type="password"
+              value={confirmNewPassword}
+              onChange={(e) => setConfirmNewPassword(e.target.value)}
               placeholder="••••••••"
               className="w-full pl-10 pr-4 py-3 border border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all outline-none"
               required

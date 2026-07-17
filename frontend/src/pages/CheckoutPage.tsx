@@ -22,6 +22,7 @@ export const CheckoutPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState('');
+  const [emailInput, setEmailInput] = useState('');
 
   const courseId = searchParams.get('courseId');
 
@@ -61,6 +62,12 @@ export const CheckoutPage: React.FC = () => {
       return;
     }
 
+    const checkoutEmail = user?.email || emailInput.trim();
+    if (!checkoutEmail) {
+      setError('Per favore inserisci il tuo indirizzo email per procedere.');
+      return;
+    }
+
     try {
       setSubmitting(true);
       setError(null);
@@ -68,7 +75,7 @@ export const CheckoutPage: React.FC = () => {
         course_id: course.course_id,
         success_url: `${window.location.origin}/login?payment=success`,
         cancel_url: `${window.location.origin}/checkout?courseId=${course.public_slug || course.course_id}&payment=cancelled`,
-        email: user?.email,
+        email: checkoutEmail,
         coupon_code: couponCode.trim() || undefined,
       });
 
@@ -98,10 +105,10 @@ export const CheckoutPage: React.FC = () => {
     return <Loading fullScreen text="Loading checkout..." />;
   }
 
-  if (error || !course) {
+  if (!course) {
     return (
       <div className="max-w-4xl mx-auto py-12 px-4">
-        <ErrorMessage variant="card" title="Checkout non disponibile" message={error || 'Course not found'} onRetry={loadCourse} />
+        <ErrorMessage variant="card" title="Checkout non disponibile" message={error || 'Corso non trovato'} onRetry={loadCourse} />
       </div>
     );
   }
@@ -216,6 +223,21 @@ export const CheckoutPage: React.FC = () => {
               <span>Corso selezionato</span>
               <span>{course.title}</span>
             </div>
+            
+            {!user && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Indirizzo Email *</label>
+                <input
+                  type="email"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="tua@email.com"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none"
+                  required
+                />
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Coupon o codice promo</label>
               <input
@@ -234,7 +256,11 @@ export const CheckoutPage: React.FC = () => {
 
           {error && (
             <div className="my-4">
-              <ErrorMessage title="Errore pagamento" message={error} onRetry={handleCheckout} />
+              <ErrorMessage 
+                title="Errore pagamento" 
+                message={error.includes('500') ? 'Il servizio di pagamento è momentaneamente non disponibile a causa di un problema tecnico. Ti preghiamo di riprovare più tardi.' : error} 
+                onRetry={handleCheckout} 
+              />
             </div>
           )}
 
@@ -243,7 +269,9 @@ export const CheckoutPage: React.FC = () => {
           ) : (
             <>
               <Button onClick={handleCheckout} variant="primary" fullWidth size="lg" className="transform hover:scale-105">
-                Paga € {Number(course.discounted_price ?? course.price).toFixed(2)} con Stripe
+                {Number(course.discounted_price ?? course.price) === 0 && !couponCode 
+                  ? 'Accedi Gratis' 
+                  : `Paga € ${Number(course.discounted_price ?? course.price).toFixed(2)}`}
               </Button>
               <div className="flex items-center justify-center gap-2 mt-4 text-sm text-gray-500">
                 <Shield className="w-4 h-4" />

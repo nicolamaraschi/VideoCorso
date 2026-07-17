@@ -64,9 +64,35 @@ export const VideoPlayerPage: React.FC = () => {
   }
 
   if (error || !lesson || !videoUrl || !courseStructure) {
+    const isVideoMissing = error?.includes('404') || error?.includes('Not Found');
+
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <ErrorMessage variant="card" message={error || 'Video not found'} onRetry={loadVideoUrl} />
+        {isVideoMissing ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center max-w-2xl mx-auto">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
+              <CheckCircle className="w-8 h-8 text-blue-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-blue-900 mb-2">Materiale Informativo</h2>
+            <p className="text-blue-700 mb-8">
+              In questo modulo non è presente un video. Puoi continuare con il materiale testuale o passare direttamente alla lezione successiva.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Button onClick={() => navigate(`/courses/${courseId}`)} variant="secondary">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Torna al corso
+              </Button>
+              {nextLesson && (
+                <Button onClick={() => navigate(`/courses/${courseId}/lessons/${nextLesson.lesson_id}`)} variant="primary">
+                  Lezione successiva
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <ErrorMessage variant="card" message={error || 'Video non trovato'} onRetry={loadVideoUrl} />
+        )}
       </div>
     );
   }
