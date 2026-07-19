@@ -13,8 +13,18 @@ import stripe
 LEGACY_COURSE_ID = 'legacy-default-course'
 ALLOWED_LOCAL_STATUSES = {'pending', 'paid', 'failed', 'refunded', 'disputed', 'cancelled', 'needs_review'}
 
-stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
-WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
+ssm_client = boto3.client('ssm')
+
+
+def load_secret(parameter_env_name: str, legacy_env_name: str) -> Optional[str]:
+    parameter_name = os.environ.get(parameter_env_name)
+    if parameter_name:
+        return ssm_client.get_parameter(Name=parameter_name, WithDecryption=True)['Parameter']['Value']
+    return os.environ.get(legacy_env_name)
+
+
+stripe.api_key = load_secret('STRIPE_SECRET_KEY_PARAMETER', 'STRIPE_SECRET_KEY')
+WEBHOOK_SECRET = load_secret('STRIPE_WEBHOOK_SECRET_PARAMETER', 'STRIPE_WEBHOOK_SECRET')
 
 dynamodb = boto3.resource('dynamodb')
 cognito_client = boto3.client('cognito-idp')
@@ -30,7 +40,7 @@ COGNITO_USER_POOL_ID = os.environ.get('COGNITO_USER_POOL_ID')
 try:
     import resend
 
-    resend.api_key = os.environ.get('RESEND_API_KEY')
+    resend.api_key = load_secret('RESEND_API_KEY_PARAMETER', 'RESEND_API_KEY')
 except ImportError:
     resend = None
 

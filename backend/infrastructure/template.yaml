@@ -11,21 +11,6 @@ Parameters:
       - prod
     Description: Environment name
 
-  StripeSecretKey:
-    Type: String
-    NoEcho: true
-    Description: Stripe Secret Key
-
-  StripeWebhookSecret:
-    Type: String
-    NoEcho: true
-    Description: Stripe Webhook Secret
-
-  ResendApiKey:
-    Type: String
-    NoEcho: true
-    Description: Resend API Key
-
 Globals:
   Function:
     Runtime: python3.11
@@ -44,9 +29,11 @@ Globals:
         USERS_TABLE: !Ref UsersTable
         VIDEO_BUCKET: !Ref VideoBucket
         THUMBNAIL_BUCKET: !Ref ThumbnailBucket
-        STRIPE_SECRET_KEY: !Ref StripeSecretKey
-        STRIPE_WEBHOOK_SECRET: !Ref StripeWebhookSecret
-        RESEND_API_KEY: !Ref ResendApiKey
+        # Secret values live in SSM Parameter Store, never in CloudFormation parameters.
+        # See docs/OPERATIONS.md for the production paths and rotation procedure.
+        STRIPE_SECRET_KEY_PARAMETER: !Sub "/videocorso/${Environment}/stripe/secret-key"
+        STRIPE_WEBHOOK_SECRET_PARAMETER: !Sub "/videocorso/${Environment}/stripe/webhook-secret"
+        RESEND_API_KEY_PARAMETER: !Sub "/videocorso/${Environment}/resend/api-key"
         # FIX: Aggiunta variabile d'ambiente globale per Cognito
         COGNITO_USER_POOL_ID: !Ref UserPool
 
@@ -354,6 +341,10 @@ Resources:
               Resource: !GetAtt UserPool.Arn
             - Effect: Allow
               Action:
+                - ssm:GetParameter
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/videocorso/${Environment}/*"
+            - Effect: Allow
+              Action:
                 - ses:SendEmail
               Resource: "*"
       Events:
@@ -534,11 +525,9 @@ Resources:
       FunctionName: !Sub "${Environment}-videocorso-admin-handler"
       CodeUri: ../lambda/admin_handler/
       Handler: app.lambda_handler
-      # FIX: Aggiunta variabile d'ambiente COGNITO_USER_POOL_ID
       Environment:
         Variables:
           COGNITO_USER_POOL_ID: !Ref UserPool
-          RESEND_API_KEY: !Ref ResendApiKey
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref CoursesTable
@@ -575,6 +564,10 @@ Resources:
                 - cognito-idp:ListUsersInGroup
                 - cognito-idp:ListUsers
               Resource: !GetAtt UserPool.Arn
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/videocorso/${Environment}/*"
       Events:
         GetAdminAccounts:
           Type: Api
