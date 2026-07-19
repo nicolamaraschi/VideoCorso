@@ -54,6 +54,15 @@ export interface PurchaseRecord {
   customer_email?: string;
   created_at?: string;
   updated_at?: string;
+  email_corrected_at?: string;
+  email_corrected_by?: string;
+  email_correction_history?: Array<{
+    from_email: string;
+    to_email: string;
+    corrected_at: string;
+    corrected_by: string;
+    reason?: string;
+  }>;
 }
 
 export type Purchase = PurchaseRecord;

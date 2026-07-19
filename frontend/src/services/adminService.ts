@@ -199,6 +199,13 @@ export const adminService = {
     return apiClient.post<ApiResponse<PurchaseRecord>>(`/admin/purchase/${purchaseId}/mark-verified`);
   },
 
+  async correctPurchaseEmail(purchaseId: string, data: { email: string; full_name?: string; reason?: string }): Promise<ApiResponse<PurchaseRecord> & { message?: string; account_created?: boolean }> {
+    return apiClient.post<ApiResponse<PurchaseRecord> & { message?: string; account_created?: boolean }>(
+      `/admin/purchase/${purchaseId}/correct-email`,
+      data,
+    );
+  },
+
   async getCoupons(): Promise<Coupon[]> {
     const response = await apiClient.get<{ items: Coupon[] }>('/admin/coupons');
     return response.items;

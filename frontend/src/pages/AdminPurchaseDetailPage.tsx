@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CheckCircle2, RefreshCcw, ShieldCheck, ShieldX } from 'lucide-react';
+import { CheckCircle2, Mail, RefreshCcw, ShieldCheck, ShieldX } from 'lucide-react';
 import { adminService } from '../services/adminService';
 import type { PurchaseDetail } from '../types';
 import { Loading } from '../components/common/Loading';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { Button } from '../components/common/Button';
+import { Modal } from '../components/common/Modal';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 import { getErrorMessage } from '../utils/errors';
 
@@ -25,6 +26,10 @@ export const AdminPurchaseDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [isCorrectEmailOpen, setIsCorrectEmailOpen] = useState(false);
+  const [correctedEmail, setCorrectedEmail] = useState('');
+  const [correctionReason, setCorrectionReason] = useState('');
+  const [emailConfirmed, setEmailConfirmed] = useState(false);
 
   const loadDetail = useCallback(async () => {
     if (!purchaseId) {
@@ -77,6 +82,34 @@ export const AdminPurchaseDetailPage: React.FC = () => {
       await loadDetail();
     } catch (err) {
       alert(getErrorMessage(err, 'Purchase action failed'));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const openCorrectEmail = () => {
+    setCorrectedEmail('');
+    setCorrectionReason('');
+    setEmailConfirmed(false);
+    setIsCorrectEmailOpen(true);
+  };
+
+  const correctEmail = async () => {
+    if (!purchaseId || !detail || !emailConfirmed) {
+      return;
+    }
+    try {
+      setActionLoading('correct-email');
+      const response = await adminService.correctPurchaseEmail(purchaseId, {
+        email: correctedEmail,
+        full_name: detail.purchase.user_name,
+        reason: correctionReason,
+      });
+      setIsCorrectEmailOpen(false);
+      await loadDetail();
+      alert(response.message || 'Email dell’acquisto corretta.');
+    } catch (err) {
+      alert(getErrorMessage(err, 'Impossibile correggere l’email dell’acquisto'));
     } finally {
       setActionLoading(null);
     }
@@ -191,8 +224,20 @@ export const AdminPurchaseDetailPage: React.FC = () => {
           </div>
 
           <div className="border-t border-gray-200 pt-4 space-y-3 text-sm">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="font-medium text-amber-950">Email errata o irraggiungibile?</p>
+                  <p className="mt-1 text-amber-800">Correggi l’email dell’acquisto per spostare questo accesso sull’account giusto.</p>
+                </div>
+                <Button variant="secondary" onClick={openCorrectEmail}>
+                  <Mail className="w-4 h-4 mr-2" />
+                  Correggi email
+                </Button>
+              </div>
+            </div>
             <div>
-              <p className="text-gray-500">Stripe session id</p>
+              <p className="text-gray-500">ID sessione Stripe</p>
               <p className="font-mono text-gray-900 break-all">{purchase.stripe_session_id || 'n/d'}</p>
             </div>
             <div>
@@ -251,6 +296,20 @@ export const AdminPurchaseDetailPage: React.FC = () => {
               </div>
             </div>
           )}
+          {(purchase.email_correction_history?.length ?? 0) > 0 && (
+            <div className="border-t border-gray-200 pt-4 text-sm">
+              <p className="text-gray-500 mb-2">Correzioni email</p>
+              <div className="space-y-2">
+                {purchase.email_correction_history?.map((correction) => (
+                  <div key={`${correction.corrected_at}-${correction.to_email}`} className="rounded-lg bg-gray-50 p-3">
+                    <p className="font-medium text-gray-900 break-all">{correction.from_email || '—'} → {correction.to_email}</p>
+                    <p className="mt-1 text-gray-600">{formatDateTime(correction.corrected_at)} · {correction.corrected_by}</p>
+                    {correction.reason && <p className="mt-1 text-gray-600">Nota: {correction.reason}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -268,6 +327,66 @@ export const AdminPurchaseDetailPage: React.FC = () => {
           )}
         </div>
       </section>
+
+      <Modal
+        isOpen={isCorrectEmailOpen}
+        onClose={() => setIsCorrectEmailOpen(false)}
+        title="Correggi email acquisto"
+        size="md"
+      >
+        <div className="space-y-5">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+            <p className="font-semibold">Prima di confermare</p>
+            <p className="mt-1">Verifica che la richiesta provenga davvero dalla persona che ha effettuato l’acquisto. Il pagamento non viene modificato né rimborsato.</p>
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-gray-700">Email attualmente associata</p>
+            <p className="mt-1 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700 break-all">{purchase.customer_email || purchase.user_email || 'Non disponibile'}</p>
+          </div>
+
+          <label className="block">
+            <span className="text-sm font-medium text-gray-700">Nuova email di accesso</span>
+            <input
+              type="email"
+              value={correctedEmail}
+              onChange={(event) => setCorrectedEmail(event.target.value)}
+              placeholder="nome@esempio.it"
+              autoComplete="email"
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100"
+            />
+            <span className="mt-1 block text-xs text-gray-500">Se l’account non esiste, verrà creato e le credenziali verranno inviate a questo indirizzo. Se esiste già, l’accesso viene associato a quell’account senza modificarne la password.</span>
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-medium text-gray-700">Nota interna <span className="font-normal text-gray-500">(facoltativa)</span></span>
+            <textarea
+              value={correctionReason}
+              onChange={(event) => setCorrectionReason(event.target.value)}
+              rows={2}
+              placeholder="Es. refuso confermato dalla cliente"
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100"
+            />
+          </label>
+
+          <label className="flex gap-3 rounded-lg border border-gray-200 p-3 text-sm text-gray-700">
+            <input type="checkbox" checked={emailConfirmed} onChange={(event) => setEmailConfirmed(event.target.checked)} className="mt-0.5" />
+            <span>Ho verificato l’identità della cliente e l’indirizzo email corretto.</span>
+          </label>
+
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setIsCorrectEmailOpen(false)}>Annulla</Button>
+            <Button
+              variant="primary"
+              loading={actionLoading === 'correct-email'}
+              disabled={!emailConfirmed || !correctedEmail.trim()}
+              onClick={() => void correctEmail()}
+            >
+              Conferma correzione
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

@@ -1359,6 +1359,10 @@ def get_purchase_detail(purchase_id):
         {'label': 'Rimborsato', 'at': normalized.get('refunded_at')},
         {'label': 'Accesso revocato', 'at': normalized.get('access_revoked_at')},
     ]
+    timeline.extend({
+        'label': f"Email corretta: {entry.get('from_email') or '—'} → {entry.get('to_email') or '—'}",
+        'at': entry.get('corrected_at'),
+    } for entry in normalized.get('email_correction_history') or [])
 
     return create_response(200, {
         'purchase': {
@@ -1472,6 +1476,81 @@ def mark_purchase_verified(purchase_id):
     normalized['updated_at'] = now_iso()
     TABLES['PURCHASES'].put_item(Item=normalized)
     return create_response(200, {'success': True, 'data': normalized})
+
+
+def is_valid_email(email: str) -> bool:
+    return '@' in email and '.' in email.rsplit('@', 1)[-1] and ' ' not in email
+
+
+def ensure_student_record(user_id: str, email: str, full_name: str) -> dict[str, Any]:
+    existing = get_user_item(user_id)
+    if existing:
+        return existing
+
+    item = {
+        'user_id': user_id,
+        'email': email,
+        'full_name': full_name or '',
+        'subscription_status': 'active',
+        'global_access': False,
+        'created_at': now_iso(),
+        'updated_at': now_iso(),
+    }
+    TABLES['USERS'].put_item(Item=item)
+    return item
+
+
+def correct_purchase_email(purchase_id: str, body: dict[str, Any], admin_email: str):
+    purchase = TABLES['PURCHASES'].get_item(Key={'purchase_id': purchase_id}).get('Item')
+    if not purchase:
+        return create_response(404, {'error': 'Purchase not found'})
+
+    normalized = normalize_purchase(purchase)
+    previous_email = str(normalized.get('customer_email') or '').strip().lower()
+    new_email = str(body.get('email') or '').strip().lower()
+    if not is_valid_email(new_email):
+        return create_response(400, {'error': 'Inserisci un indirizzo email valido'})
+    if new_email == previous_email:
+        return create_response(400, {'error': 'La nuova email coincide con quella già associata all’acquisto'})
+
+    current_user = get_user_item(normalized.get('user_id')) if normalized.get('user_id') else {}
+    full_name = str(
+        body.get('full_name')
+        or current_user.get('full_name')
+        or normalized.get('user_name')
+        or new_email.split('@', 1)[0]
+    ).strip()
+    user_id, created_account, _ = ensure_cognito_student(new_email, full_name)
+    ensure_student_record(user_id, new_email, full_name)
+
+    correction = {
+        'from_email': previous_email,
+        'to_email': new_email,
+        'corrected_at': now_iso(),
+        'corrected_by': admin_email or 'admin',
+        'reason': str(body.get('reason') or '').strip(),
+    }
+    history = list(normalized.get('email_correction_history') or [])
+    history.append(correction)
+    normalized.update({
+        'user_id': user_id,
+        'customer_email': new_email,
+        'email_correction_history': history,
+        'email_corrected_at': correction['corrected_at'],
+        'email_corrected_by': correction['corrected_by'],
+        'updated_at': correction['corrected_at'],
+    })
+    TABLES['PURCHASES'].put_item(Item=normalized)
+    return create_response(200, {
+        'success': True,
+        'data': normalized,
+        'message': (
+            'Email corretta. Il nuovo account ha ricevuto le credenziali di accesso.'
+            if created_account else
+            'Email corretta. L’accesso è ora associato all’account già esistente.'
+        ),
+        'account_created': created_account,
+    })
 
 
 def get_coupons():
@@ -1914,6 +1993,12 @@ def lambda_handler(event, context):
             return revoke_purchase_access(path_parameters.get('purchaseId'))
         if path.startswith('/admin/purchase/') and path.endswith('/mark-verified') and http_method == 'POST':
             return mark_purchase_verified(path_parameters.get('purchaseId'))
+        if path.startswith('/admin/purchase/') and path.endswith('/correct-email') and http_method == 'POST':
+            return correct_purchase_email(
+                path_parameters.get('purchaseId'),
+                body,
+                get_current_admin_email(event),
+            )
         if path.startswith('/admin/purchase/') and http_method == 'GET':
             return get_purchase_detail(path_parameters.get('purchaseId'))
         if path == '/admin/stats' and http_method == 'GET':
