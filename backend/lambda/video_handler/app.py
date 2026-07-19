@@ -80,6 +80,12 @@ def is_external_video_url(value: Any) -> bool:
     return isinstance(value, str) and value.startswith(('http://', 'https://'))
 
 
+def get_optimized_video_key(video_s3_key: str) -> str:
+    source_name = video_s3_key.rsplit('/', 1)[-1]
+    source_stem = source_name.rsplit('.', 1)[0]
+    return f'streaming/{source_stem}/{source_stem}_1080p.mp4'
+
+
 def get_user_item(user_id: str) -> dict[str, Any]:
     response = users_table.get_item(Key={'user_id': user_id})
     return response.get('Item') or {}
@@ -151,10 +157,19 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False):
             'course_id': course_id,
         })
 
+    served_video_key = video_s3_key
+    try:
+        optimized_key = get_optimized_video_key(video_s3_key)
+        s3_client.head_object(Bucket=video_bucket_name, Key=optimized_key)
+        served_video_key = optimized_key
+    except ClientError:
+        # The original remains available while MediaConvert processes the HD version.
+        pass
+
     try:
         presigned_url = s3_client.generate_presigned_url(
             'get_object',
-            Params={'Bucket': video_bucket_name, 'Key': video_s3_key},
+            Params={'Bucket': video_bucket_name, 'Key': served_video_key},
             ExpiresIn=3600,
         )
     except ClientError as exc:
@@ -165,6 +180,7 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False):
         'video_url': presigned_url,
         'expires_at': (datetime.utcnow() + timedelta(hours=1)).isoformat() + 'Z',
         'course_id': course_id,
+        'video_quality': '1080p_optimized' if served_video_key != video_s3_key else 'source',
     })
 
 

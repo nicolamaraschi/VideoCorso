@@ -11,6 +11,7 @@ export const useVideoProgress = ({ lessonId }: UseVideoProgressProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const lastSavedTime = useRef<number>(0);
   const saveTimeout = useRef<NodeJS.Timeout | null>(null);
+  const completionInFlight = useRef(false);
   const [seekToSeconds, setSeekToSeconds] = useState<number | null>(null);
 
   const loadProgress = useCallback(async () => {
@@ -82,8 +83,11 @@ export const useVideoProgress = ({ lessonId }: UseVideoProgressProps) => {
       lastSavedTime.current = currentTime;
       debouncedSave(currentTime, duration);
     }
-    if (duration > 0 && currentTime / duration >= 0.9 && !progress.completed) {
-      void markComplete(currentTime, duration);
+    if (duration > 0 && currentTime / duration >= 0.9 && !progress.completed && !completionInFlight.current) {
+      completionInFlight.current = true;
+      void markComplete(currentTime, duration).finally(() => {
+        completionInFlight.current = false;
+      });
     }
   }, [progress, debouncedSave, markComplete]);
 

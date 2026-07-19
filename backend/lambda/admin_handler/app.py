@@ -78,8 +78,19 @@ def delete_s3_object_safely(bucket: Optional[str], key: Optional[str]) -> None:
         print(f'Unable to delete S3 object {key}: {exc}')
 
 
+def get_optimized_video_key(video_s3_key: Any) -> Optional[str]:
+    if not video_s3_key or is_external_video_url(video_s3_key):
+        return None
+    source_name = str(video_s3_key).rsplit('/', 1)[-1]
+    source_stem = source_name.rsplit('.', 1)[0]
+    if not source_stem:
+        return None
+    return f'streaming/{source_stem}/{source_stem}_1080p.mp4'
+
+
 def delete_lesson_assets(lesson: dict[str, Any]) -> None:
     delete_s3_object_safely(VIDEO_BUCKET, lesson.get('video_s3_key'))
+    delete_s3_object_safely(VIDEO_BUCKET, get_optimized_video_key(lesson.get('video_s3_key')))
     delete_s3_object_safely(
         THUMBNAIL_BUCKET,
         get_owned_s3_key(lesson.get('thumbnail_url'), THUMBNAIL_BUCKET),
