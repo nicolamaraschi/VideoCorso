@@ -729,6 +729,27 @@ def create_coupon_purchase_without_stripe(course: dict[str, Any], coupon: dict[s
     return purchase
 
 
+def quote_checkout(body: dict[str, Any]):
+    course_ref = body.get('course_id')
+    email = body.get('email')
+    coupon_code = body.get('coupon_code')
+
+    course = get_checkout_course(course_ref)
+    if not course:
+        return create_response(404, {'error': 'Course not found'})
+    if not is_purchasable_course(course):
+        return create_response(400, {'error': 'Course is not available for purchase'})
+
+    coupon = validate_coupon_for_checkout(course, coupon_code, email)
+    total = compute_discounted_total(course, coupon)
+    return create_response(200, {
+        'base_total': float(get_course_effective_price(course)),
+        'final_total': float(total),
+        'coupon_code': coupon.get('code') if coupon else None,
+        'is_free_access': total <= 0,
+    })
+
+
 def create_checkout_session(event):
     body = json.loads(event.get('body') or '{}')
     course_ref = body.get('course_id')
@@ -850,6 +871,15 @@ def lambda_handler(event, context):
         except Exception as exc:
             print(f'create-checkout error: {exc}')
             return create_response(500, {'error': str(exc)})
+
+    if path == '/payment/quote' and http_method == 'POST':
+        try:
+            return quote_checkout(json.loads(event.get('body') or '{}'))
+        except ValueError as exc:
+            return create_response(400, {'error': str(exc)})
+        except Exception as exc:
+            print(f'payment quote error: {exc}')
+            return create_response(500, {'error': 'Unable to calculate checkout total'})
 
     if path.startswith('/payment/verify/') and http_method == 'GET':
         try:

@@ -8,6 +8,8 @@ frontend:
         - npm install --legacy-peer-deps
     build:
       commands:
+        - npx tsc -b
+        - npm run lint
         - npm run build
   artifacts:
     baseDirectory: frontend/dist

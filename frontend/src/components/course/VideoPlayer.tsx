@@ -25,7 +25,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   lessonId,
   onEnded,
 }) => {
-  const playerRef = useRef<ReactPlayer>(null);
+  // react-player v3 forwards its ref to the underlying HTMLVideoElement.
+  const playerRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
@@ -39,7 +40,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [showSettings, setShowSettings] = useState(false);
 
   const {
-    progress,
     handleTimeUpdate,
     saveProgress,
     markComplete,
@@ -50,7 +50,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Handle seeking from progress load
   useEffect(() => {
     if (seekToSeconds !== null && playerRef.current) {
-      playerRef.current.seekTo(seekToSeconds, 'seconds');
+      playerRef.current.currentTime = seekToSeconds;
       clearSeekTo();
     }
   }, [seekToSeconds, clearSeekTo]);
@@ -77,7 +77,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const skip = useCallback((seconds: number) => {
     if (!playerRef.current) return;
     const newTime = Math.max(0, Math.min(currentTime + seconds, duration));
-    playerRef.current.seekTo(newTime, 'seconds');
+    playerRef.current.currentTime = newTime;
   }, [currentTime, duration]);
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -85,7 +85,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     const rect = progressBarRef.current.getBoundingClientRect();
     const pos = (e.clientX - rect.left) / rect.width;
-    playerRef.current.seekTo(pos, 'fraction');
+    playerRef.current.currentTime = pos * duration;
   };
 
   const changeVolume = useCallback((delta: number) => {
@@ -193,18 +193,19 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       <div className="w-full aspect-video pointer-events-none">
         <ReactPlayer
           ref={playerRef}
-          url={videoUrl}
+          src={videoUrl}
           width="100%"
           height="100%"
           playing={isPlaying}
           volume={volume}
           muted={isMuted}
           playbackRate={playbackRate}
-          onProgress={({ playedSeconds }) => {
+          onTimeUpdate={(event) => {
+            const playedSeconds = event.currentTarget.currentTime;
             setCurrentTime(playedSeconds);
             handleTimeUpdate(playedSeconds, duration);
           }}
-          onDuration={setDuration}
+          onDurationChange={(event) => setDuration(event.currentTarget.duration)}
           onEnded={() => {
             setIsPlaying(false);
             markComplete(currentTime, duration);
@@ -213,13 +214,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           style={{ position: 'absolute', top: 0, left: 0 }}
           config={{
             youtube: {
-              playerVars: {
-                controls: 0,
-                modestbranding: 1,
-                rel: 0,
-                showinfo: 0,
-                iv_load_policy: 3
-              }
+              rel: 0,
+              iv_load_policy: 3,
             }
           }}
         />
@@ -276,7 +272,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
                 <button
                   onClick={() => {
-                    if (playerRef.current) playerRef.current.seekTo(0);
+                    if (playerRef.current) playerRef.current.currentTime = 0;
                     if (!isPlaying) togglePlay();
                   }}
                   className="text-white hover:text-primary-400 hidden sm:block"

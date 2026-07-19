@@ -67,10 +67,10 @@ export const AdminStudentsPage: React.FC = () => {
   };
 
   const handleResetPassword = async (studentId: string): Promise<void> => {
-    if (!window.confirm('Sei sicuro di voler resettare la password di questo studente? Riceverà un\'email con le istruzioni per impostare una nuova password.')) return;
+    if (!window.confirm('Inviare una nuova password temporanea a questo studente? La password attuale non funzionerà più.')) return;
     try {
       await adminService.resetPassword(studentId);
-      alert('Richiesta di reset password inviata con successo.');
+      alert('Nuova password temporanea inviata via email.');
     } catch (err) {
       alert(getErrorMessage(err, 'Failed to reset password'));
     }

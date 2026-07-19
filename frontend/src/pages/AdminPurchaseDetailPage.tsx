@@ -52,6 +52,14 @@ export const AdminPurchaseDetailPage: React.FC = () => {
       return;
     }
 
+    const confirmations = {
+      unlock: 'Forzare lo sblocco del corso? Lo studente riceverà accesso anche senza una conferma di pagamento.',
+      revoke: 'Revocare subito l’accesso al corso? Lo studente non potrà più vedere le lezioni.',
+    } as const;
+    if ((action === 'unlock' || action === 'revoke') && !window.confirm(confirmations[action])) {
+      return;
+    }
+
     try {
       setActionLoading(action);
       if (action === 'resync') {

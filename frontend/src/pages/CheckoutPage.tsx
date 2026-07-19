@@ -10,8 +10,6 @@ import { Button } from '../components/common/Button';
 import type { CourseListItem } from '../types';
 import { getErrorMessage } from '../utils/errors';
 
-const guaranteeImageUrl = 'https://images.leadconnectorhq.com/image/f_webp/q_80/r_1200/u_https://assets.cdn.filesafe.space/ceYe4VnMXLjh1ENSEbH0/media/6514585ac9753e719aa60206.png';
-
 export const CheckoutPage: React.FC = () => {
   const { user } = useAuthContext();
   const navigate = useNavigate();
@@ -23,6 +21,9 @@ export const CheckoutPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState('');
   const [emailInput, setEmailInput] = useState('');
+  const [couponQuote, setCouponQuote] = useState<{ final_total: number; is_free_access: boolean } | null>(null);
+  const [couponMessage, setCouponMessage] = useState<string | null>(null);
+  const [checkingCoupon, setCheckingCoupon] = useState(false);
 
   const courseId = searchParams.get('courseId');
 
@@ -67,6 +68,10 @@ export const CheckoutPage: React.FC = () => {
       setError('Per favore inserisci il tuo indirizzo email per procedere.');
       return;
     }
+    if (couponCode.trim() && !couponQuote) {
+      setCouponMessage('Applica il coupon per verificare lo sconto prima di procedere.');
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -91,13 +96,46 @@ export const CheckoutPage: React.FC = () => {
     }
   };
 
+  const handleApplyCoupon = async () => {
+    if (!course || !couponCode.trim()) {
+      setCouponQuote(null);
+      setCouponMessage('Inserisci un codice coupon.');
+      return;
+    }
+    const checkoutEmail = user?.email || emailInput.trim();
+    if (!checkoutEmail) {
+      setCouponMessage('Inserisci prima l’email: alcuni coupon sono riservati a specifici clienti.');
+      return;
+    }
+    try {
+      setCheckingCoupon(true);
+      setCouponMessage(null);
+      const quote = await paymentService.quoteCheckout({
+        course_id: course.course_id,
+        email: checkoutEmail,
+        coupon_code: couponCode.trim(),
+      });
+      setCouponQuote({ final_total: quote.final_total, is_free_access: quote.is_free_access });
+      setCouponMessage(quote.is_free_access ? 'Coupon applicato: accesso gratuito.' : 'Coupon applicato correttamente.');
+    } catch (err) {
+      setCouponQuote(null);
+      setCouponMessage(getErrorMessage(err, 'Coupon non valido o non utilizzabile per questo acquisto.'));
+    } finally {
+      setCheckingCoupon(false);
+    }
+  };
+
   const selectedCourseIndex = useMemo(
     () => catalog.findIndex((item) => item.course_id === course?.course_id),
     [catalog, course]
   );
+  const baseTotal = Number(course?.discounted_price ?? course?.price ?? 0);
+  const checkoutTotal = couponQuote?.final_total ?? baseTotal;
 
   const handleSelectCourse = (nextCourse: CourseListItem) => {
     setCourse(nextCourse);
+    setCouponQuote(null);
+    setCouponMessage(null);
     setSearchParams({ courseId: nextCourse.public_slug || nextCourse.course_id });
   };
 
@@ -243,14 +281,31 @@ export const CheckoutPage: React.FC = () => {
               <input
                 type="text"
                 value={couponCode}
-                onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+                onChange={(event) => {
+                  setCouponCode(event.target.value.toUpperCase());
+                  setCouponQuote(null);
+                  setCouponMessage(null);
+                }}
                 placeholder="Inserisci coupon se disponibile"
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none"
               />
+              <div className="mt-2 flex items-center gap-3">
+                <Button type="button" size="sm" variant="secondary" loading={checkingCoupon} onClick={handleApplyCoupon}>
+                  Applica coupon
+                </Button>
+                {couponMessage && (
+                  <span className={`text-sm ${couponQuote ? 'text-emerald-700' : 'text-red-600'}`}>{couponMessage}</span>
+                )}
+              </div>
             </div>
             <div className="flex justify-between text-2xl font-bold text-gray-900 pt-3 border-t">
               <span>Totale</span>
-              <span>€ {Number(course.discounted_price ?? course.price).toFixed(2)}</span>
+              <div className="text-right">
+                {couponQuote && checkoutTotal < baseTotal && (
+                  <span className="mr-2 text-base font-normal text-gray-400 line-through">€ {baseTotal.toFixed(2)}</span>
+                )}
+                <span>€ {checkoutTotal.toFixed(2)}</span>
+              </div>
             </div>
           </div>
 
@@ -269,9 +324,9 @@ export const CheckoutPage: React.FC = () => {
           ) : (
             <>
               <Button onClick={handleCheckout} variant="primary" fullWidth size="lg" className="transform hover:scale-105">
-                {Number(course.discounted_price ?? course.price) === 0 && !couponCode 
+                {checkoutTotal === 0
                   ? 'Accedi Gratis' 
-                  : `Paga € ${Number(course.discounted_price ?? course.price).toFixed(2)}`}
+                  : `Paga € ${checkoutTotal.toFixed(2)}`}
               </Button>
               <div className="flex items-center justify-center gap-2 mt-4 text-sm text-gray-500">
                 <Shield className="w-4 h-4" />

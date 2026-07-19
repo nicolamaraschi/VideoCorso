@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Optional
-from urllib.parse import unquote
+from urllib.parse import unquote, urlparse
 
 import boto3
 import stripe
@@ -45,6 +45,42 @@ def create_response(status_code: int, body: Any):
 
 def build_public_s3_url(bucket: str, key: str) -> str:
     return f'https://{bucket}.s3.amazonaws.com/{key}'
+
+
+def get_owned_s3_key(url: Any, bucket: Optional[str]) -> Optional[str]:
+    if not url or not bucket:
+        return None
+    try:
+        parsed = urlparse(str(url))
+        if parsed.hostname != f'{bucket}.s3.amazonaws.com':
+            return None
+        return unquote(parsed.path.lstrip('/')) or None
+    except ValueError:
+        return None
+
+
+def delete_s3_object_safely(bucket: Optional[str], key: Optional[str]) -> None:
+    if not bucket or not key or str(key).startswith(('http://', 'https://')):
+        return
+    try:
+        s3_client.delete_object(Bucket=bucket, Key=key)
+    except ClientError as exc:
+        print(f'Unable to delete S3 object {key}: {exc}')
+
+
+def delete_lesson_assets(lesson: dict[str, Any]) -> None:
+    delete_s3_object_safely(VIDEO_BUCKET, lesson.get('video_s3_key'))
+    delete_s3_object_safely(
+        THUMBNAIL_BUCKET,
+        get_owned_s3_key(lesson.get('thumbnail_url'), THUMBNAIL_BUCKET),
+    )
+
+
+def delete_chapter_assets(chapter: dict[str, Any]) -> None:
+    delete_s3_object_safely(
+        THUMBNAIL_BUCKET,
+        get_owned_s3_key(chapter.get('image_url'), THUMBNAIL_BUCKET),
+    )
 
 
 def now_iso() -> str:
@@ -134,7 +170,7 @@ def generate_temp_password(length: int = 12) -> str:
     return ''.join(secrets.choice(alphabet) for _ in range(length)) + 'A1!'
 
 
-def send_welcome_email(email: str, temp_password: str):
+def send_welcome_email(email: str, temp_password: str, password_reset: bool = False):
     if not resend or not getattr(resend, 'api_key', None):
         print('Welcome email skipped: Resend not configured.')
         return
@@ -143,11 +179,14 @@ def send_welcome_email(email: str, temp_password: str):
         resend.Emails.send({
             'from': 'Team VideoCorso <onboarding@resend.dev>',
             'to': email,
-            'subject': 'Accesso piattaforma corsi - Chiara Morocutti Academy',
+            'subject': (
+                'Password reimpostata - Chiara Morocutti Academy'
+                if password_reset else 'Accesso piattaforma corsi - Chiara Morocutti Academy'
+            ),
             'html': (
                 '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 8px;">'
-                '<h2 style="color: #c2697b; text-align: center;">Benvenuta in Chiara Morocutti Academy!</h2>'
-                '<p style="font-size: 16px; color: #333;">Il tuo account per accedere alla piattaforma corsi è stato creato con successo.</p>'
+                f'<h2 style="color: #c2697b; text-align: center;">{("Password reimpostata" if password_reset else "Benvenuta in Chiara Morocutti Academy!")}</h2>'
+                f'<p style="font-size: 16px; color: #333;">{("Ti è stata assegnata una nuova password temporanea per accedere alla piattaforma." if password_reset else "Il tuo account per accedere alla piattaforma corsi è stato creato con successo.")}</p>'
                 '<div style="background-color: #f9f9f9; padding: 15px; border-radius: 6px; margin: 20px 0;">'
                 f'<p style="margin: 0; font-size: 15px;"><strong>Email:</strong> {email}</p>'
                 f'<p style="margin: 10px 0 0 0; font-size: 15px;"><strong>Password temporanea:</strong> <span style="font-family: monospace; background: #eee; padding: 2px 6px; border-radius: 4px;">{temp_password}</span></p>'
@@ -761,6 +800,11 @@ def update_course(course_id, body):
         ExpressionAttributeValues=expression_values,
         ReturnValues='ALL_NEW',
     )
+    if body.get('cover_image_url') and body.get('cover_image_url') != course.get('cover_image_url'):
+        delete_s3_object_safely(
+            THUMBNAIL_BUCKET,
+            get_owned_s3_key(course.get('cover_image_url'), THUMBNAIL_BUCKET),
+        )
     return create_response(200, {'success': True, 'data': normalize_course(updated.get('Attributes'))})
 
 
@@ -795,9 +839,15 @@ def delete_course(course_id):
         if lessons:
             with TABLES['LESSONS'].batch_writer() as batch:
                 for lesson in lessons:
+                    delete_lesson_assets(lesson)
                     batch.delete_item(Key={'lesson_id': lesson['lesson_id']})
+        delete_chapter_assets(chapter)
         TABLES['CHAPTERS'].delete_item(Key={'chapter_id': chapter_id})
             
+    delete_s3_object_safely(
+        THUMBNAIL_BUCKET,
+        get_owned_s3_key(course.get('cover_image_url'), THUMBNAIL_BUCKET),
+    )
     TABLES['COURSES'].delete_item(Key={'course_id': course_id})
     return create_response(200, {'success': True, 'message': 'Course deleted'})
 
@@ -839,6 +889,11 @@ def update_chapter(chapter_id, body):
         ExpressionAttributeValues=values,
         ReturnValues='ALL_NEW',
     )
+    if body.get('image_url') and body.get('image_url') != chapter.get('image_url'):
+        delete_s3_object_safely(
+            THUMBNAIL_BUCKET,
+            get_owned_s3_key(chapter.get('image_url'), THUMBNAIL_BUCKET),
+        )
     return create_response(200, {'success': True, 'data': normalize_chapter(updated.get('Attributes'))})
 
 
@@ -862,7 +917,9 @@ def delete_chapter(chapter_id):
     lessons = get_chapter_lessons(chapter_id)
     with TABLES['LESSONS'].batch_writer() as batch:
         for lesson in lessons:
+            delete_lesson_assets(lesson)
             batch.delete_item(Key={'lesson_id': lesson['lesson_id']})
+    delete_chapter_assets(chapter)
     TABLES['CHAPTERS'].delete_item(Key={'chapter_id': chapter_id})
     renormalize_chapters(chapter['course_id'])
     return create_response(200, {'success': True, 'message': 'Chapter deleted'})
@@ -909,6 +966,13 @@ def update_lesson(lesson_id, body):
         ExpressionAttributeValues=values,
         ReturnValues='ALL_NEW',
     )
+    if body.get('video_s3_key') and body.get('video_s3_key') != lesson.get('video_s3_key'):
+        delete_s3_object_safely(VIDEO_BUCKET, lesson.get('video_s3_key'))
+    if body.get('thumbnail_url') and body.get('thumbnail_url') != lesson.get('thumbnail_url'):
+        delete_s3_object_safely(
+            THUMBNAIL_BUCKET,
+            get_owned_s3_key(lesson.get('thumbnail_url'), THUMBNAIL_BUCKET),
+        )
     return create_response(200, {'success': True, 'data': updated.get('Attributes')})
 
 
@@ -928,6 +992,7 @@ def delete_lesson(lesson_id):
     lesson = TABLES['LESSONS'].get_item(Key={'lesson_id': lesson_id}).get('Item')
     if not lesson:
         return create_response(404, {'error': 'Lesson not found'})
+    delete_lesson_assets(lesson)
     TABLES['LESSONS'].delete_item(Key={'lesson_id': lesson_id})
     renormalize_lessons(lesson['chapter_id'])
     return create_response(200, {'success': True, 'message': 'Lesson deleted'})
@@ -1797,22 +1862,23 @@ def lambda_handler(event, context):
         if path.startswith('/admin/student/') and path.endswith('/grant-course') and http_method == 'POST':
             return grant_course_to_student(path_parameters.get('studentId'), body)
         if path.startswith('/admin/student/') and path.endswith('/reset-password') and http_method == 'POST':
-            student = get_user_item(path_parameters.get('studentId'))
+            student = resolve_student_record(path_parameters.get('studentId'))
             if not student:
                 return create_response(404, {'error': 'Student not found'})
-            
+
             try:
-                cognito_client.admin_reset_user_password(
+                # AdminResetUserPassword cannot be used while a manually-created
+                # account is still in FORCE_CHANGE_PASSWORD. Setting a new
+                # temporary password works for both pending and confirmed users.
+                temp_password = generate_temp_password()
+                cognito_client.admin_set_user_password(
                     UserPoolId=COGNITO_USER_POOL_ID,
-                    Username=student['email']
+                    Username=student['email'],
+                    Password=temp_password,
+                    Permanent=False,
                 )
-                return create_response(200, {'success': True, 'message': 'Password reset initiated'})
-            except cognito_client.exceptions.InvalidParameterException as e:
-                print(f"Reset password failed (InvalidParameterException): {e}")
-                return create_response(400, {'error': 'Impossibile resettare la password. L\'utente potrebbe non aver ancora effettuato il primo accesso. Usa "Re-invia invito" invece.'})
-            except cognito_client.exceptions.NotAuthorizedException as e:
-                print(f"Reset password failed (NotAuthorizedException): {e}")
-                return create_response(400, {'error': 'Impossibile resettare la password: stato utente non autorizzato.'})
+                send_welcome_email(student['email'], temp_password, password_reset=True)
+                return create_response(200, {'success': True, 'message': 'Nuova password temporanea inviata via email'})
             except Exception as e:
                 print(f"Reset password failed: {e}")
                 return create_response(500, {'error': 'Si è verificato un errore durante il reset della password.'})

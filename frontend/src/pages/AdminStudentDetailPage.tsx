@@ -15,7 +15,7 @@ export const AdminStudentDetailPage: React.FC = () => {
   const [detail, setDetail] = useState<StudentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sendingInvite, setSendingInvite] = useState(false);
+  const [sendingPassword, setSendingPassword] = useState(false);
 
   const [showGrantModal, setShowGrantModal] = useState(false);
   const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
@@ -42,18 +42,18 @@ export const AdminStudentDetailPage: React.FC = () => {
     void loadDetail();
   }, [loadDetail]);
 
-  const handleResendInvite = async () => {
+  const handleSendNewPassword = async () => {
     if (!studentId) {
       return;
     }
     try {
-      setSendingInvite(true);
-      await adminService.resendInvite(studentId);
-      alert('Invito reinviato con una nuova password temporanea.');
+      setSendingPassword(true);
+      await adminService.resetPassword(studentId);
+      alert('Nuova password temporanea inviata via email.');
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to resend invite'));
+      alert(getErrorMessage(err, 'Impossibile inviare la nuova password'));
     } finally {
-      setSendingInvite(false);
+      setSendingPassword(false);
     }
   };
 
@@ -65,7 +65,7 @@ export const AdminStudentDetailPage: React.FC = () => {
       if (courses.length > 0) {
         setSelectedCourseId(courses[0].course_id);
       }
-    } catch (err) {
+    } catch {
       alert("Failed to load courses");
     }
   };
@@ -108,9 +108,9 @@ export const AdminStudentDetailPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900 mt-2">{student.full_name}</h1>
           <p className="text-gray-600">{student.email}</p>
         </div>
-        <Button onClick={handleResendInvite} loading={sendingInvite} variant="secondary">
+        <Button onClick={handleSendNewPassword} loading={sendingPassword} variant="secondary">
           <Mail className="w-4 h-4 mr-2" />
-          Reinvia invito
+          Invia nuova password
         </Button>
       </div>
 
@@ -207,7 +207,7 @@ export const AdminStudentDetailPage: React.FC = () => {
       </section>
 
       {showGrantModal && (
-        <Modal title="Assegna Corso Manualmente" onClose={() => setShowGrantModal(false)}>
+        <Modal isOpen={showGrantModal} title="Assegna Corso Manualmente" onClose={() => setShowGrantModal(false)}>
           <div className="p-4 space-y-4">
             <p className="text-sm text-gray-600">
               Seleziona il corso da assegnare gratuitamente a {student.full_name}.

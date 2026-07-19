@@ -406,9 +406,9 @@ export const LandingPage: React.FC = () => {
                         Corso Beauty
                       </div>
                     )}
-                    {course.marketing_badge && (
+                    {course.badge && (
                        <div className="absolute top-4 right-4 bg-primary-600 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wide shadow-md">
-                         {course.marketing_badge}
+                         {course.badge}
                        </div>
                     )}
                   </div>

@@ -101,6 +101,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
   const [previewLessonId, setPreviewLessonId] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [replacingThumbnail, setReplacingThumbnail] = useState(false);
 
   const [chapterForm, setChapterForm] = useState({ title: '', description: '', image_url: '' });
   const [lessonForm, setLessonForm] = useState({
@@ -151,6 +152,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
 
   const handleCreateLesson = (chapterId: string) => {
     setSelectedChapterId(chapterId);
+    setReplacingThumbnail(false);
     setLessonForm({
       title: '',
       description: '',
@@ -350,6 +352,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                           <button
                             onClick={() => {
                               setEditingLesson(lesson);
+                              setReplacingThumbnail(false);
                               setLessonForm({
                                 title: lesson.title,
                                 description: lesson.description,
@@ -493,89 +496,87 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             />
           </div>
 
-          {/* FIX: Logica di upload video integrata */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Video File
+              Video lezione
             </label>
             {lessonForm.video_s3_key ? (
-              // Se un video è già stato caricato/collegato
               <div className="flex items-center justify-between gap-3 p-3 bg-green-50 rounded-lg">
-                <span className="text-sm text-gray-900 font-mono truncate">
-                  {lessonForm.video_s3_key.startsWith('http://') || lessonForm.video_s3_key.startsWith('https://')
-                    ? `URL video: ${lessonForm.video_s3_key}`
-                    : lessonForm.video_s3_key}
-                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-green-900">Video caricato</p>
+                  <p className="truncate text-xs text-green-700">
+                    {lessonForm.video_s3_key.split('/').pop()?.replace(/^[\w-]+-/, '') || 'Video della lezione'}
+                  </p>
+                </div>
                 <Button
                   size="sm"
                   variant="secondary"
                   onClick={() => setLessonForm({ ...lessonForm, video_s3_key: '', duration_seconds: 0 })}
                 >
-                  Change
+                  Sostituisci
                 </Button>
               </div>
             ) : (
-              // Se non c'è video, mostra l'uploader
-              <VideoUploader
-                onUploadComplete={(videoKey, duration) => {
-                  console.log('Video S3 Key received:', videoKey);
-                  console.log('Video duration received:', duration);
-                  // Popola automaticamente sia la chiave che la durata
-                  setLessonForm({
-                    ...lessonForm,
-                    video_s3_key: videoKey,
-                    duration_seconds: duration
-                  });
-                }}
-              />
+              <div className="space-y-3">
+                <VideoUploader
+                  onUploadComplete={(videoKey, duration) => {
+                    setLessonForm((current) => ({
+                      ...current,
+                      video_s3_key: videoKey,
+                      duration_seconds: duration,
+                    }));
+                  }}
+                />
+                {editingLesson?.video_s3_key && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setLessonForm((current) => ({
+                      ...current,
+                      video_s3_key: editingLesson.video_s3_key,
+                      duration_seconds: editingLesson.duration_seconds || 0,
+                    }))}
+                  >
+                    Annulla sostituzione
+                  </Button>
+                )}
+              </div>
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Video URL o chiave manuale
-            </label>
-            <input
-              type="text"
-              value={lessonForm.video_s3_key}
-              onChange={(e) =>
-                setLessonForm({ ...lessonForm, video_s3_key: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="https://... oppure chiave S3 del video"
-            />
-            <p className="mt-2 text-xs text-gray-500">
-              Puoi caricare un file da PC oppure incollare un URL video diretto. Se stai solo aggiornando la copertina, puoi salvare senza sostituire il video gia esistente.
-            </p>
-          </div>
-
           <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Lesson Cover
-              </label>
-              <input
-                type="text"
-                value={lessonForm.thumbnail_url}
-                onChange={(e) =>
-                  setLessonForm({ ...lessonForm, thumbnail_url: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="es: https://sito.com/immagine.jpg"
-              />
-            </div>
-            {lessonForm.thumbnail_url ? (
-              <img
-                src={lessonForm.thumbnail_url}
-                alt="Anteprima copertina lezione"
-                className="max-h-40 w-auto rounded-lg border border-gray-200 object-contain mx-auto"
-              />
-            ) : null}
-            <ImageUploader
-              folder="lessons"
-              label="Copertina lezione"
-              onUploadComplete={(imageUrl) => setLessonForm((prev) => ({ ...prev, thumbnail_url: imageUrl }))}
-            />
+            <label className="block text-sm font-medium text-gray-700">
+              Copertina lezione
+            </label>
+            {lessonForm.thumbnail_url && !replacingThumbnail ? (
+              <div className="space-y-3">
+                <img
+                  src={lessonForm.thumbnail_url}
+                  alt="Anteprima copertina lezione"
+                  className="max-h-40 w-auto rounded-lg border border-gray-200 object-contain mx-auto"
+                />
+                <Button type="button" size="sm" variant="secondary" onClick={() => setReplacingThumbnail(true)}>
+                  Sostituisci copertina
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <ImageUploader
+                  folder="lessons"
+                  label="Copertina lezione"
+                  onUploadComplete={(imageUrl) => {
+                    setLessonForm((current) => ({ ...current, thumbnail_url: imageUrl }));
+                    setReplacingThumbnail(false);
+                  }}
+                />
+                {editingLesson?.thumbnail_url && (
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setReplacingThumbnail(false)}>
+                    Annulla sostituzione
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Campo Durata nascosto, ma ancora nel modulo (viene popolato automaticamente) */}

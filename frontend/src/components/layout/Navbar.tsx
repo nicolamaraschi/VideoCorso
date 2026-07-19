@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, User, LogOut } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Menu, X } from 'lucide-react';
 import { useAuthContext } from '../auth/useAuthContext'; 
 import { Button } from '../common/Button';
 
@@ -16,15 +16,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
   const [internalMobileMenuOpen, setInternalMobileMenuOpen] = useState(false);
   const mobileMenuOpen = externalMobileMenuOpen !== undefined ? externalMobileMenuOpen : internalMobileMenuOpen;
   const setMobileMenuOpen = externalSetMobileMenuOpen || setInternalMobileMenuOpen;
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const { isAuthenticated, user, isAdmin, logout } = useAuthContext(); // Assicurati di estrarre isAdmin
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    await logout();
-    setUserMenuOpen(false); 
-    navigate('/login');
-  };
+  const { isAuthenticated, isAdmin } = useAuthContext();
 
   const ScrollLink = ({
     to,

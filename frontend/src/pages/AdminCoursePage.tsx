@@ -10,7 +10,8 @@ import { Button } from '../components/common/Button';
 import type { AdminCourseRequest, Chapter, Course, Lesson } from '../types';
 import { getErrorMessage } from '../utils/errors';
 
-type LessonEditorPayload = Pick<Lesson, 'title' | 'description' | 'duration_seconds' | 'video_s3_key' | 'thumbnail_url'> & {
+type LessonEditorPayload = Omit<Pick<Lesson, 'title' | 'description' | 'duration_seconds' | 'video_s3_key' | 'thumbnail_url'>, 'thumbnail_url'> & {
+  thumbnail_url?: string;
   is_free_preview?: boolean;
 };
 
@@ -550,7 +551,7 @@ export const AdminCoursePage: React.FC = () => {
           </div>
           <Button
             onClick={() => void handleDeleteCourse()}
-            variant="outline"
+            variant="danger"
             className="border-red-300 text-red-700 hover:bg-red-100 hover:text-red-800 whitespace-nowrap"
           >
             Elimina definitivamente
