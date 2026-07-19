@@ -188,8 +188,6 @@ def get_course(course_ref: Optional[str]):
         if normalized.get('public_slug') == course_ref:
             return normalized
 
-    if course_ref == LEGACY_COURSE_ID:
-        return normalize_course(ensure_legacy_course())
     return None
 
 
@@ -203,14 +201,7 @@ def is_purchasable_course(course: dict[str, Any]) -> bool:
 
 
 def get_checkout_course(course_ref: Optional[str]):
-    course = get_course(course_ref)
-    if course:
-        return course
-
-    if course_ref in {None, '', LEGACY_COURSE_ID}:
-        return normalize_course(ensure_legacy_course())
-
-    return None
+    return get_course(course_ref)
 
 
 def get_course_effective_price(course: dict[str, Any]) -> Decimal:
@@ -572,7 +563,7 @@ def extract_is_disputed(payment_intent: Optional[dict[str, Any]]):
 
 def save_checkout_completion(session: dict[str, Any], event_type: str = 'checkout.session.completed', event_id: Optional[str] = None):
     customer_email = session.get('customer_details', {}).get('email') or session.get('customer_email')
-    course_ref = session.get('metadata', {}).get('course_id') or LEGACY_COURSE_ID
+    course_ref = session.get('metadata', {}).get('course_id')
     stripe_session_id = session.get('id')
     stripe_payment_intent_id = session.get('payment_intent')
 
@@ -639,25 +630,8 @@ def update_purchase_from_payment_intent(payment_intent: dict[str, Any], event_ty
 
     purchase = purchases_table.get_item(Key={'purchase_id': payment_intent_id}).get('Item')
     if not purchase:
-        pending_purchase = build_purchase_item(
-            user_id='',
-            customer_email='',
-            course=normalize_course(ensure_legacy_course()),
-            amount_gross=Decimal(str((int(payment_intent.get('amount_received') or payment_intent.get('amount') or 0)) / 100)),
-            local_status='needs_review',
-            stripe_status=payment_intent.get('status', 'unknown'),
-            stripe_session_id=None,
-            stripe_payment_intent_id=payment_intent_id,
-            stripe_charge_id=extract_charge_id_from_payment_intent(payment_intent),
-            webhook_status='received',
-            purchase_origin='public_checkout',
-            coupon=None,
-            refunded_amount=extract_refunded_amount(payment_intent),
-            is_disputed=extract_is_disputed(payment_intent),
-            webhook_received_at=now_iso(),
-        )
-        pending_purchase['purchase_id'] = payment_intent_id
-        purchase = pending_purchase
+        mark_event_processed(event_id, event_type, payment_intent_id)
+        return create_response(200, {'message': 'Payment intent ignored: no linked course purchase'})
     else:
         purchase = normalize_purchase_defaults(purchase)
 

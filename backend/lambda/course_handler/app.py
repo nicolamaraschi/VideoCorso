@@ -147,7 +147,6 @@ def get_course(course_ref: Optional[str]) -> Optional[dict[str, Any]]:
 
 
 def list_courses(include_non_public: bool = False):
-    ensure_catalog_seed()
     courses = [normalize_course(item) for item in list_all_items(courses_table)]
     if not include_non_public:
         courses = [course for course in courses if course.get('status') in PUBLIC_STATUSES]
@@ -289,7 +288,7 @@ def choose_legacy_structure_course(user_id: Optional[str]):
     courses = [normalize_course(item) for item in list_all_items(courses_table)]
     if courses:
         return sorted(courses, key=lambda item: (int(item.get('display_order', 999)), item.get('created_at', '')))[0]
-    return ensure_catalog_seed()
+    return None
 
 
 def get_courses_catalog(event):
@@ -335,6 +334,8 @@ def get_my_courses(event):
 def get_course_structure_legacy(event):
     user_id = get_user_id(event)
     course = choose_legacy_structure_course(user_id)
+    if not course:
+        return create_response(404, {'error': 'No courses available'})
     return create_response(200, build_course_structure(course, user_id))
 
 

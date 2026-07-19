@@ -673,8 +673,6 @@ def summarize_student(user_item: dict[str, Any]) -> dict[str, Any]:
     purchases = get_user_purchases(user_item['user_id'])
     progress_items = get_user_progress_items(user_item['user_id'])
     all_courses = list_all_items(TABLES['COURSES'])
-    if not all_courses:
-        all_courses = [ensure_legacy_course()]
 
     accessible_courses = [course for course in all_courses if can_access_course(user_item, purchases, course['course_id'])]
     course_lessons = set()
@@ -831,8 +829,6 @@ def update_course(course_id, body):
 
 def get_courses():
     courses = list_all_items(TABLES['COURSES'])
-    if not courses:
-        courses = [ensure_legacy_course()]
     normalized = [normalize_course(course) for course in courses]
     normalized.sort(key=lambda item: (int(item.get('display_order', 999)), item.get('created_at', '')))
     return create_response(200, {'items': normalized})
@@ -1280,8 +1276,6 @@ def get_student_detail(student_id):
     purchases = sorted(get_user_purchases(student_id), key=lambda item: item.get('purchase_date', ''), reverse=True)
     progress_items = get_user_progress_items(student_id)
     courses = list_all_items(TABLES['COURSES'])
-    if not courses:
-        courses = [ensure_legacy_course()]
 
     progress_by_course = []
     accessible_courses = []
@@ -1331,11 +1325,11 @@ def get_purchases():
         normalized = normalize_purchase(purchase)
         normalized_course_id = normalize_purchase_course_id(normalized)
         user_item = users.get(normalized.get('user_id'), {})
-        course = normalize_course(courses.get(normalized_course_id) or ensure_legacy_course())
+        course = normalize_course(courses[normalized_course_id]) if normalized_course_id in courses else None
         record = {
             **normalized,
             'course_id': normalized_course_id,
-            'course_title': normalized.get('course_title') or course.get('title', ''),
+            'course_title': normalized.get('course_title') or (course.get('title', '') if course else 'Corso eliminato'),
             'user_email': normalized.get('customer_email') or user_item.get('email', ''),
             'user_name': user_item.get('full_name', ''),
             'amount': normalized['amount_gross'],
@@ -1362,7 +1356,7 @@ def get_purchase_detail(purchase_id):
 
     normalized = normalize_purchase(purchase)
     user_item = get_user_item(normalized.get('user_id')) if normalized.get('user_id') else {}
-    course = get_course(normalized.get('course_id')) or ensure_legacy_course()
+    course = get_course(normalized.get('course_id'))
 
     timeline = [
         {'label': 'Creato', 'at': normalized.get('created_at') or normalized.get('purchase_date')},
@@ -1380,7 +1374,7 @@ def get_purchase_detail(purchase_id):
             **normalized,
             'user_email': normalized.get('customer_email') or user_item.get('email', ''),
             'user_name': user_item.get('full_name', ''),
-            'course_title': normalized.get('course_title') or course.get('title', ''),
+            'course_title': normalized.get('course_title') or (course.get('title', '') if course else 'Corso eliminato'),
         },
         'timeline': [entry for entry in timeline if entry.get('at')],
     })
