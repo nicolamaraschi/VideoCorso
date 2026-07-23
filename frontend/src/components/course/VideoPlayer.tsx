@@ -20,6 +20,43 @@ interface VideoPlayerProps {
   onEnded?: () => void;
 }
 
+const getIPhoneVideoRotation = async (videoUrl: string, signal: AbortSignal): Promise<0 | 90 | 180 | 270> => {
+  // iPhone MOV/MP4 files can store portrait orientation in the `tkhd` atom.
+  // Chrome desktop doesn't consistently apply it, so read it explicitly.
+  const readRotation = (bytes: Uint8Array): 0 | 90 | 180 | 270 => {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+
+    for (let index = 4; index < bytes.length - 56; index += 1) {
+      if (String.fromCharCode(...bytes.slice(index, index + 4)) !== 'tkhd') continue;
+
+      const boxStart = index - 4;
+      const version = bytes[index + 4];
+      const matrixStart = boxStart + (version === 1 ? 60 : 48);
+      if (matrixStart + 16 > bytes.length) continue;
+
+      const a = view.getInt32(matrixStart);
+      const b = view.getInt32(matrixStart + 4);
+      const c = view.getInt32(matrixStart + 8);
+      const d = view.getInt32(matrixStart + 12);
+
+      if (a === 0 && b > 0 && c < 0 && d === 0) return 90;
+      if (a === 0 && b < 0 && c > 0 && d === 0) return 270;
+      if (a < 0 && b === 0 && c === 0 && d < 0) return 180;
+    }
+
+    return 0;
+  };
+
+  // Some phones write `moov` at the beginning, others at the end of the file.
+  for (const range of ['bytes=0-2097151', 'bytes=-2097152']) {
+    const response = await fetch(videoUrl, { headers: { Range: range }, signal });
+    const rotation = readRotation(new Uint8Array(await response.arrayBuffer()));
+    if (rotation !== 0) return rotation;
+  }
+
+  return 0;
+};
+
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   videoUrl,
   lessonId,
@@ -41,6 +78,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Start with 16:9 to avoid layout shift, then use the uploaded video's
   // native dimensions as soon as its metadata is available.
   const [aspectRatio, setAspectRatio] = useState(16 / 9);
+  const [rotation, setRotation] = useState<0 | 90 | 180 | 270>(0);
 
   const {
     handleTimeUpdate,
@@ -186,11 +224,22 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [isPlaying]);
 
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const isPortrait = aspectRatio < 1;
+  const displayAspectRatio = rotation === 90 || rotation === 270 ? 1 / aspectRatio : aspectRatio;
+  const isPortrait = displayAspectRatio < 1;
 
   useEffect(() => {
     // A new lesson may use a different format from the previous one.
     setAspectRatio(16 / 9);
+    setRotation(0);
+
+    const controller = new AbortController();
+    void getIPhoneVideoRotation(videoUrl, controller.signal)
+      .then(setRotation)
+      .catch(() => {
+        // Non-MP4 sources and servers without range support simply play normally.
+      });
+
+    return () => controller.abort();
   }, [videoUrl]);
 
   return (
@@ -199,7 +248,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       className={`relative bg-black rounded-lg overflow-hidden group video-player mx-auto ${
         isPortrait ? 'max-w-[480px]' : 'w-full'
       }`}
-      style={{ aspectRatio: String(aspectRatio) }}
+      style={{ aspectRatio: String(displayAspectRatio) }}
     >
       {/* Video Element */}
       <div className="absolute inset-0 pointer-events-none">
@@ -229,7 +278,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             markComplete(currentTime, duration);
             if (onEnded) onEnded();
           }}
-          style={{ position: 'absolute', top: 0, left: 0 }}
+          style={rotation === 0 ? {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+          } : {
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            width: `${aspectRatio * 100}%`,
+            height: `${100 / aspectRatio}%`,
+            transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+          }}
           config={{
             youtube: {
               rel: 0,
