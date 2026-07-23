@@ -62,7 +62,9 @@ def build_job_settings(source_uri: str, destination_uri: str) -> dict:
         'Inputs': [{
             'FileInput': source_uri,
             'AudioSelectors': {'Audio Selector 1': {'DefaultSelection': 'DEFAULT'}},
-            'VideoSelector': {},
+            # iPhone videos commonly store portrait orientation as metadata.
+            # Bake that rotation into the output so every browser renders it upright.
+            'VideoSelector': {'Rotate': 'AUTO'},
         }],
     }
 
