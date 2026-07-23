@@ -178,12 +178,12 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
             Drop video file here or click to browse
           </p>
           <p className="text-sm text-gray-500">
-            Supported formats: MP4, WebM, OGG (Max 2GB)
+            Supported formats: MP4, MOV, WebM, OGG (Max 2GB)
           </p>
           <input
             ref={fileInputRef}
             type="file"
-            accept="video/mp4,video/webm,video/ogg"
+            accept="video/mp4,video/quicktime,video/x-quicktime,video/webm,video/ogg,.mov"
             onChange={handleFileInputChange}
             className="hidden"
           />

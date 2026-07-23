@@ -38,6 +38,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showControls, setShowControls] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  // Start with 16:9 to avoid layout shift, then use the uploaded video's
+  // native dimensions as soon as its metadata is available.
+  const [aspectRatio, setAspectRatio] = useState(16 / 9);
 
   const {
     handleTimeUpdate,
@@ -183,14 +186,23 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [isPlaying]);
 
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const isPortrait = aspectRatio < 1;
+
+  useEffect(() => {
+    // A new lesson may use a different format from the previous one.
+    setAspectRatio(16 / 9);
+  }, [videoUrl]);
 
   return (
     <div
       ref={containerRef}
-      className="relative bg-black rounded-lg overflow-hidden group video-player"
+      className={`relative bg-black rounded-lg overflow-hidden group video-player mx-auto ${
+        isPortrait ? 'max-w-[480px]' : 'w-full'
+      }`}
+      style={{ aspectRatio: String(aspectRatio) }}
     >
       {/* Video Element */}
-      <div className="w-full aspect-video pointer-events-none">
+      <div className="absolute inset-0 pointer-events-none">
         <ReactPlayer
           ref={playerRef}
           src={videoUrl}
@@ -206,6 +218,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             handleTimeUpdate(playedSeconds, duration);
           }}
           onDurationChange={(event) => setDuration(event.currentTarget.duration)}
+          onLoadedMetadata={(event) => {
+            const { videoWidth, videoHeight } = event.currentTarget;
+            if (videoWidth > 0 && videoHeight > 0) {
+              setAspectRatio(videoWidth / videoHeight);
+            }
+          }}
           onEnded={() => {
             setIsPlaying(false);
             markComplete(currentTime, duration);

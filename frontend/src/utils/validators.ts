@@ -53,12 +53,12 @@ export const validateVideoFile = (file: File): {
   valid: boolean;
   error?: string;
 } => {
-  const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+  const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-quicktime'];
 
   if (!allowedTypes.includes(file.type)) {
     return {
       valid: false,
-      error: 'Only MP4, WebM, and OGG video formats are allowed',
+      error: 'Only MP4, MOV, WebM, and OGG video formats are allowed',
     };
   }
 
