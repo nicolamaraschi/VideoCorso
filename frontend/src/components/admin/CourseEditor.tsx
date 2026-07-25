@@ -616,7 +616,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         isOpen={showPreviewModal}
         onClose={closePreviewModal}
         title="Lesson Preview"
-        size="xl"
+        size="2xl"
       >
         {previewLoading ? (
           <Loading text="Loading video..." />
