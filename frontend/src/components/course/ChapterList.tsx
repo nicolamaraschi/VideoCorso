@@ -61,16 +61,16 @@ export const ChapterList: React.FC<ChapterListProps> = ({
             {/* Chapter Header */}
             <button
               onClick={() => toggleChapter(chapter.chapter_id)}
-              className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+              className="w-full flex flex-col items-stretch gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
             >
-              <div className="flex items-center gap-3 flex-1 text-left">
+              <div className="flex min-w-0 items-start gap-2 sm:items-center sm:gap-3 flex-1 text-left">
                 {isExpanded ? (
                   <ChevronDown className="w-5 h-5 text-gray-600 flex-shrink-0" />
                 ) : (
                   <ChevronRight className="w-5 h-5 text-gray-600 flex-shrink-0" />
                 )}
 
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   {chapter.image_url && (
                     <div className="mb-3 overflow-hidden rounded-xl border border-gray-200 bg-white">
                       <img
@@ -80,7 +80,7 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                       />
                     </div>
                   )}
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium text-gray-900">
                       Chapter {chapter.order_number}
                     </span>
@@ -88,7 +88,7 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                       <CheckCircle className="w-4 h-4 text-green-600" />
                     )}
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mt-1">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mt-1 break-words">
                     {chapter.title}
                   </h3>
                   {chapter.description && (
@@ -97,11 +97,11 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                 </div>
               </div>
 
-              <div className="text-right ml-4">
+              <div className="ml-7 w-[calc(100%_-_1.75rem)] text-left sm:ml-4 sm:w-32 sm:text-right">
                 <div className="text-sm font-medium text-gray-700">
                   {chapterProgress.completed} / {chapterProgress.total} lessons
                 </div>
-                <div className="w-32 h-2 bg-gray-200 rounded-full mt-2">
+                <div className="w-full h-2 bg-gray-200 rounded-full mt-2">
                   <div
                     className="h-full bg-primary-600 rounded-full transition-all"
                     style={{ width: `${chapterProgress.percentage}%` }}

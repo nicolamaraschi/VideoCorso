@@ -54,7 +54,7 @@ export const CourseDetailPage: React.FC = () => {
                 <img
                   src={course.cover_image_url}
                   alt={`Copertina ${course.title}`}
-                  className="w-full h-64 object-cover"
+                  className="aspect-video w-full object-contain bg-gray-50"
                 />
               </div>
             )}

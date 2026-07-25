@@ -105,12 +105,12 @@ export const DashboardPage: React.FC = () => {
           const progress = progressMap[course.course_id];
           return (
             <div key={course.course_id} className="overflow-hidden bg-white rounded-lg border border-gray-200">
-              <div className="aspect-[16/6] bg-gray-100 border-b border-gray-200">
+              <div className="aspect-[16/7] bg-gray-100 border-b border-gray-200">
                 {course.cover_image_url ? (
                   <img
                     src={course.cover_image_url}
                     alt={`Copertina ${course.title}`}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-slate-100 via-white to-slate-200" />
@@ -185,7 +185,7 @@ export const DashboardPage: React.FC = () => {
                   <img
                     src={course.cover_image_url}
                     alt={`Copertina ${course.title}`}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-gray-100 via-white to-gray-200" />
