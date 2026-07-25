@@ -458,6 +458,7 @@ def normalize_purchase(purchase: dict[str, Any]) -> dict[str, Any]:
     normalized['webhook_status'] = normalized.get('webhook_status') or 'not_received'
     normalized['created_at'] = normalized.get('created_at') or normalized.get('purchase_date') or now_iso()
     normalized['updated_at'] = normalized.get('updated_at') or normalized['created_at']
+    normalized['is_stripe_test_purchase'] = str(normalized.get('stripe_session_id') or '').startswith('cs_test_')
     return normalized
 
 
@@ -1380,6 +1381,20 @@ def get_purchase_detail(purchase_id):
     })
 
 
+def delete_stripe_test_purchase(purchase_id):
+    purchase = TABLES['PURCHASES'].get_item(Key={'purchase_id': purchase_id}).get('Item')
+    if not purchase:
+        return create_response(404, {'error': 'Purchase not found'})
+
+    # Stripe Checkout IDs explicitly distinguish test and live transactions.
+    # This keeps real sales immutable in the application database.
+    if not str(purchase.get('stripe_session_id') or '').startswith('cs_test_'):
+        return create_response(403, {'error': 'Only Stripe test purchases can be deleted'})
+
+    TABLES['PURCHASES'].delete_item(Key={'purchase_id': purchase_id})
+    return create_response(200, {'success': True, 'deleted_purchase_id': purchase_id})
+
+
 def fetch_stripe_purchase_state(purchase: dict[str, Any]) -> dict[str, Any]:
     normalized = normalize_purchase(purchase)
     payment_intent_id = normalized.get('stripe_payment_intent_id')
@@ -2004,6 +2019,8 @@ def lambda_handler(event, context):
                 body,
                 get_current_admin_email(event),
             )
+        if path.startswith('/admin/purchase/') and http_method == 'DELETE':
+            return delete_stripe_test_purchase(path_parameters.get('purchaseId'))
         if path.startswith('/admin/purchase/') and http_method == 'GET':
             return get_purchase_detail(path_parameters.get('purchaseId'))
         if path == '/admin/stats' and http_method == 'GET':

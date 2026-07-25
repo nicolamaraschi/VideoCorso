@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { CheckCircle2, Mail, RefreshCcw, ShieldCheck, ShieldX } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { CheckCircle2, Mail, RefreshCcw, ShieldCheck, ShieldX, Trash2 } from 'lucide-react';
 import { adminService } from '../services/adminService';
 import type { PurchaseDetail } from '../types';
 import { Loading } from '../components/common/Loading';
@@ -22,6 +22,7 @@ const statusStyles: Record<string, string> = {
 
 export const AdminPurchaseDetailPage: React.FC = () => {
   const { purchaseId } = useParams<{ purchaseId: string }>();
+  const navigate = useNavigate();
   const [detail, setDetail] = useState<PurchaseDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +53,7 @@ export const AdminPurchaseDetailPage: React.FC = () => {
     void loadDetail();
   }, [loadDetail]);
 
-  const runAction = async (action: 'resync' | 'unlock' | 'revoke' | 'verify') => {
+  const runAction = async (action: 'resync' | 'unlock' | 'revoke' | 'verify' | 'delete-test') => {
     if (!purchaseId) {
       return;
     }
@@ -60,8 +61,9 @@ export const AdminPurchaseDetailPage: React.FC = () => {
     const confirmations = {
       unlock: 'Forzare lo sblocco del corso? Lo studente riceverà accesso anche senza una conferma di pagamento.',
       revoke: 'Revocare subito l’accesso al corso? Lo studente non potrà più vedere le lezioni.',
+      'delete-test': 'Eliminare definitivamente questo ordine Stripe di test? L’accesso associato verrà rimosso.',
     } as const;
-    if ((action === 'unlock' || action === 'revoke') && !window.confirm(confirmations[action])) {
+    if ((action === 'unlock' || action === 'revoke' || action === 'delete-test') && !window.confirm(confirmations[action])) {
       return;
     }
 
@@ -78,6 +80,11 @@ export const AdminPurchaseDetailPage: React.FC = () => {
       }
       if (action === 'verify') {
         await adminService.markPurchaseVerified(purchaseId);
+      }
+      if (action === 'delete-test') {
+        await adminService.deleteStripeTestPurchase(purchaseId);
+        navigate('/admin/purchases');
+        return;
       }
       await loadDetail();
     } catch (err) {
@@ -160,6 +167,12 @@ export const AdminPurchaseDetailPage: React.FC = () => {
             <CheckCircle2 className="w-4 h-4 mr-2" />
             Segna come verificato
           </Button>
+          {purchase.is_stripe_test_purchase && (
+            <Button variant="danger" loading={actionLoading === 'delete-test'} onClick={() => void runAction('delete-test')}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Elimina ordine di test
+            </Button>
+          )}
         </div>
       </div>
 

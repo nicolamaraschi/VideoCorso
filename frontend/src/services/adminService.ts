@@ -183,6 +183,10 @@ export const adminService = {
     return apiClient.get<PurchaseDetail>(`/admin/purchase/${purchaseId}`);
   },
 
+  async deleteStripeTestPurchase(purchaseId: string): Promise<ApiResponse> {
+    return apiClient.delete<ApiResponse>(`/admin/purchase/${purchaseId}`);
+  },
+
   async resyncPurchase(purchaseId: string): Promise<ApiResponse<PurchaseRecord>> {
     return apiClient.post<ApiResponse<PurchaseRecord>>(`/admin/purchase/${purchaseId}/resync`);
   },

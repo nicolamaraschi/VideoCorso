@@ -18,6 +18,7 @@ export interface PurchaseRecord {
   stripe_session_id?: string;
   stripe_payment_intent_id?: string;
   stripe_charge_id?: string;
+  is_stripe_test_purchase?: boolean;
   amount: number;
   amount_gross?: number;
   currency?: string;
