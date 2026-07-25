@@ -107,7 +107,7 @@ export const VideoPlayerPage: React.FC = () => {
         <span>Torna al corso</span>
       </button>
 
-      <div className="mb-8">
+      <div className="-mx-4 mb-6 sm:mx-0 sm:mb-8">
         <VideoPlayer videoUrl={videoUrl} lessonId={lessonId!} onEnded={handleVideoEnded} />
       </div>
 
