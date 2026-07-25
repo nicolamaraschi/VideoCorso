@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Save } from 'lucide-react';
+import { ListTree, Save, Settings } from 'lucide-react';
 import { CourseEditor } from '../components/admin/CourseEditor';
 import { ImageUploader } from '../components/admin/ImageUploader';
 import { useCourse } from '../hooks/useCourse';
@@ -39,6 +39,7 @@ export const AdminCoursePage: React.FC = () => {
   const [pageError, setPageError] = useState<string | null>(null);
   const [courseForm, setCourseForm] = useState<AdminCourseRequest>(emptyCourseForm);
   const [isCreating, setIsCreating] = useState(false);
+  const [activeSection, setActiveSection] = useState<'settings' | 'structure'>('settings');
 
   const { courseStructure, loading, error, reload } = useCourse(selectedCourseId || undefined);
 
@@ -280,6 +281,7 @@ export const AdminCoursePage: React.FC = () => {
             onChange={(event) => {
               setSelectedCourseId(event.target.value);
               setIsCreating(false);
+              setActiveSection('settings');
             }}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-primary-500 font-medium"
           >
@@ -297,6 +299,7 @@ export const AdminCoursePage: React.FC = () => {
             variant="primary"
             onClick={() => {
               setIsCreating(true);
+              setActiveSection('settings');
               setCourseForm({
                 ...emptyCourseForm,
                 public_slug: '',
@@ -309,6 +312,43 @@ export const AdminCoursePage: React.FC = () => {
         </div>
       </section>
 
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2" aria-label="Sezioni di gestione corso">
+        <button
+          type="button"
+          onClick={() => setActiveSection('settings')}
+          className={`flex items-center gap-3 rounded-xl border p-4 text-left transition-colors ${
+            activeSection === 'settings'
+              ? 'border-primary-500 bg-primary-50 text-primary-900 shadow-sm'
+              : 'border-gray-200 bg-white text-gray-700 hover:border-primary-300'
+          }`}
+        >
+          <Settings className="h-5 w-5 flex-shrink-0" />
+          <span>
+            <span className="block font-semibold">Impostazioni corso</span>
+            <span className="block text-xs opacity-75">Titolo, prezzo, stato, testi e copertina</span>
+          </span>
+        </button>
+        {!isCreating && (
+          <button
+            type="button"
+            onClick={() => setActiveSection('structure')}
+            className={`flex items-center gap-3 rounded-xl border p-4 text-left transition-colors ${
+              activeSection === 'structure'
+                ? 'border-primary-500 bg-primary-50 text-primary-900 shadow-sm'
+                : 'border-gray-200 bg-white text-gray-700 hover:border-primary-300'
+            }`}
+          >
+            <ListTree className="h-5 w-5 flex-shrink-0" />
+            <span>
+              <span className="block font-semibold">Struttura corso</span>
+              <span className="block text-xs opacity-75">Capitoli, lezioni, video e relative copertine</span>
+            </span>
+          </button>
+        )}
+      </section>
+
+      {activeSection === 'settings' && (
+      <>
       <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-bold text-gray-800">
@@ -558,7 +598,10 @@ export const AdminCoursePage: React.FC = () => {
           </Button>
         </section>
       )}
+      </>
+      )}
 
+      {activeSection === 'settings' && (
       <div className="fixed bottom-0 left-0 right-0 md:left-64 z-40 flex justify-center border-t border-gray-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <div className="flex justify-center">
           <Button
@@ -573,8 +616,9 @@ export const AdminCoursePage: React.FC = () => {
           </Button>
         </div>
       </div>
+      )}
 
-      {isCreating ? (
+      {activeSection === 'structure' && (isCreating ? (
         <div className="bg-white rounded-lg shadow border border-gray-200 p-8 text-center text-gray-500">
           <p className="text-lg font-medium">Salva il corso per iniziare ad aggiungere i contenuti</p>
           <p className="mt-2 text-sm">Dopo aver salvato, potrai creare capitoli e lezioni.</p>
@@ -595,7 +639,7 @@ export const AdminCoursePage: React.FC = () => {
           onReorderChapters={handleReorderChapters}
           onReorderLessons={handleReorderLessons}
         />
-      )}
+      ))}
     </div>
   );
 };
