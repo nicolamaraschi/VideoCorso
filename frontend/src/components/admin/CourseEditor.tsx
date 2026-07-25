@@ -249,8 +249,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               className="bg-white rounded-lg border border-gray-200 overflow-hidden"
             >
               {/* Chapter Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 border-b border-gray-200 gap-4">
-                <div className="flex items-center gap-3 w-full sm:w-auto overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50 p-3 sm:p-4 border-b border-gray-200">
+                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto overflow-hidden">
                   <div className="cursor-move p-1 hover:bg-gray-200 rounded">
                     <GripVertical className="w-5 h-5 text-gray-400" />
                   </div>
@@ -258,7 +258,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                     <img
                       src={chapter.image_url}
                       alt={chapter.title}
-                      className="h-20 w-28 rounded-lg border border-gray-200 object-cover bg-white"
+                      className="h-14 w-20 sm:h-20 sm:w-28 rounded-lg border border-gray-200 object-cover bg-white"
                     />
                   ) : null}
                   <div className="min-w-0 flex-1">
@@ -311,28 +311,28 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                         key={lesson.lesson_id}
                         value={lesson}
                         onDragEnd={() => handleSaveLessonOrder(chapter.chapter_id)}
-                        className="flex items-center justify-between p-3 bg-white rounded border border-gray-200 shadow-sm"
+                        className="flex flex-col items-stretch gap-2 p-2.5 sm:flex-row sm:items-center sm:justify-between sm:p-3 bg-white rounded border border-gray-200 shadow-sm"
                       >
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className="cursor-move p-1 hover:bg-gray-100 rounded text-gray-400">
+                        <div className="flex min-w-0 items-center gap-2 sm:gap-3 flex-1">
+                          <div className="cursor-move p-1 hover:bg-gray-100 rounded text-gray-400 flex-shrink-0">
                             <GripVertical className="w-4 h-4" />
                           </div>
                           {lesson.thumbnail_url ? (
                             <img
                               src={lesson.thumbnail_url}
                               alt={lesson.title}
-                              className="h-16 w-24 rounded-lg border border-gray-200 object-cover bg-gray-50"
+                              className="h-12 w-16 sm:h-16 sm:w-24 rounded-lg border border-gray-200 object-cover bg-gray-50 flex-shrink-0"
                             />
                           ) : (
-                            <div className="flex h-16 w-24 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-[11px] font-medium text-gray-400">
+                            <div className="flex h-12 w-16 sm:h-16 sm:w-24 flex-shrink-0 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-[10px] sm:text-[11px] font-medium text-gray-400">
                               No cover
                             </div>
                           )}
-                          <div>
-                            <p className="font-medium text-gray-900 text-sm">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-gray-900 text-sm leading-5 break-words">
                               Lesson {lesson.order_number}: {lesson.title}
                             </p>
-                            <p className="text-xs text-gray-500 truncate max-w-md">{lesson.description}</p>
+                            <p className="text-xs text-gray-500 break-words sm:truncate sm:max-w-md">{lesson.description}</p>
                             {lesson.is_free_preview && (
                               <span className="inline-block mt-1 text-[10px] font-medium text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded">
                                 Free Preview
@@ -340,11 +340,11 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex self-end sm:self-auto items-center gap-1">
                           {/* FIX: Pulsante Anteprima */}
                           <button
                             onClick={() => handlePreviewLesson(lesson)}
-                            className="p-1.5 text-gray-500 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors"
+                            className="p-2 sm:p-1.5 text-gray-500 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors"
                             title="Preview Lesson"
                           >
                             <Play className="w-3.5 h-3.5" />
@@ -363,7 +363,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                               });
                               setShowLessonModal(true);
                             }}
-                            className="p-1.5 text-gray-500 hover:text-primary-600 rounded hover:bg-primary-50 transition-colors"
+                            className="p-2 sm:p-1.5 text-gray-500 hover:text-primary-600 rounded hover:bg-primary-50 transition-colors"
                           >
                             <Edit className="w-3.5 h-3.5" />
                           </button>
@@ -373,7 +373,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                                 onDeleteLesson(lesson.lesson_id);
                               }
                             }}
-                            className="p-1.5 text-gray-500 hover:text-red-600 rounded hover:bg-red-50 transition-colors"
+                            className="p-2 sm:p-1.5 text-gray-500 hover:text-red-600 rounded hover:bg-red-50 transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
