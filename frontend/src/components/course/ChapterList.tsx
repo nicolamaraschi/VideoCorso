@@ -18,9 +18,8 @@ export const ChapterList: React.FC<ChapterListProps> = ({
   currentLessonId,
   isPreview = false,
 }) => {
-  const [expandedChapters, setExpandedChapters] = useState<Set<string>>(
-    new Set(chapters.map((c) => c.chapter_id))
-  );
+  // Keep long courses easy to scan: students open only the module they need.
+  const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
 
   const toggleChapter = (chapterId: string) => {
     const newExpanded = new Set(expandedChapters);
@@ -61,6 +60,7 @@ export const ChapterList: React.FC<ChapterListProps> = ({
             {/* Chapter Header */}
             <button
               onClick={() => toggleChapter(chapter.chapter_id)}
+              aria-expanded={isExpanded}
               className="w-full flex flex-col items-stretch gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
             >
               <div className="flex min-w-0 items-start gap-2 sm:items-center sm:gap-3 flex-1 text-left">
@@ -82,7 +82,7 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                   )}
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium text-gray-900">
-                      Chapter {chapter.order_number}
+                      Modulo {chapter.order_number}
                     </span>
                     {chapterProgress.percentage === 100 && (
                       <CheckCircle className="w-4 h-4 text-green-600" />
