@@ -40,6 +40,7 @@ export const AdminCoursePage: React.FC = () => {
   const [courseForm, setCourseForm] = useState<AdminCourseRequest>(emptyCourseForm);
   const [isCreating, setIsCreating] = useState(false);
   const [activeSection, setActiveSection] = useState<'settings' | 'structure'>('settings');
+  const [showTechnicalOptions, setShowTechnicalOptions] = useState(false);
 
   const { courseStructure, loading, error, reload } = useCourse(selectedCourseId || undefined);
 
@@ -442,7 +443,7 @@ export const AdminCoursePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">Stato corso</label>
                 <select
@@ -481,34 +482,11 @@ export const AdminCoursePage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Slug pubblico</label>
-                <input
-                  type="text"
-                  value={courseForm.public_slug || ''}
-                  onChange={(event) => updateCourseField('public_slug', event.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg w-full"
-                  placeholder="nome-corso-negli-url"
-                />
-                <p className="text-xs text-gray-500">
-                  E il nome leggibile usato negli URL pubblici. Meglio corto, minuscolo e con trattini.
-                </p>
-              </div>
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">URL immagine copertina</label>
-              <input
-                type="text"
-                value={courseForm.cover_image_url || ''}
-                onChange={(event) => updateCourseField('cover_image_url', event.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                placeholder="es: https://sito.com/immagine.jpg"
-              />
-              <p className="text-xs text-gray-500">
-                Usa il riquadro <b>"Carica immagine da PC"</b> qui sotto per caricare un file (il link si compilerà da solo).<br/>
-                Se inserisci un link manuale, deve essere un <b>link diretto a un'immagine</b> (es. che finisce per .jpg o .png), non la pagina di un sito.
-              </p>
+              <label className="block text-sm font-medium text-gray-700">Copertina corso</label>
+              <p className="text-xs text-gray-500">Carica qui l’immagine che rappresenta il corso nel catalogo.</p>
               {courseForm.cover_image_url && (
                 <img
                   src={courseForm.cover_image_url}
@@ -551,6 +529,43 @@ export const AdminCoursePage: React.FC = () => {
               <p className="text-xs text-gray-500">
                 Testo completo del corso: cosa include, per chi e pensato, risultati, moduli e motivi per acquistarlo.
               </p>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 bg-gray-50">
+              <button
+                type="button"
+                onClick={() => setShowTechnicalOptions((current) => !current)}
+                className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-gray-700"
+              >
+                <span>Opzioni tecniche — apri solo se necessario</span>
+                <span className="text-primary-600">{showTechnicalOptions ? 'Chiudi' : 'Apri'}</span>
+              </button>
+              {showTechnicalOptions && (
+                <div className="grid grid-cols-1 gap-4 border-t border-gray-200 p-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Indirizzo web del corso</label>
+                    <input
+                      type="text"
+                      value={courseForm.public_slug || ''}
+                      onChange={(event) => updateCourseField('public_slug', event.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                      placeholder="nome-corso-negli-url"
+                    />
+                    <p className="text-xs text-gray-500">Modificalo solo se devi cambiare il link pubblico del corso.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Link diretto alla copertina</label>
+                    <input
+                      type="text"
+                      value={courseForm.cover_image_url || ''}
+                      onChange={(event) => updateCourseField('cover_image_url', event.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                      placeholder="https://.../immagine.jpg"
+                    />
+                    <p className="text-xs text-gray-500">Usalo solo se la copertina è già online; altrimenti usa il caricamento sopra.</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-6 text-sm text-gray-700">
