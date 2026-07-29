@@ -62,8 +62,111 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, onUpdateSt
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 overflow-visible">
-        <div className="overflow-visible">
+      {/* Mobile card list */}
+      <div className="space-y-3 sm:hidden">
+        {filteredStudents.map((student) => (
+          <div key={student.user_id} className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/admin/students/${student.user_id}`)}
+                  className="font-medium text-gray-900 hover:text-primary-700 hover:underline text-left break-words"
+                  title="Apri scheda studente"
+                >
+                  {student.full_name}
+                </button>
+                <div className="text-sm text-gray-500 break-all">{student.email}</div>
+              </div>
+              <span className={`inline-flex flex-shrink-0 px-2 py-1 text-xs font-semibold rounded-full ${getSubscriptionStatusColor(student.subscription_status)}`}>
+                {student.subscription_status}
+              </span>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Accesso</div>
+                <div className="text-gray-700">{student.global_access ? 'Globale' : 'Per acquisto'}</div>
+                {student.subscription_end_date && (
+                  <div className="text-xs text-gray-500 mt-0.5">{formatDate(student.subscription_end_date)}</div>
+                )}
+              </div>
+              <div>
+                <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">Corsi</div>
+                <div className="text-gray-700">{student.accessible_courses_count} sbloccati</div>
+                <div className="text-xs text-gray-500">{student.purchased_courses_count} acquistati</div>
+              </div>
+            </div>
+
+            <div className="mt-3">
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Progress</div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-2 bg-gray-200 rounded-full">
+                  <div className="h-full bg-primary-600 rounded-full" style={{ width: `${student.completion_percentage}%` }} />
+                </div>
+                <span className="text-sm text-gray-600">{student.completion_percentage.toFixed(0)}%</span>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center gap-2">
+              <button
+                onClick={() => handleEditClick(student)}
+                className="flex flex-1 items-center justify-center px-3 py-2 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md transition-colors"
+              >
+                <Edit className="w-3.5 h-3.5 mr-1.5" />
+                Modifica
+              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setActionMenuStudentId((current) => current === student.user_id ? null : student.user_id)}
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors border border-gray-200"
+                  aria-label={`Altre azioni per ${student.full_name}`}
+                  aria-expanded={actionMenuStudentId === student.user_id}
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+                {actionMenuStudentId === student.user_id && (
+                  <div className="absolute right-0 z-20 mt-2 w-52 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionMenuStudentId(null);
+                        void onResetPassword(student.user_id);
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <Key className="w-4 h-4 text-orange-600" />
+                      Invia nuova password
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionMenuStudentId(null);
+                        void onDeleteStudent(student.user_id);
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Elimina studente
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {filteredStudents.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+            <p className="text-gray-500">No students found</p>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden sm:block bg-white rounded-lg border border-gray-200 overflow-visible">
+        <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
