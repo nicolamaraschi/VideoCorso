@@ -22,7 +22,7 @@ Le Lambda leggono questi parametri al cold start. I valori non devono essere ins
 cd backend/infrastructure
 sam build --profile personale
 sam deploy --stack-name corso-video-chiara \
-  --parameter-overrides Environment=prod \
+  --parameter-overrides Environment=prod AllowedCheckoutOrigins=https://IL-TUO-DOMINIO \
   --capabilities CAPABILITY_IAM \
   --resolve-s3 \
   --profile personale
