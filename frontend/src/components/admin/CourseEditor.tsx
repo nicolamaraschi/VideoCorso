@@ -101,6 +101,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
   const [previewLessonId, setPreviewLessonId] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewMissing, setPreviewMissing] = useState(false);
   const [replacingThumbnail, setReplacingThumbnail] = useState(false);
 
   const [chapterForm, setChapterForm] = useState({ title: '', description: '', image_url: '' });
@@ -195,8 +196,17 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
 
   // FIX: Funzione per gestire l'anteprima del video
   const handlePreviewLesson = async (lesson: Lesson) => {
+    if (!lesson.video_s3_key) {
+      setPreviewMissing(true);
+      setPreviewVideoUrl(null);
+      setPreviewLessonId(lesson.lesson_id);
+      setShowPreviewModal(true);
+      return;
+    }
+
     try {
       setPreviewLoading(true);
+      setPreviewMissing(false);
       setShowPreviewModal(true);
 
       // Chiamiamo lo stesso servizio usato dagli studenti
@@ -206,8 +216,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       setPreviewLessonId(lesson.lesson_id); // Usato per il tracciamento
     } catch (err) {
       console.error("Failed to load preview video", err);
-      alert("Failed to load video preview.");
-      setShowPreviewModal(false);
+      setPreviewMissing(true);
+      setPreviewVideoUrl(null);
     } finally {
       setPreviewLoading(false);
     }
@@ -218,6 +228,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     setShowPreviewModal(false);
     setPreviewVideoUrl(null);
     setPreviewLessonId(null);
+    setPreviewMissing(false);
   };
 
   return (
@@ -625,6 +636,10 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             videoUrl={previewVideoUrl}
             lessonId={previewLessonId} // Passiamo l'ID per il tracciamento
           />
+        ) : previewMissing ? (
+          <div className="text-center py-8">
+            <p className="text-gray-600">Per questa lezione non è ancora presente un video.</p>
+          </div>
         ) : (
           <p>Error loading video.</p>
         )}
