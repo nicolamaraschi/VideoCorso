@@ -30,6 +30,8 @@ export interface PurchaseRecord {
   webhook_status?: string;
   webhook_received_at?: string;
   access_unlocked?: boolean;
+  /** Access granted intentionally by an administrator before Stripe confirms payment. */
+  manual_access_override?: boolean;
   access_revoked?: boolean;
   access_expires_at?: string | null;
   purchase_origin?: 'public_checkout' | 'admin_manual' | 'coupon_100' | 'gift';

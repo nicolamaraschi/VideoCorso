@@ -199,6 +199,10 @@ export const adminService = {
     return apiClient.post<ApiResponse<PurchaseRecord>>(`/admin/purchase/${purchaseId}/revoke`);
   },
 
+  async refundPurchase(purchaseId: string, data: { amount?: number; reason?: string }): Promise<ApiResponse<PurchaseRecord> & { refund_id?: string }> {
+    return apiClient.post<ApiResponse<PurchaseRecord> & { refund_id?: string }>(`/admin/purchase/${purchaseId}/refund`, data);
+  },
+
   async markPurchaseVerified(purchaseId: string): Promise<ApiResponse<PurchaseRecord>> {
     return apiClient.post<ApiResponse<PurchaseRecord>>(`/admin/purchase/${purchaseId}/mark-verified`);
   },

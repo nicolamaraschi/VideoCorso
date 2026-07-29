@@ -139,10 +139,28 @@ export interface AdminStats {
     user_email: string;
     amount: number;
     purchase_date: string;
+    status?: string;
   }>;
   daily_access_chart: Array<{
     date: string;
     active_users: number;
+  }>;
+  active_students_last_7_days: number;
+  revenue_last_30_days: number;
+  attention_items: Array<{
+    id: string;
+    severity: 'urgent' | 'attention';
+    title: string;
+    description: string;
+    action_label: string;
+    action_url: string;
+  }>;
+  course_health: Array<{
+    course_id: string;
+    title: string;
+    enrolled_students: number;
+    active_students_last_7_days: number;
+    average_completion_rate: number;
   }>;
   _debug_dates?: string[];
 }

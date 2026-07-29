@@ -136,7 +136,7 @@ export const AdminCoursePage: React.FC = () => {
 
   const handleDeleteCourse = async () => {
     if (!selectedCourseId) return;
-    if (!window.confirm('Sei sicuro di voler eliminare DEFINITIVAMENTE questo corso, tutti i suoi capitoli e le sue lezioni? Questa azione non è annullabile!')) return;
+    if (!window.confirm('Archiviare questo corso? Non sarà più acquistabile, ma lezioni, acquisti e accessi delle iscritte saranno conservati.')) return;
     
     try {
       setSaving(true);
@@ -609,7 +609,7 @@ export const AdminCoursePage: React.FC = () => {
             variant="danger"
             className="border-red-300 text-red-700 hover:bg-red-100 hover:text-red-800 whitespace-nowrap"
           >
-            Elimina definitivamente
+            Archivia corso
           </Button>
         </section>
       )}
