@@ -10,7 +10,7 @@ export const useVideoProgress = ({ lessonId }: UseVideoProgressProps) => {
   const [progress, setProgress] = useState<Progress | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const lastSavedTime = useRef<number>(0);
-  const saveTimeout = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const completionInFlight = useRef(false);
   const [seekToSeconds, setSeekToSeconds] = useState<number | null>(null);
 

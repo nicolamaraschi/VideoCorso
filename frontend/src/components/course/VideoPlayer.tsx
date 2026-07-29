@@ -198,7 +198,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   // Auto-hide controls
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
+    let timeout: ReturnType<typeof setTimeout>;
 
     const handleMouseMove = () => {
       setShowControls(true);
