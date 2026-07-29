@@ -10,6 +10,9 @@ Parameters:
       - dev
       - prod
     Description: Environment name
+  AllowedCheckoutOrigins:
+    Type: String
+    Description: Application origin permitted for Stripe redirects and browser API calls (for example https://academy.example.it)
 
 Globals:
   Function:
@@ -25,6 +28,7 @@ Globals:
         PURCHASES_TABLE: !Ref PurchasesTable
         COUPONS_TABLE: !Ref CouponsTable
         WEBHOOK_EVENTS_TABLE: !Ref WebhookEventsTable
+        AUDIT_LOGS_TABLE: !Ref AuditLogsTable
         PROGRESS_TABLE: !Ref ProgressTable
         USERS_TABLE: !Ref UsersTable
         VIDEO_BUCKET: !Ref VideoBucket
@@ -34,6 +38,7 @@ Globals:
         STRIPE_SECRET_KEY_PARAMETER: !Sub "/videocorso/${Environment}/stripe/secret-key"
         STRIPE_WEBHOOK_SECRET_PARAMETER: !Sub "/videocorso/${Environment}/stripe/webhook-secret"
         RESEND_API_KEY_PARAMETER: !Sub "/videocorso/${Environment}/resend/api-key"
+        ALLOWED_CHECKOUT_ORIGINS: !Ref AllowedCheckoutOrigins
         # FIX: Aggiunta variabile d'ambiente globale per Cognito
         COGNITO_USER_POOL_ID: !Ref UserPool
 
@@ -42,9 +47,15 @@ Resources:
 
   CoursesTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       TableName: !Sub "${Environment}-videocorso-courses"
       BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
       AttributeDefinitions:
         - AttributeName: course_id
           AttributeType: S
@@ -54,9 +65,15 @@ Resources:
 
   ChaptersTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       TableName: !Sub "${Environment}-videocorso-chapters"
       BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
       AttributeDefinitions:
         - AttributeName: chapter_id
           AttributeType: S
@@ -75,9 +92,15 @@ Resources:
 
   LessonsTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       TableName: !Sub "${Environment}-videocorso-lessons"
       BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
       AttributeDefinitions:
         - AttributeName: lesson_id
           AttributeType: S
@@ -96,9 +119,15 @@ Resources:
 
   PurchasesTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       TableName: !Sub "${Environment}-videocorso-purchases"
       BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
       AttributeDefinitions:
         - AttributeName: purchase_id
           AttributeType: S
@@ -117,9 +146,15 @@ Resources:
 
   CouponsTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       TableName: !Sub "${Environment}-videocorso-coupons"
       BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
       AttributeDefinitions:
         - AttributeName: coupon_id
           AttributeType: S
@@ -129,9 +164,15 @@ Resources:
 
   WebhookEventsTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       TableName: !Sub "${Environment}-videocorso-webhook-events"
       BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
       AttributeDefinitions:
         - AttributeName: event_id
           AttributeType: S
@@ -141,9 +182,15 @@ Resources:
 
   ProgressTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       TableName: !Sub "${Environment}-videocorso-progress"
       BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
       AttributeDefinitions:
         - AttributeName: progress_id
           AttributeType: S
@@ -170,14 +217,38 @@ Resources:
 
   UsersTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       TableName: !Sub "${Environment}-videocorso-users"
       BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
       AttributeDefinitions:
         - AttributeName: user_id
           AttributeType: S
       KeySchema:
         - AttributeName: user_id
+          KeyType: HASH
+
+  AuditLogsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "${Environment}-videocorso-audit-logs"
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      AttributeDefinitions:
+        - AttributeName: audit_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: audit_id
           KeyType: HASH
 
   # ==================== S3 Buckets ====================
@@ -305,7 +376,7 @@ Resources:
       Cors:
         AllowMethods: "'GET,POST,PUT,DELETE,PATCH,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization'"
-        AllowOrigin: "'*'"
+        AllowOrigin: !Sub "'${AllowedCheckoutOrigins}'"
       Auth:
         AddDefaultAuthorizerToCorsPreflight: false
         Authorizers:
@@ -625,6 +696,8 @@ Resources:
             TableName: !Ref UsersTable
         - DynamoDBCrudPolicy:
             TableName: !Ref ProgressTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditLogsTable
         - S3CrudPolicy:
             BucketName: !Ref VideoBucket
         - S3CrudPolicy:
@@ -897,6 +970,12 @@ Resources:
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /admin/purchase/{purchaseId}/revoke
+            Method: POST
+        PurchaseRefund:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/purchase/{purchaseId}/refund
             Method: POST
         PurchaseMarkVerified:
           Type: Api

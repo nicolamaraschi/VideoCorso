@@ -5,9 +5,11 @@ import string
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 import boto3
 import stripe
+from botocore.exceptions import ClientError
 
 
 LEGACY_COURSE_ID = 'legacy-default-course'
@@ -36,6 +38,11 @@ coupons_table = dynamodb.Table(os.environ.get('COUPONS_TABLE'))
 webhook_events_table = dynamodb.Table(os.environ.get('WEBHOOK_EVENTS_TABLE'))
 
 COGNITO_USER_POOL_ID = os.environ.get('COGNITO_USER_POOL_ID')
+ALLOWED_CHECKOUT_ORIGINS = {
+    origin.strip().rstrip('/')
+    for origin in os.environ.get('ALLOWED_CHECKOUT_ORIGINS', '').split(',')
+    if origin.strip()
+}
 
 try:
     import resend
@@ -365,18 +372,41 @@ def build_coupon_snapshot(coupon: Optional[dict[str, Any]]):
     }
 
 
-def increment_coupon_redemption(coupon: Optional[dict[str, Any]]):
+def increment_coupon_redemption(coupon: Optional[dict[str, Any]]) -> bool:
     if not coupon:
-        return
+        return True
     coupon_id = coupon.get('coupon_id') or coupon.get('code')
-    coupons_table.update_item(
-        Key={'coupon_id': coupon_id},
-        UpdateExpression='SET current_redemptions = :current, updated_at = :updated',
-        ExpressionAttributeValues={
-            ':current': int(coupon.get('current_redemptions', 0)) + 1,
-            ':updated': now_iso(),
-        },
-    )
+    names = {'#count': 'current_redemptions'}
+    values = {':one': 1, ':updated': now_iso()}
+    update_kwargs = {
+        'Key': {'coupon_id': coupon_id},
+        'UpdateExpression': 'ADD #count :one SET updated_at = :updated',
+        'ExpressionAttributeNames': names,
+        'ExpressionAttributeValues': values,
+    }
+    max_redemptions = coupon.get('max_redemptions')
+    if max_redemptions not in (None, ''):
+        values[':max'] = int(max_redemptions)
+        update_kwargs['ConditionExpression'] = 'attribute_not_exists(#count) OR #count < :max'
+    try:
+        coupons_table.update_item(**update_kwargs)
+        return True
+    except ClientError as exc:
+        if exc.response.get('Error', {}).get('Code') == 'ConditionalCheckFailedException':
+            return False
+        raise
+
+
+def validate_checkout_redirect_url(value: Any, field_name: str) -> str:
+    parsed = None
+    try:
+        parsed = urlparse(str(value))
+        origin = f'{parsed.scheme}://{parsed.netloc}'.rstrip('/')
+    except (TypeError, ValueError):
+        origin = ''
+    if not parsed or not parsed.scheme or not parsed.netloc or origin not in ALLOWED_CHECKOUT_ORIGINS:
+        raise ValueError(f'{field_name} must use an approved application domain')
+    return str(value)
 
 
 def purchase_status_from_stripe(status: str, payment_status: Optional[str], refunded_amount: Decimal, is_disputed: bool):
@@ -402,6 +432,7 @@ def sync_purchase_access(purchase: dict[str, Any], action: str = 'sync'):
     if action == 'force_unlock':
         purchase['access_unlocked'] = True
         purchase['access_revoked'] = False
+        purchase['manual_access_override'] = True
         purchase['access_revoked_at'] = None
         purchase['access_revocation_reason'] = ''
         purchase['updated_at'] = now_iso()
@@ -410,6 +441,7 @@ def sync_purchase_access(purchase: dict[str, Any], action: str = 'sync'):
     if action == 'revoke':
         purchase['access_unlocked'] = False
         purchase['access_revoked'] = True
+        purchase['manual_access_override'] = False
         purchase['access_revoked_at'] = now_iso()
         purchase['access_revocation_reason'] = purchase.get('access_revocation_reason') or 'manual_revoke'
         purchase['updated_at'] = now_iso()
@@ -418,16 +450,22 @@ def sync_purchase_access(purchase: dict[str, Any], action: str = 'sync'):
     if local_status == 'paid' and refunded_amount <= 0 and not access_revoked:
         purchase['access_unlocked'] = True
         purchase['access_revoked'] = False
+        purchase['manual_access_override'] = False
         purchase['access_revoked_at'] = None
         purchase['access_revocation_reason'] = ''
+    elif normalize_bool(purchase.get('manual_access_override', False)) and local_status not in {'refunded', 'disputed'} and refunded_amount <= 0 and not access_revoked:
+        purchase['access_unlocked'] = True
     elif local_status == 'refunded':
         purchase['access_unlocked'] = False
         purchase['access_revoked'] = True
         purchase['access_revoked_at'] = purchase.get('access_revoked_at') or now_iso()
         purchase['access_revocation_reason'] = purchase.get('access_revocation_reason') or 'refund_total'
     elif local_status == 'disputed':
-        purchase['access_unlocked'] = access_unlocked
-        purchase['access_revoked'] = access_revoked
+        purchase['access_unlocked'] = False
+        purchase['access_revoked'] = True
+        purchase['access_revoked_at'] = purchase.get('access_revoked_at') or now_iso()
+        purchase['access_revocation_reason'] = purchase.get('access_revocation_reason') or 'payment_disputed'
+        purchase['manual_access_override'] = False
     elif local_status in {'failed', 'cancelled'}:
         purchase['access_unlocked'] = False
     purchase['updated_at'] = now_iso()
@@ -448,6 +486,7 @@ def normalize_purchase_defaults(purchase: dict[str, Any]):
     normalized['purchase_origin'] = normalized.get('purchase_origin') or 'public_checkout'
     normalized['access_unlocked'] = normalize_bool(normalized.get('access_unlocked', str(normalized['local_status']) == 'paid'))
     normalized['access_revoked'] = normalize_bool(normalized.get('access_revoked', False))
+    normalized['manual_access_override'] = normalize_bool(normalized.get('manual_access_override', False))
     normalized['refund_status'] = normalized.get('refund_status') or ('refunded' if Decimal(str(normalized.get('refunded_amount', 0) or 0)) > 0 else 'not_refunded')
     normalized['refunded_amount'] = Decimal(str(normalized.get('refunded_amount', 0) or 0))
     normalized['verified_by_admin'] = normalize_bool(normalized.get('verified_by_admin', False))
@@ -616,7 +655,8 @@ def save_checkout_completion(session: dict[str, Any], event_type: str = 'checkou
         merged.update(purchase)
         purchase = sync_purchase_access(normalize_purchase_defaults(merged))
     store_purchase(purchase)
-    increment_coupon_redemption(coupon)
+    if not existing and not increment_coupon_redemption(coupon):
+        print(f'Coupon redemption limit reached after payment for {purchase["purchase_id"]}')
 
     if event_id:
         mark_event_processed(event_id, event_type, purchase['purchase_id'])
@@ -691,6 +731,9 @@ def create_coupon_purchase_without_stripe(course: dict[str, Any], coupon: dict[s
     user_id, _ = ensure_cognito_user(customer_email, full_name, course.get('title', 'VideoCorso'))
     upsert_user_record(user_id, customer_email, full_name)
 
+    if not increment_coupon_redemption(coupon):
+        raise ValueError('Coupon redemption limit reached')
+
     purchase = build_purchase_item(
         user_id=user_id,
         customer_email=customer_email,
@@ -709,7 +752,6 @@ def create_coupon_purchase_without_stripe(course: dict[str, Any], coupon: dict[s
     purchase['verified_by_admin'] = True
     purchase = sync_purchase_access(purchase)
     store_purchase(purchase)
-    increment_coupon_redemption(coupon)
     return purchase
 
 
@@ -744,6 +786,9 @@ def create_checkout_session(event):
 
     if not course_ref or not success_url or not cancel_url:
         return create_response(400, {'error': 'course_id, success_url and cancel_url are required'})
+
+    success_url = validate_checkout_redirect_url(success_url, 'success_url')
+    cancel_url = validate_checkout_redirect_url(cancel_url, 'cancel_url')
 
     course = get_checkout_course(course_ref)
     if not course:
@@ -852,6 +897,8 @@ def lambda_handler(event, context):
     if path == '/payment/create-checkout' and http_method == 'POST':
         try:
             return create_checkout_session(event)
+        except ValueError as exc:
+            return create_response(400, {'error': str(exc)})
         except Exception as exc:
             print(f'create-checkout error: {exc}')
             return create_response(500, {'error': str(exc)})

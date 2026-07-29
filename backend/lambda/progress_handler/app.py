@@ -105,15 +105,12 @@ def purchase_grants_access(purchase: dict[str, Any]) -> bool:
     access_unlocked = normalize_bool(purchase.get('access_unlocked', local_status in {'paid', 'active'}))
     access_revoked = normalize_bool(purchase.get('access_revoked', False))
     refunded_amount = Decimal(str(purchase.get('refunded_amount', 0) or 0))
-    return local_status in {'paid', 'needs_review'} and access_unlocked and not access_revoked and refunded_amount <= 0
+    manual_access_override = normalize_bool(purchase.get('manual_access_override', False))
+    return (local_status in {'paid', 'needs_review'} or manual_access_override) and access_unlocked and not access_revoked and refunded_amount <= 0 and local_status not in {'refunded', 'disputed'}
 
 
 def user_has_global_access(user_item: dict[str, Any]) -> bool:
-    if normalize_bool(user_item.get('global_access', False)):
-        return True
-
-    status = str(user_item.get('subscription_status', '')).lower()
-    return status == 'active' and not user_item.get('sub_end_date')
+    return normalize_bool(user_item.get('global_access', False))
 
 
 def can_access_course(user_id: str, course_id: str, admin_status: bool = False) -> bool:

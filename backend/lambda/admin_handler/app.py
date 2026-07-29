@@ -3,7 +3,7 @@ import os
 import secrets
 import string
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Any, Optional
 from urllib.parse import unquote, urlparse
@@ -184,6 +184,21 @@ def get_current_admin_email(event) -> str:
 def get_current_admin_username(event) -> str:
     claims = get_claims(event)
     return str(claims.get('cognito:username', '')).strip()
+
+
+def record_audit_log(action: str, target_type: str, target_id: str, details: Optional[dict[str, Any]] = None):
+    table = TABLES.get('AUDIT_LOGS')
+    if not table:
+        return
+    table.put_item(Item={
+        'audit_id': str(uuid.uuid4()),
+        'created_at': now_iso(),
+        'admin_email': current_admin_email or 'admin',
+        'action': action,
+        'target_type': target_type,
+        'target_id': str(target_id),
+        'details': details or {},
+    })
 
 
 def generate_temp_password(length: int = 12) -> str:
@@ -450,6 +465,7 @@ def normalize_purchase(purchase: dict[str, Any]) -> dict[str, Any]:
     normalized['currency'] = normalized.get('currency') or 'eur'
     normalized['access_unlocked'] = normalize_bool(normalized.get('access_unlocked', local_status == 'paid'))
     normalized['access_revoked'] = normalize_bool(normalized.get('access_revoked', False))
+    normalized['manual_access_override'] = normalize_bool(normalized.get('manual_access_override', False))
     normalized['refund_status'] = normalized.get('refund_status') or ('refunded' if Decimal(str(normalized.get('refunded_amount', 0) or 0)) > 0 else 'not_refunded')
     normalized['refunded_amount'] = Decimal(str(normalized.get('refunded_amount', 0) or 0))
     normalized['is_disputed'] = normalize_bool(normalized.get('is_disputed', False))
@@ -465,7 +481,7 @@ def normalize_purchase(purchase: dict[str, Any]) -> dict[str, Any]:
 def purchase_grants_access(purchase: dict[str, Any]) -> bool:
     normalized = normalize_purchase(purchase)
     return (
-        normalized['local_status'] in {'paid', 'needs_review'}
+        (normalized['local_status'] in {'paid', 'needs_review'} or normalized['manual_access_override'])
         and normalized['access_unlocked']
         and not normalized['access_revoked']
         and normalized['refunded_amount'] <= 0
@@ -475,8 +491,11 @@ def purchase_grants_access(purchase: dict[str, Any]) -> bool:
 def sync_purchase_access(purchase: dict[str, Any], mode: str = 'sync') -> dict[str, Any]:
     normalized = normalize_purchase(purchase)
     if mode == 'force_unlock':
+        if normalized['local_status'] in {'refunded', 'disputed'} or normalized['refunded_amount'] > 0:
+            raise ValueError('Non è possibile concedere accesso manuale a un ordine rimborsato o contestato')
         normalized['access_unlocked'] = True
         normalized['access_revoked'] = False
+        normalized['manual_access_override'] = True
         normalized['access_revoked_at'] = None
         normalized['access_revocation_reason'] = ''
         normalized['updated_at'] = now_iso()
@@ -485,6 +504,7 @@ def sync_purchase_access(purchase: dict[str, Any], mode: str = 'sync') -> dict[s
     if mode == 'revoke':
         normalized['access_unlocked'] = False
         normalized['access_revoked'] = True
+        normalized['manual_access_override'] = False
         normalized['access_revoked_at'] = now_iso()
         normalized['access_revocation_reason'] = normalized.get('access_revocation_reason') or 'manual_revoke'
         normalized['updated_at'] = now_iso()
@@ -493,13 +513,17 @@ def sync_purchase_access(purchase: dict[str, Any], mode: str = 'sync') -> dict[s
     if normalized['local_status'] == 'paid' and normalized['refunded_amount'] <= 0 and not normalized['access_revoked']:
         normalized['access_unlocked'] = True
         normalized['access_revoked'] = False
+        normalized['manual_access_override'] = False
         normalized['access_revoked_at'] = None
         normalized['access_revocation_reason'] = ''
-    elif normalized['local_status'] == 'refunded':
+    elif normalized['manual_access_override'] and normalized['local_status'] not in {'refunded', 'disputed'} and normalized['refunded_amount'] <= 0 and not normalized['access_revoked']:
+        normalized['access_unlocked'] = True
+    elif normalized['local_status'] in {'refunded', 'disputed'}:
         normalized['access_unlocked'] = False
         normalized['access_revoked'] = True
         normalized['access_revoked_at'] = normalized.get('access_revoked_at') or now_iso()
-        normalized['access_revocation_reason'] = normalized.get('access_revocation_reason') or 'refund_total'
+        normalized['access_revocation_reason'] = normalized.get('access_revocation_reason') or ('refund_total' if normalized['local_status'] == 'refunded' else 'payment_disputed')
+        normalized['manual_access_override'] = False
     elif normalized['local_status'] in {'failed', 'cancelled'}:
         normalized['access_unlocked'] = False
     normalized['updated_at'] = now_iso()
@@ -630,9 +654,7 @@ def get_user_progress_items(user_id: str) -> list[dict[str, Any]]:
 
 
 def user_has_global_access(user_item: dict[str, Any]) -> bool:
-    if normalize_bool(user_item.get('global_access', False)):
-        return True
-    return str(user_item.get('subscription_status', '')).lower() == 'active' and not user_item.get('sub_end_date')
+    return normalize_bool(user_item.get('global_access', False))
 
 
 def can_access_course(user_item: dict[str, Any], purchases: list[dict[str, Any]], course_id: str) -> bool:
@@ -840,34 +862,18 @@ def delete_course(course_id):
     if not course:
         return create_response(404, {'error': 'Course not found'})
     
-    chapters = query_all(
-        TABLES['CHAPTERS'],
-        IndexName='CourseIndex',
-        KeyConditionExpression='course_id = :cid',
-        ExpressionAttributeValues={':cid': course_id}
+    # Archive instead of deleting: purchases and learning progress are legal and
+    # operational records, and enrolled students must not lose paid content.
+    TABLES['COURSES'].update_item(
+        Key={'course_id': course_id},
+        UpdateExpression='SET #status = :status, is_purchasable = :purchasable, is_active = :active, updated_at = :updated',
+        ExpressionAttributeNames={'#status': 'status'},
+        ExpressionAttributeValues={
+            ':status': 'archived', ':purchasable': False, ':active': False, ':updated': now_iso(),
+        },
     )
-    for chapter in chapters:
-        chapter_id = chapter['chapter_id']
-        lessons = query_all(
-            TABLES['LESSONS'],
-            IndexName='ChapterIndex',
-            KeyConditionExpression='chapter_id = :chid',
-            ExpressionAttributeValues={':chid': chapter_id}
-        )
-        if lessons:
-            with TABLES['LESSONS'].batch_writer() as batch:
-                for lesson in lessons:
-                    delete_lesson_assets(lesson)
-                    batch.delete_item(Key={'lesson_id': lesson['lesson_id']})
-        delete_chapter_assets(chapter)
-        TABLES['CHAPTERS'].delete_item(Key={'chapter_id': chapter_id})
-            
-    delete_s3_object_safely(
-        THUMBNAIL_BUCKET,
-        get_owned_s3_key(course.get('cover_image_url'), THUMBNAIL_BUCKET),
-    )
-    TABLES['COURSES'].delete_item(Key={'course_id': course_id})
-    return create_response(200, {'success': True, 'message': 'Course deleted'})
+    record_audit_log('archive_course', 'course', course_id, {'title': course.get('title', '')})
+    return create_response(200, {'success': True, 'message': 'Corso archiviato: non è più acquistabile, ma i contenuti restano disponibili alle iscritte.'})
 
 
 def create_chapter(body):
@@ -1041,8 +1047,12 @@ def get_presigned_upload_url(body):
     file_type = body.get('file_type')
     if not file_name or not file_type:
         return create_response(400, {'error': 'file_name and file_type are required'})
+    allowed_video_types = {'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-quicktime'}
+    if file_type not in allowed_video_types:
+        return create_response(400, {'error': 'Formato video non supportato'})
 
-    s3_key = f"videos/{uuid.uuid4()}-{file_name}"
+    safe_name = os.path.basename(str(file_name)).replace(' ', '-')
+    s3_key = f"videos/{uuid.uuid4()}-{safe_name}"
     url = s3_client.generate_presigned_url(
         'put_object',
         Params={'Bucket': VIDEO_BUCKET, 'Key': s3_key, 'ContentType': file_type},
@@ -1061,10 +1071,12 @@ def get_presigned_image_upload_url(body):
     folder = (body.get('folder') or 'images').strip('/')
     if not file_name or not file_type:
         return create_response(400, {'error': 'file_name and file_type are required'})
-    if not str(file_type).startswith('image/'):
+    if file_type not in {'image/jpeg', 'image/png', 'image/webp'}:
         return create_response(400, {'error': 'Only image uploads are allowed'})
+    if folder not in {'courses', 'chapters', 'lessons'}:
+        return create_response(400, {'error': 'Cartella immagine non valida'})
 
-    safe_name = str(file_name).replace(' ', '-')
+    safe_name = os.path.basename(str(file_name)).replace(' ', '-')
     s3_key = f"{folder}/{uuid.uuid4()}-{safe_name}"
     url = s3_client.generate_presigned_url(
         'put_object',
@@ -1148,14 +1160,16 @@ def create_manual_student(body):
         'email': email,
         'full_name': full_name,
         'subscription_status': 'active',
-        'global_access': True,
+        'global_access': False,
         'created_at': now_iso(),
         'updated_at': now_iso(),
     }
     existing = get_user_item(user_id)
     if existing:
         item['created_at'] = existing.get('created_at', item['created_at'])
+        item['global_access'] = normalize_bool(existing.get('global_access', False))
     TABLES['USERS'].put_item(Item=item)
+    record_audit_log('create_student', 'student', user_id, {'email': email, 'global_access': item['global_access']})
     return create_response(201, {'success': True, 'data': item})
 
 
@@ -1181,12 +1195,20 @@ def grant_course_to_student(student_id, body):
         'course_title': course.get('title', course_id),
         'amount': Decimal('0.00'),
         'currency': 'eur',
-        'status': 'completed',
+        'status': 'paid',
+        'local_status': 'paid',
+        'stripe_status': 'manual_grant',
+        'access_unlocked': True,
+        'access_revoked': False,
+        'manual_access_override': True,
+        'purchase_origin': 'admin_manual',
+        'webhook_status': 'not_required',
         'purchase_date': now_iso(),
         'manual_grant': True,
         'stripe_session_id': 'manual_grant',
     }
     TABLES['PURCHASES'].put_item(Item=purchase_item)
+    record_audit_log('grant_course', 'student', student_id, {'course_id': course_id, 'purchase_id': purchase_id})
     return create_response(200, {'success': True, 'purchase': purchase_item})
 
 
@@ -1458,6 +1480,71 @@ def fetch_stripe_purchase_state(purchase: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def refund_purchase(purchase_id: str, body: dict[str, Any]):
+    purchase = TABLES['PURCHASES'].get_item(Key={'purchase_id': purchase_id}).get('Item')
+    if not purchase:
+        return create_response(404, {'error': 'Ordine non trovato'})
+
+    normalized = normalize_purchase(purchase)
+    if normalized['is_disputed']:
+        return create_response(400, {'error': 'Non è possibile emettere un rimborso mentre il pagamento è contestato'})
+    if not normalized.get('stripe_payment_intent_id'):
+        return create_response(400, {'error': 'Questo ordine non è associato a un pagamento Stripe rimborsabile'})
+
+    payment_intent = stripe.PaymentIntent.retrieve(
+        normalized['stripe_payment_intent_id'], expand=['latest_charge', 'charges'],
+    )
+    charges = (((payment_intent or {}).get('charges') or {}).get('data')) or []
+    charge_id = normalized.get('stripe_charge_id')
+    charge_amount = 0
+    refunded_cents = 0
+    for charge in charges:
+        if not charge_id or charge.get('id') == charge_id:
+            charge_id = charge_id or charge.get('id')
+            charge_amount = int(charge.get('amount') or 0)
+            refunded_cents = max(refunded_cents, int(charge.get('amount_refunded') or 0))
+    latest_charge = payment_intent.get('latest_charge') if payment_intent else None
+    if not charge_id and isinstance(latest_charge, dict):
+        charge_id = latest_charge.get('id')
+        charge_amount = int(latest_charge.get('amount') or 0)
+        refunded_cents = int(latest_charge.get('amount_refunded') or 0)
+    if not charge_id:
+        return create_response(400, {'error': 'Stripe non ha ancora reso disponibile l’addebito da rimborsare'})
+
+    remaining_cents = charge_amount - refunded_cents
+    if remaining_cents <= 0:
+        return create_response(400, {'error': 'Questo pagamento è già stato rimborsato interamente'})
+
+    requested_amount = body.get('amount')
+    refund_args: dict[str, Any] = {
+        'charge': charge_id,
+        'reason': 'requested_by_customer',
+        'metadata': {'purchase_id': purchase_id},
+    }
+    if requested_amount not in (None, ''):
+        try:
+            amount_cents = int((Decimal(str(requested_amount)).quantize(Decimal('0.01')) * 100))
+        except Exception:
+            return create_response(400, {'error': 'Inserisci un importo di rimborso valido'})
+        if amount_cents <= 0 or amount_cents > remaining_cents:
+            return create_response(400, {'error': 'L’importo deve essere maggiore di zero e non può superare il residuo rimborsabile'})
+        if amount_cents != remaining_cents:
+            refund_args['amount'] = amount_cents
+
+    refund = stripe.Refund.create(**refund_args)
+    normalized.update(fetch_stripe_purchase_state(normalized))
+    normalized['refund_note'] = str(body.get('reason') or '').strip()[:500]
+    normalized['refunded_by_admin'] = current_admin_email or 'admin'
+    normalized['refund_id'] = refund.get('id')
+    normalized = sync_purchase_access(normalized)
+    TABLES['PURCHASES'].put_item(Item=normalized)
+    record_audit_log('refund_purchase', 'purchase', purchase_id, {
+        'refund_id': refund.get('id'), 'amount': refund_args.get('amount', remaining_cents) / 100,
+        'note': normalized['refund_note'],
+    })
+    return create_response(200, {'success': True, 'data': normalized, 'refund_id': refund.get('id')})
+
+
 def resync_purchase(purchase_id):
     purchase = TABLES['PURCHASES'].get_item(Key={'purchase_id': purchase_id}).get('Item')
     if not purchase:
@@ -1466,6 +1553,7 @@ def resync_purchase(purchase_id):
     normalized.update(fetch_stripe_purchase_state(normalized))
     normalized = sync_purchase_access(normalized)
     TABLES['PURCHASES'].put_item(Item=normalized)
+    record_audit_log('resync_purchase', 'purchase', purchase_id)
     return create_response(200, {'success': True, 'data': normalized})
 
 
@@ -1473,8 +1561,12 @@ def force_unlock_purchase(purchase_id):
     purchase = TABLES['PURCHASES'].get_item(Key={'purchase_id': purchase_id}).get('Item')
     if not purchase:
         return create_response(404, {'error': 'Purchase not found'})
-    normalized = sync_purchase_access(purchase, mode='force_unlock')
+    try:
+        normalized = sync_purchase_access(purchase, mode='force_unlock')
+    except ValueError as exc:
+        return create_response(400, {'error': str(exc)})
     TABLES['PURCHASES'].put_item(Item=normalized)
+    record_audit_log('grant_manual_access', 'purchase', purchase_id)
     return create_response(200, {'success': True, 'data': normalized})
 
 
@@ -1484,6 +1576,7 @@ def revoke_purchase_access(purchase_id):
         return create_response(404, {'error': 'Purchase not found'})
     normalized = sync_purchase_access(purchase, mode='revoke')
     TABLES['PURCHASES'].put_item(Item=normalized)
+    record_audit_log('revoke_access', 'purchase', purchase_id)
     return create_response(200, {'success': True, 'data': normalized})
 
 
@@ -1495,6 +1588,7 @@ def mark_purchase_verified(purchase_id):
     normalized['verified_by_admin'] = True
     normalized['updated_at'] = now_iso()
     TABLES['PURCHASES'].put_item(Item=normalized)
+    record_audit_log('verify_purchase', 'purchase', purchase_id)
     return create_response(200, {'success': True, 'data': normalized})
 
 
@@ -1561,6 +1655,7 @@ def correct_purchase_email(purchase_id: str, body: dict[str, Any], admin_email: 
         'updated_at': correction['corrected_at'],
     })
     TABLES['PURCHASES'].put_item(Item=normalized)
+    record_audit_log('correct_purchase_email', 'purchase', purchase_id, {'from_email': previous_email, 'to_email': new_email})
     return create_response(200, {
         'success': True,
         'data': normalized,
@@ -1768,19 +1863,76 @@ def get_stats():
     users = list_all_items(TABLES['USERS'])
     purchases = list_all_items(TABLES['PURCHASES'])
     progress_items = list_all_items(TABLES['PROGRESS'])
+    courses = {course['course_id']: normalize_course(course) for course in list_all_items(TABLES['COURSES'])}
+    chapters = {chapter['chapter_id']: chapter for chapter in list_all_items(TABLES['CHAPTERS'])}
     lessons = {lesson['lesson_id']: lesson for lesson in list_all_items(TABLES['LESSONS'])}
+    now = datetime.now(timezone.utc)
+    today = now.date()
+    week_ago = today - timedelta(days=6)
+    month_ago = today - timedelta(days=29)
 
     total_revenue = Decimal('0')
+    revenue_last_30_days = Decimal('0')
+    new_purchases_today = 0
+    new_purchases_week = 0
+    new_purchases_month = 0
     recent_purchases = []
+    attention_items = []
+    enrolled_by_course = {}
     for purchase in sorted(purchases, key=lambda item: item.get('purchase_date', ''), reverse=True):
-        normalized_amount = normalize_amount(purchase.get('amount', 0))
-        total_revenue += normalized_amount
+        normalized = normalize_purchase(purchase)
+        normalized_amount = normalize_amount(normalized.get('amount_gross', normalized.get('amount', 0)))
+        net_amount = max(Decimal('0'), normalized_amount - normalized['refunded_amount'])
+        purchase_date = parse_iso_datetime(normalized.get('purchase_date') or normalized.get('created_at'))
+        if normalized['local_status'] == 'paid':
+            total_revenue += net_amount
+            if purchase_date and purchase_date.date() >= month_ago:
+                revenue_last_30_days += net_amount
+        if purchase_date:
+            if purchase_date.date() == today:
+                new_purchases_today += 1
+            if purchase_date.date() >= week_ago:
+                new_purchases_week += 1
+            if purchase_date.date() >= month_ago:
+                new_purchases_month += 1
+
+        course_id = normalize_purchase_course_id(normalized)
+        if purchase_grants_access(normalized) and normalized.get('user_id'):
+            enrolled_by_course.setdefault(course_id, set()).add(normalized['user_id'])
+
+        if normalized['local_status'] == 'paid' and not purchase_grants_access(normalized):
+            attention_items.append({
+                'id': f"access-{normalized.get('purchase_id')}", 'severity': 'urgent',
+                'title': 'Pagamento ricevuto, ma accesso non attivo',
+                'description': f"{normalized.get('customer_email') or 'Cliente'} ha pagato ma non può accedere al corso.",
+                'action_label': 'Apri ordine', 'action_url': f"/admin/purchases/{normalized.get('purchase_id')}",
+            })
+        elif normalized['local_status'] in {'pending', 'failed', 'needs_review', 'disputed'}:
+            labels = {
+                'pending': 'Pagamento in attesa', 'failed': 'Pagamento non riuscito',
+                'needs_review': 'Pagamento da verificare', 'disputed': 'Pagamento contestato',
+            }
+            attention_items.append({
+                'id': f"payment-{normalized.get('purchase_id')}", 'severity': 'urgent' if normalized['local_status'] == 'disputed' else 'attention',
+                'title': labels[normalized['local_status']],
+                'description': f"Controlla l’ordine di {normalized.get('customer_email') or 'una cliente'} prima di intervenire sull’accesso.",
+                'action_label': 'Controlla ordine', 'action_url': f"/admin/purchases/{normalized.get('purchase_id')}",
+            })
+        elif normalized['webhook_status'] == 'not_received':
+            attention_items.append({
+                'id': f"webhook-{normalized.get('purchase_id')}", 'severity': 'attention',
+                'title': 'Ordine senza conferma automatica',
+                'description': f"Non è arrivata la conferma automatica per {normalized.get('customer_email') or 'questa cliente'}.",
+                'action_label': 'Controlla ordine', 'action_url': f"/admin/purchases/{normalized.get('purchase_id')}",
+            })
+
         if len(recent_purchases) < 5:
             recent_purchases.append({
-                'purchase_id': purchase.get('purchase_id'),
-                'user_email': purchase.get('customer_email', ''),
-                'amount': normalized_amount,
-                'purchase_date': purchase.get('purchase_date', ''),
+                'purchase_id': normalized.get('purchase_id'),
+                'user_email': normalized.get('customer_email', ''),
+                'amount': net_amount,
+                'purchase_date': normalized.get('purchase_date', ''),
+                'status': normalized['local_status'],
             })
 
     views_by_lesson = {}
@@ -1805,16 +1957,16 @@ def get_stats():
             day = str(last_watched).split('T')[0]
             activity_by_day.setdefault(day, set()).add(item.get('user_id'))
 
+    valid_views = {lid: views for lid, views in views_by_lesson.items() if lid in lessons}
     most_viewed_lessons = []
-    for lesson_id, views in sorted(views_by_lesson.items(), key=lambda item: item[1], reverse=True)[:5]:
-        lesson = lessons.get(lesson_id) or {}
+    for lesson_id, views in sorted(valid_views.items(), key=lambda item: item[1], reverse=True)[:5]:
+        lesson = lessons.get(lesson_id)
         most_viewed_lessons.append({
             'lesson_id': lesson_id,
             'title': lesson.get('title', 'Unknown lesson'),
             'views': views,
         })
 
-    today = datetime.now(timezone.utc).date()
     daily_access_chart = []
     for offset in range(6, -1, -1):
         day = (today.fromordinal(today.toordinal() - offset)).isoformat()
@@ -1823,24 +1975,71 @@ def get_stats():
             'active_users': len(activity_by_day.get(day, set())),
         })
 
-    active_students = 0
+    active_students = set()
     for user in users:
-        summary = summarize_student(user)
-        if summary['global_access'] or summary['accessible_courses_count'] > 0:
-            active_students += 1
+        if user_has_global_access(user):
+            active_students.add(user.get('user_id'))
+    for enrolled in enrolled_by_course.values():
+        active_students.update(enrolled)
+
+    lesson_course_ids = {
+        lesson_id: chapters.get(lesson.get('chapter_id'), {}).get('course_id')
+        for lesson_id, lesson in lessons.items()
+    }
+    course_progress = {}
+    active_users_by_course = {}
+    active_user_ids_last_7_days = set()
+    orphaned_progress = 0
+    for item in progress_items:
+        lesson_id = item.get('lesson_id')
+        course_id = lesson_course_ids.get(lesson_id)
+        if not course_id:
+            if lesson_id:
+                orphaned_progress += 1
+            continue
+        percent = 100 if item.get('completed') else int(item.get('progress_percent', 0) or 0)
+        course_progress.setdefault(course_id, []).append(percent)
+        watched_at = parse_iso_datetime(item.get('last_watched'))
+        if watched_at and watched_at.date() >= week_ago and item.get('user_id'):
+            active_user_ids_last_7_days.add(item['user_id'])
+            active_users_by_course.setdefault(course_id, set()).add(item['user_id'])
+
+    if orphaned_progress:
+        attention_items.append({
+            'id': 'orphaned-progress', 'severity': 'attention',
+            'title': 'Attività collegate a lezioni non più presenti',
+            'description': f"Ci sono {orphaned_progress} registrazioni da verificare: alcune lezioni potrebbero essere state rimosse o modificate.",
+            'action_label': 'Apri catalogo corsi', 'action_url': '/admin/course',
+        })
+
+    course_health = []
+    for course_id, course in courses.items():
+        progress = course_progress.get(course_id, [])
+        course_health.append({
+            'course_id': course_id,
+            'title': course.get('title') or 'Corso senza titolo',
+            'enrolled_students': len(enrolled_by_course.get(course_id, set())),
+            'active_students_last_7_days': len(active_users_by_course.get(course_id, set())),
+            'average_completion_rate': round(sum(progress) / len(progress), 1) if progress else 0,
+        })
+    course_health.sort(key=lambda course: (course['enrolled_students'], course['active_students_last_7_days']), reverse=True)
 
     return create_response(200, {
         'total_students': len(users),
-        'active_students': active_students,
+        'active_students': len(active_students),
         'total_revenue': total_revenue,
-        'new_purchases_today': 0,
-        'new_purchases_week': 0,
-        'new_purchases_month': len(purchases),
+        'revenue_last_30_days': revenue_last_30_days,
+        'new_purchases_today': new_purchases_today,
+        'new_purchases_week': new_purchases_week,
+        'new_purchases_month': new_purchases_month,
+        'active_students_last_7_days': len(active_user_ids_last_7_days),
         'total_video_views': total_video_views,
         'average_completion_rate': round(total_completion_percent / total_video_views, 1) if total_video_views else 0,
         'most_viewed_lessons': most_viewed_lessons,
         'recent_purchases': recent_purchases,
         'daily_access_chart': daily_access_chart,
+        'attention_items': attention_items[:6],
+        'course_health': course_health,
     })
 
 
@@ -1864,6 +2063,7 @@ TABLE_NAMES = {
     'USERS': os.environ.get('USERS_TABLE'),
     'COUPONS': os.environ.get('COUPONS_TABLE'),
     'WEBHOOK_EVENTS': os.environ.get('WEBHOOK_EVENTS_TABLE'),
+    'AUDIT_LOGS': os.environ.get('AUDIT_LOGS_TABLE'),
 }
 TABLES = {name: dynamodb.Table(table_name) for name, table_name in TABLE_NAMES.items() if table_name}
 
@@ -1871,11 +2071,12 @@ VIDEO_BUCKET = os.environ.get('VIDEO_BUCKET')
 THUMBNAIL_BUCKET = os.environ.get('THUMBNAIL_BUCKET')
 COGNITO_USER_POOL_ID = os.environ.get('COGNITO_USER_POOL_ID')
 current_params = {}
+current_admin_email = ''
 
 
 def lambda_handler(event, context):
     del context
-    global current_params
+    global current_params, current_admin_email
     path = event.get('path', '')
     http_method = event.get('httpMethod', '')
     path_parameters = event.get('pathParameters') or {}
@@ -1887,6 +2088,7 @@ def lambda_handler(event, context):
         return create_response(403, {'error': 'Admin privileges required'})
 
     body = json.loads(event.get('body') or '{}')
+    current_admin_email = get_current_admin_email(event)
     params = event.get('queryStringParameters') or {}
     current_params = params
 
@@ -2011,6 +2213,8 @@ def lambda_handler(event, context):
             return force_unlock_purchase(path_parameters.get('purchaseId'))
         if path.startswith('/admin/purchase/') and path.endswith('/revoke') and http_method == 'POST':
             return revoke_purchase_access(path_parameters.get('purchaseId'))
+        if path.startswith('/admin/purchase/') and path.endswith('/refund') and http_method == 'POST':
+            return refund_purchase(path_parameters.get('purchaseId'), body)
         if path.startswith('/admin/purchase/') and path.endswith('/mark-verified') and http_method == 'POST':
             return mark_purchase_verified(path_parameters.get('purchaseId'))
         if path.startswith('/admin/purchase/') and path.endswith('/correct-email') and http_method == 'POST':
