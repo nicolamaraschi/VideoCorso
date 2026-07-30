@@ -262,7 +262,7 @@ export const AdminCoursePage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-20">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {saving && (
         <div className="fixed top-4 right-4 bg-white rounded-lg shadow-lg p-4 z-50">
           <Loading size="sm" text="Saving..." />
@@ -617,19 +617,17 @@ export const AdminCoursePage: React.FC = () => {
       )}
 
       {activeSection === 'settings' && (
-      <div className="fixed bottom-0 left-0 right-0 md:left-64 z-40 flex justify-center border-t border-gray-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <div className="flex justify-center">
-          <Button
-            onClick={() => void (isCreating ? handleCreateCourse() : handleSaveCourse())}
-            variant="primary"
-            size="lg"
-            className="min-w-[200px] rounded-b-none shadow-none"
-            loading={saving}
-          >
-            <Save className="w-5 h-5 mr-2" />
-            {isCreating ? 'Crea corso' : 'Salva impostazioni'}
-          </Button>
-        </div>
+      <div className="flex justify-center pt-4">
+        <Button
+          onClick={() => void (isCreating ? handleCreateCourse() : handleSaveCourse())}
+          variant="primary"
+          size="lg"
+          className="min-w-[200px] shadow-sm"
+          loading={saving}
+        >
+          <Save className="w-5 h-5 mr-2" />
+          {isCreating ? 'Crea corso' : 'Salva impostazioni'}
+        </Button>
       </div>
       )}
 
