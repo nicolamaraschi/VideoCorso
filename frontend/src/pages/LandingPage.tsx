@@ -72,7 +72,7 @@ export const LandingPage: React.FC = () => {
                     src="/welcome.mp4"
                     controls
                     playsInline
-                    poster="/hero-microblading.png"
+                    poster="/hero-microblading.webp"
                   >
                     Il tuo browser non supporta il tag video.
                   </video>
@@ -106,32 +106,32 @@ export const LandingPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
-                image: "/feature-igiene.png",
+                image: "/feature-igiene.webp",
                 title: "Igiene e Sicurezza",
                 description: "Fondamentale per lavorare professionalmente. Normative vigenti, allestimento della postazione e corretto smaltimento degli aghi."
               },
               {
-                image: "/feature-colorimetria.png",
+                image: "/feature-colorimetria.webp",
                 title: "Colorimetria e Pigmenti",
                 description: "Come scegliere il pigmento perfetto studiando il fototipo di pelle (scala Fitzpatrick). Prevenire viraggi di colore indesiderati."
               },
               {
-                image: "/feature-visagismo.png",
+                image: "/feature-visagismo.webp",
                 title: "Visagismo e Progettazione",
                 description: "Mappatura del viso e utilizzo del filo per creare la forma delle sopracciglia perfetta per i lineamenti di ogni singola cliente."
               },
               {
-                image: "/feature-tecnica.png",
+                image: "/feature-tecnica.webp",
                 title: "Tecnica Pelo a Pelo",
                 description: "L'uso corretto del manipolo: inclinazione a 90 gradi, profondità della pressione e schemi di disegno per un effetto iper-realistico."
               },
               {
-                image: "/feature-pratica.png",
+                image: "/feature-pratica.webp",
                 title: "Pratica su Sintetico",
                 description: "Esercitazioni dettagliate su pelle sintetica (latex) per padroneggiare la manualità e la sicurezza prima di lavorare sulla modella."
               },
               {
-                image: "/feature-consulenza.png",
+                image: "/feature-consulenza.webp",
                 title: "Consulenza e Post-Cura",
                 description: "Come gestire l'appuntamento, il consenso informato e spiegare alla cliente come curare il trattamento nei giorni successivi."
               }
@@ -145,7 +145,7 @@ export const LandingPage: React.FC = () => {
                 className="bg-primary-50 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300 border border-primary-100"
               >
                 <div className="h-48 overflow-hidden bg-white">
-                  <img src={feature.image} alt={feature.title} className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500 opacity-90 hover:opacity-100" />
+                  <img src={feature.image} alt={feature.title} loading="lazy" className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500 opacity-90 hover:opacity-100" />
                 </div>
                 <div className="p-8">
                   <h3 className="text-xl font-serif font-semibold text-gray-900 mb-3">{feature.title}</h3>
@@ -273,7 +273,7 @@ export const LandingPage: React.FC = () => {
               className="md:w-1/2 md:pr-12 mb-12 md:mb-0"
             >
               <div className="relative p-2 bg-white/10 rounded-2xl backdrop-blur-sm">
-                <img src="/corso-materiale.png" alt="Materiale Corso" className="rounded-xl shadow-2xl max-w-full" />
+                <img src="/corso-materiale.webp" alt="Materiale Corso" loading="lazy" className="rounded-xl shadow-2xl max-w-full" />
               </div>
             </motion.div>
             <motion.div
