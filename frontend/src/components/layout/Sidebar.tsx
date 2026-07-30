@@ -47,9 +47,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false, mobileMenuOpe
 
   return (
     <aside className={`
-      fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out
+      fixed left-0 top-16 bottom-0 z-50 w-64 bg-white border-r border-gray-200 shadow-lg transform transition-transform duration-300 ease-in-out
       ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-      md:relative md:translate-x-0 md:h-[calc(100vh-4rem)] md:sticky md:top-16 flex flex-col
+      md:sticky md:top-16 md:bottom-auto md:shadow-none md:translate-x-0 md:h-[calc(100vh-4rem)] flex flex-col
     `}>
       <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
         {links.map((link) => {
