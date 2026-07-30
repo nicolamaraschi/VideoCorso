@@ -165,65 +165,75 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, onUpdateSt
       </div>
 
       {/* Desktop table */}
-      <div className="hidden sm:block bg-white rounded-lg border border-gray-200 overflow-visible">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Accesso</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Corsi</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Gestisci</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredStudents.map((student) => (
-                <tr key={student.user_id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/admin/students/${student.user_id}`)}
-                        className="font-medium text-gray-900 hover:text-primary-700 hover:underline text-left"
-                        title="Apri scheda studente"
-                      >
-                        {student.full_name}
-                      </button>
-                      <div className="text-sm text-gray-500">{student.email}</div>
+      <div className="hidden sm:block bg-white rounded-lg border border-gray-200">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Student</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Accesso</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Corsi</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden xl:table-cell">Progress</th>
+              <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Gestisci</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {filteredStudents.map((student) => {
+              const initials = student.full_name
+                .split(' ')
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((part) => part[0]?.toUpperCase())
+                .join('') || '?';
+
+              return (
+                <tr key={student.user_id} className="hover:bg-gray-50/80 transition-colors">
+                  <td className="px-6 py-5 align-top">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-700 font-semibold flex items-center justify-center flex-shrink-0 text-sm">
+                        {initials}
+                      </div>
+                      <div className="min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/admin/students/${student.user_id}`)}
+                          className="font-medium text-gray-900 hover:text-primary-700 hover:underline text-left block truncate"
+                          title="Apri scheda studente"
+                        >
+                          {student.full_name}
+                        </button>
+                        <div className="text-sm text-gray-500 truncate">{student.email}</div>
+                      </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSubscriptionStatusColor(student.subscription_status)}`}>
+                  <td className="px-6 py-5 align-top">
+                    <span className={`inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full ${getSubscriptionStatusColor(student.subscription_status)}`}>
                       {student.subscription_status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
-                    {student.global_access ? 'Globale' : 'Per acquisto'}
+                  <td className="px-6 py-5 align-top text-sm text-gray-700 hidden lg:table-cell">
+                    <div>{student.global_access ? 'Globale' : 'Per acquisto'}</div>
                     {student.subscription_end_date && (
-                      <div className="text-xs text-gray-500 mt-1">{formatDate(student.subscription_end_date)}</div>
+                      <div className="text-xs text-gray-500 mt-1">Fino al {formatDate(student.subscription_end_date)}</div>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
+                  <td className="px-6 py-5 align-top text-sm text-gray-700 hidden lg:table-cell">
                     <div>{student.accessible_courses_count} sbloccati</div>
-                    <div className="text-xs text-gray-500">{student.purchased_courses_count} acquistati</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{student.purchased_courses_count} acquistati</div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <div className="w-24 h-2 bg-gray-200 rounded-full">
-                          <div className="h-full bg-primary-600 rounded-full" style={{ width: `${student.completion_percentage}%` }} />
-                        </div>
+                  <td className="px-6 py-5 align-top hidden xl:table-cell">
+                    <div className="flex items-center gap-2 min-w-[120px]">
+                      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="h-full bg-primary-600 rounded-full" style={{ width: `${student.completion_percentage}%` }} />
                       </div>
-                      <span className="text-sm text-gray-600">{student.completion_percentage.toFixed(0)}%</span>
+                      <span className="text-sm text-gray-600 w-10 text-right flex-shrink-0">{student.completion_percentage.toFixed(0)}%</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-6 py-5 align-top text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => handleEditClick(student)}
-                        className="flex items-center px-3 py-1.5 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md transition-colors"
+                        className="flex items-center px-3 py-2 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-md transition-colors whitespace-nowrap"
                       >
                         <Edit className="w-3.5 h-3.5 mr-1.5" />
                         Modifica
@@ -232,21 +242,21 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, onUpdateSt
                         <button
                           type="button"
                           onClick={() => setActionMenuStudentId((current) => current === student.user_id ? null : student.user_id)}
-                          className="p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                          className="p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors border border-gray-200"
                           aria-label={`Altre azioni per ${student.full_name}`}
                           aria-expanded={actionMenuStudentId === student.user_id}
                         >
                           <MoreHorizontal className="w-4 h-4" />
                         </button>
                         {actionMenuStudentId === student.user_id && (
-                          <div className="absolute right-0 z-20 mt-2 w-52 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                          <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-xl">
                             <button
                               type="button"
                               onClick={() => {
                                 setActionMenuStudentId(null);
                                 void onResetPassword(student.user_id);
                               }}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
                             >
                               <Key className="w-4 h-4 text-orange-600" />
                               Invia nuova password
@@ -257,7 +267,7 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, onUpdateSt
                                 setActionMenuStudentId(null);
                                 void onDeleteStudent(student.user_id);
                               }}
-                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50"
+                              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-red-700 hover:bg-red-50"
                             >
                               <Trash2 className="w-4 h-4" />
                               Elimina studente
@@ -268,16 +278,16 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, onUpdateSt
                     </div>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              );
+            })}
+          </tbody>
+        </table>
 
-          {filteredStudents.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No students found</p>
-            </div>
-          )}
-        </div>
+        {filteredStudents.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No students found</p>
+          </div>
+        )}
       </div>
 
       <Modal isOpen={!!editingStudent} onClose={() => setEditingStudent(null)} title="Modifica accesso studente">
