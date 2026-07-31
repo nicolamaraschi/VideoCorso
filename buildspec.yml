@@ -1,15 +1,89 @@
 version: 0.2
 
+# ---------------------------------------------------------------------------
+# CodeBuild spec — VideoCorso API test suite
+#
+# Required environment variables (set in CodeBuild project or Parameter Store):
+#   STACK_NAME         - CloudFormation stack to pull ApiEndpoint from
+#                        (default: corso-video-chiara)
+#   AWS_REGION         - default: us-east-1
+#
+# Optional — enables authenticated & admin test classes:
+#   API_ENDPOINT       - override API URL instead of reading from CloudFormation
+#   COGNITO_CLIENT_ID  - Cognito User Pool Client ID
+#   ADMIN_EMAIL        - admin Cognito account email
+#   ADMIN_PASSWORD     - admin Cognito account password (use Parameter Store)
+#   STUDENT_EMAIL      - student Cognito account email
+#   STUDENT_PASSWORD   - student Cognito account password (use Parameter Store)
+# ---------------------------------------------------------------------------
+
+env:
+  variables:
+    STACK_NAME: "corso-video-chiara"
+    AWS_REGION: "us-east-1"
+  # Secrets are pulled from SSM Parameter Store at build time.
+  # Define them in the CodeBuild project console under "Environment variables"
+  # with type "Parameter Store" pointing to the correct paths.
+  # Example paths (add to CodeBuild project, not here):
+  #   ADMIN_EMAIL     -> /videocorso/ci/admin_email
+  #   ADMIN_PASSWORD  -> /videocorso/ci/admin_password
+  #   STUDENT_EMAIL   -> /videocorso/ci/student_email
+  #   STUDENT_PASSWORD-> /videocorso/ci/student_password
+  #   COGNITO_CLIENT_ID -> /videocorso/prod/cognito_client_id
+
 phases:
   install:
     runtime-versions:
-      python: 3.12
+      python: "3.12"
     commands:
-      - echo "Installing dependencies..."
-      - cd backend
-      - pip install -r tests/requirements-test.txt
+      - echo "Installing test dependencies..."
+      - pip install --quiet -r backend/tests/requirements-test.txt
+
+  pre_build:
+    commands:
+      - echo "Resolving API endpoint from stack $STACK_NAME in $AWS_REGION..."
+      - |
+        if [ -z "$API_ENDPOINT" ]; then
+          export API_ENDPOINT=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --region "$AWS_REGION" \
+            --query "Stacks[0].Outputs[?OutputKey=='ApiEndpoint'].OutputValue" \
+            --output text)
+          echo "Resolved API_ENDPOINT=$API_ENDPOINT"
+        else
+          echo "Using provided API_ENDPOINT=$API_ENDPOINT"
+        fi
+
   build:
     commands:
-      - echo "Running E2E API availability tests..."
-      - cd backend
-      - python -m pytest tests/test_api_availability.py -v --tb=short
+      - echo "Running API test suite against $API_ENDPOINT"
+      - |
+        python -m pytest backend/tests/test_api_availability.py \
+          -v \
+          --tb=short \
+          --timeout=30 \
+          -p no:cacheprovider \
+          --junitxml=test-results/api-tests.xml \
+          2>&1 | tee test-results/api-tests.log
+
+  post_build:
+    commands:
+      - |
+        if [ "$CODEBUILD_BUILD_SUCCEEDING" = "1" ]; then
+          echo "All API tests passed."
+        else
+          echo "One or more API tests FAILED. Check test-results/api-tests.log"
+          exit 1
+        fi
+
+reports:
+  api-test-report:
+    files:
+      - "test-results/api-tests.xml"
+    file-format: JUNITXML
+
+artifacts:
+  files:
+    - "test-results/api-tests.log"
+    - "test-results/api-tests.xml"
+  name: api-test-results
