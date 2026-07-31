@@ -386,12 +386,27 @@ Resources:
 
   # ==================== Lambda Functions ====================
 
+  # Shared layer containing the centralised purchase_access module.
+  # All five handlers that need access-control logic import from here,
+  # ensuring a single source of truth and eliminating copy-paste divergence.
+  SharedLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub "${Environment}-videocorso-shared"
+      Description: "Shared purchase_access, sync_purchase_access and related utilities"
+      ContentUri: ../layers/shared/
+      CompatibleRuntimes:
+        - python3.11
+      RetentionPolicy: Delete
+
   PaymentHandler:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${Environment}-videocorso-payment-handler"
       CodeUri: ../lambda/payment_handler/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref SharedLayer
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref CoursesTable
@@ -461,6 +476,8 @@ Resources:
       FunctionName: !Sub "${Environment}-videocorso-course-handler"
       CodeUri: ../lambda/course_handler/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref SharedLayer
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref CoursesTable
@@ -514,6 +531,8 @@ Resources:
       FunctionName: !Sub "${Environment}-videocorso-video-handler"
       CodeUri: ../lambda/video_handler/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref SharedLayer
       Environment:
         Variables:
           CLOUDFRONT_DOMAIN: !GetAtt CloudFrontDistribution.DomainName
@@ -621,6 +640,8 @@ Resources:
       FunctionName: !Sub "${Environment}-videocorso-progress-handler"
       CodeUri: ../lambda/progress_handler/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref SharedLayer
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref ProgressTable
@@ -678,6 +699,8 @@ Resources:
       FunctionName: !Sub "${Environment}-videocorso-admin-handler"
       CodeUri: ../lambda/admin_handler/
       Handler: app.lambda_handler
+      Layers:
+        - !Ref SharedLayer
       Environment:
         Variables:
           COGNITO_USER_POOL_ID: !Ref UserPool

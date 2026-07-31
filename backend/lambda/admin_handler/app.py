@@ -13,6 +13,20 @@ import stripe
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
+# ---------------------------------------------------------------------------
+# Shared access-control module (Lambda Layer in AWS; fallback for unit tests)
+# ---------------------------------------------------------------------------
+try:
+    from shared.purchase_access import (  # type: ignore[import]
+        purchase_grants_access,
+        sync_purchase_access,
+        normalize_purchase_defaults as _shared_normalize_purchase_defaults,
+        purchase_status_from_stripe,
+    )
+    _USING_SHARED_LAYER = True
+except ImportError:
+    _USING_SHARED_LAYER = False
+
 
 LEGACY_COURSE_ID = 'legacy-default-course'
 PUBLIC_COURSE_STATUSES = {'published'}
@@ -479,6 +493,10 @@ def normalize_purchase(purchase: dict[str, Any]) -> dict[str, Any]:
 
 
 def purchase_grants_access(purchase: dict[str, Any]) -> bool:
+    if _USING_SHARED_LAYER:
+        from shared.purchase_access import purchase_grants_access as _pga  # type: ignore[import]
+        return _pga(purchase)
+    # Fallback: original admin_handler logic (with normalize_purchase)
     normalized = normalize_purchase(purchase)
     return (
         (normalized['local_status'] in {'paid', 'needs_review'} or normalized['manual_access_override'])
@@ -489,6 +507,10 @@ def purchase_grants_access(purchase: dict[str, Any]) -> bool:
 
 
 def sync_purchase_access(purchase: dict[str, Any], mode: str = 'sync') -> dict[str, Any]:
+    if _USING_SHARED_LAYER:
+        from shared.purchase_access import sync_purchase_access as _spa  # type: ignore[import]
+        return _spa(purchase, mode)
+    # Fallback: original logic below
     normalized = normalize_purchase(purchase)
     if mode == 'force_unlock':
         if normalized['local_status'] in {'refunded', 'disputed'} or normalized['refunded_amount'] > 0:

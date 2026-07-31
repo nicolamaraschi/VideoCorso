@@ -8,6 +8,26 @@ from typing import Any, Optional
 import boto3
 from boto3.dynamodb.conditions import Key
 
+# ---------------------------------------------------------------------------
+# Shared access-control module (Lambda Layer in AWS; fallback for unit tests)
+# ---------------------------------------------------------------------------
+try:
+    from shared.purchase_access import purchase_grants_access  # type: ignore[import]
+except ImportError:
+    def purchase_grants_access(purchase: "dict[str, Any]") -> bool:  # type: ignore[misc]
+        """Inline fallback without fail-closed fix. Remove once layer is deployed."""
+        from decimal import Decimal as D
+        local_status = str(purchase.get('local_status') or purchase.get('status') or '')
+        _nb = lambda v: v if isinstance(v, bool) else str(v).lower() in {'true','1','yes','on'}
+        access_unlocked = _nb(purchase.get('access_unlocked', local_status in {'paid','active'}))
+        access_revoked  = _nb(purchase.get('access_revoked', False))
+        refunded_amount = D(str(purchase.get('refunded_amount', 0) or 0))
+        manual_override = _nb(purchase.get('manual_access_override', False))
+        return ((local_status in {'paid','needs_review'} or manual_override)
+                and access_unlocked and not access_revoked
+                and refunded_amount <= 0
+                and local_status not in {'refunded','disputed'})
+
 
 LEGACY_COURSE_ID = 'legacy-default-course'
 
@@ -98,15 +118,6 @@ def get_user_purchases(user_id: str) -> list[dict[str, Any]]:
 
 def normalize_purchase_course_id(purchase: dict[str, Any]) -> str:
     return purchase.get('course_id') or LEGACY_COURSE_ID
-
-
-def purchase_grants_access(purchase: dict[str, Any]) -> bool:
-    local_status = str(purchase.get('local_status') or purchase.get('status') or '')
-    access_unlocked = normalize_bool(purchase.get('access_unlocked', local_status in {'paid', 'active'}))
-    access_revoked = normalize_bool(purchase.get('access_revoked', False))
-    refunded_amount = Decimal(str(purchase.get('refunded_amount', 0) or 0))
-    manual_access_override = normalize_bool(purchase.get('manual_access_override', False))
-    return (local_status in {'paid', 'needs_review'} or manual_access_override) and access_unlocked and not access_revoked and refunded_amount <= 0 and local_status not in {'refunded', 'disputed'}
 
 
 def user_has_global_access(user_item: dict[str, Any]) -> bool:

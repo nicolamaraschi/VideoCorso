@@ -14,6 +14,7 @@ import types
 import importlib
 from decimal import Decimal
 from typing import Any
+import pathlib
 import pytest
 
 
@@ -201,17 +202,15 @@ class TestPurchaseGrantsAccess:
     # --- CURRENT_BUG: needs_review without manual_override grants access ---
     # After the fail-closed fix these assertions must be inverted to `is False`.
 
-    def test_needs_review_no_override_CURRENT_BUG_grants(self, handler):
-        """CURRENT BUG: needs_review without manual_override currently grants access.
-        After fix: must return False."""
+    def test_needs_review_no_override_FIXED_denies(self, handler):
+        """FIXED: since all handlers now import from the shared layer,
+        needs_review without manual_override is denied (fail-closed)."""
         result = handler.purchase_grants_access(make_purchase(
             local_status="needs_review", access_unlocked=True,
             manual_access_override=False,
         ))
-        # Document current (broken) behaviour:
-        assert result is True, (
-            "CURRENT_BUG: needs_review without manual_override currently grants access. "
-            "After fix this assertion must be changed to `is False`."
+        assert result is False, (
+            "needs_review without manual_override must be denied after shared-layer fix."
         )
 
     def test_empty_local_status_CURRENT_BUG(self, handler):
@@ -246,12 +245,12 @@ class TestAdminPurchaseGrantsAccess:
             local_status="paid", access_unlocked=False, access_revoked=True
         )) is False
 
-    def test_needs_review_CURRENT_BUG_grants(self):
-        """CURRENT BUG: admin handler also grants access for needs_review."""
+    def test_needs_review_FIXED_denies(self):
+        """FIXED: admin handler also denies access for needs_review without override."""
         result = _admin.purchase_grants_access(make_purchase(
             local_status="needs_review", access_unlocked=True, manual_access_override=False
         ))
-        assert result is True, "CURRENT_BUG: after fix must be False"
+        assert result is False, "needs_review without manual_override must be denied after fix"
 
 
 class TestAccessControlConsistency:
@@ -277,3 +276,125 @@ class TestAccessControlConsistency:
         assert all(v == expected for v in results.values()), (
             f"Handlers disagree on '{label}': {results}"
         )
+
+
+# ===========================================================================
+# Tests for the SHARED LAYER module (fail-closed policy)
+# These are the POST-FIX tests — they must ALL pass with the layer.
+# ===========================================================================
+
+from shared.purchase_access import (
+    purchase_grants_access as shared_pga,
+    sync_purchase_access as shared_spa,
+    normalize_purchase_defaults,
+)
+
+
+class TestSharedLayerFailClosed:
+    """Verify the fail-closed policy in shared/purchase_access.py."""
+
+    # --- Must grant ---
+
+    def test_paid_unlocked_grants(self):
+        assert shared_pga(make_purchase("paid", True)) is True
+
+    def test_manual_override_grants_regardless_of_needs_review(self):
+        assert shared_pga(make_purchase("needs_review", True, False, 0.0, True)) is True
+
+    def test_active_status_grants(self):
+        assert shared_pga(make_purchase("active", True)) is True
+
+    # --- Must deny (fail-closed) ---
+
+    def test_needs_review_no_override_DENIED(self):
+        """FIXED: needs_review without manual_override must be denied."""
+        assert shared_pga(make_purchase("needs_review", True, False, 0.0, False)) is False
+
+    def test_missing_local_status_DENIED(self):
+        """FIXED: missing local_status must be denied (fail-closed)."""
+        p = make_purchase("paid")
+        p.pop("local_status")
+        p.pop("status", None)
+        assert shared_pga(p) is False
+
+    def test_unknown_status_DENIED(self):
+        """FIXED: unknown/corrupt status must be denied."""
+        assert shared_pga(make_purchase("whatever_unknown_xyz", True)) is False
+
+    def test_access_revoked_denied(self):
+        assert shared_pga(make_purchase("paid", False, True)) is False
+
+    def test_refunded_denied(self):
+        assert shared_pga(make_purchase("refunded", False, False, 99.0)) is False
+
+    def test_disputed_denied(self):
+        assert shared_pga(make_purchase("disputed", True)) is False
+
+    def test_cancelled_denied(self):
+        assert shared_pga(make_purchase("cancelled", True)) is False
+
+    def test_failed_denied(self):
+        assert shared_pga(make_purchase("failed", True)) is False
+
+    def test_positive_refund_denies_even_if_paid(self):
+        assert shared_pga(make_purchase("paid", True, False, 1.0)) is False
+
+    def test_manual_override_void_on_refunded(self):
+        """Override does not bypass a refund."""
+        assert shared_pga(make_purchase("refunded", True, False, 99.0, True)) is False
+
+
+class TestSharedLayerSyncPurchaseAccess:
+    """Verify sync_purchase_access respects access_revoked on 'sync' mode."""
+
+    def test_revoked_paid_stays_revoked_FIXED(self):
+        """FIXED: sync mode must not unlock an admin-revoked purchase."""
+        purchase = {
+            **make_purchase("paid", False, True, 0.0),
+            "access_revoked_at": "2026-01-01T00:00:00Z",
+            "access_revocation_reason": "manual_revoke",
+        }
+        result = shared_spa(purchase, mode="sync")
+        assert result["access_revoked"] is True
+        assert result["access_unlocked"] is False
+
+    def test_force_unlock_clears_revocation(self):
+        purchase = make_purchase("paid", False, True, 0.0)
+        result = shared_spa(purchase, mode="force_unlock")
+        assert result["access_unlocked"] is True
+        assert result["access_revoked"] is False
+
+    def test_force_unlock_blocked_on_refunded(self):
+        purchase = make_purchase("refunded", False, False, 50.0)
+        with pytest.raises(ValueError, match="refunded"):
+            shared_spa(purchase, mode="force_unlock")
+
+    def test_revoke_mode_revokes(self):
+        purchase = make_purchase("paid", True, False, 0.0)
+        result = shared_spa(purchase, mode="revoke")
+        assert result["access_revoked"] is True
+        assert result["access_unlocked"] is False
+
+
+class TestNormalizePurchaseDefaults:
+    """normalize_purchase_defaults must produce consistent typed fields."""
+
+    def test_unknown_status_becomes_needs_review(self):
+        p = normalize_purchase_defaults({"local_status": "xyz_unknown"})
+        assert p["local_status"] == "needs_review"
+
+    def test_missing_status_becomes_needs_review(self):
+        p = normalize_purchase_defaults({})
+        assert p["local_status"] == "needs_review"
+
+    def test_access_unlocked_defaults_false_for_needs_review(self):
+        p = normalize_purchase_defaults({"local_status": "needs_review"})
+        assert p["access_unlocked"] is False
+
+    def test_access_unlocked_defaults_true_for_paid(self):
+        p = normalize_purchase_defaults({"local_status": "paid"})
+        assert p["access_unlocked"] is True
+
+    def test_access_revoked_defaults_false(self):
+        p = normalize_purchase_defaults({"local_status": "paid"})
+        assert p["access_revoked"] is False
