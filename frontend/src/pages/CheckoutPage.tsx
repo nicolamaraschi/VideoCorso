@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Award, CheckCircle, Shield, Video } from 'lucide-react';
 import { useAuthContext } from '../components/auth/useAuthContext';
@@ -24,6 +24,7 @@ export const CheckoutPage: React.FC = () => {
   const [couponQuote, setCouponQuote] = useState<{ final_total: number; is_free_access: boolean } | null>(null);
   const [couponMessage, setCouponMessage] = useState<string | null>(null);
   const [checkingCoupon, setCheckingCoupon] = useState(false);
+  const checkoutRequestId = useRef('');
 
   const courseId = searchParams.get('courseId');
 
@@ -77,6 +78,7 @@ export const CheckoutPage: React.FC = () => {
       setSubmitting(true);
       setError(null);
       const checkoutResponse = await paymentService.createCheckoutSession({
+        checkout_request_id: checkoutRequestId.current || (checkoutRequestId.current = crypto.randomUUID()),
         course_id: course.course_id,
         success_url: `${window.location.origin}/login?payment=success`,
         cancel_url: `${window.location.origin}/checkout?courseId=${course.public_slug || course.course_id}&payment=cancelled`,
@@ -136,6 +138,7 @@ export const CheckoutPage: React.FC = () => {
     setCourse(nextCourse);
     setCouponQuote(null);
     setCouponMessage(null);
+    checkoutRequestId.current = '';
     setSearchParams({ courseId: nextCourse.public_slug || nextCourse.course_id });
   };
 
@@ -268,7 +271,11 @@ export const CheckoutPage: React.FC = () => {
                 <input
                   type="email"
                   value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
+                  onChange={(e) => {
+                    setEmailInput(e.target.value);
+                    setCouponQuote(null);
+                    checkoutRequestId.current = '';
+                  }}
                   placeholder="tua@email.com"
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none"
                   required
@@ -285,6 +292,7 @@ export const CheckoutPage: React.FC = () => {
                   setCouponCode(event.target.value.toUpperCase());
                   setCouponQuote(null);
                   setCouponMessage(null);
+                  checkoutRequestId.current = '';
                 }}
                 placeholder="Inserisci coupon se disponibile"
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none"

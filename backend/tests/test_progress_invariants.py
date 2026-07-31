@@ -167,6 +167,16 @@ class TestWatchedSecondsMonotonicity:
         new_ws = max(existing_ws, incoming_ws)
         assert new_ws == 60
 
+    def test_deterministic_progress_id_prevents_duplicate_initial_rows(self):
+        assert _ph.progress_id_for("user-1", "lesson-1") == _ph.progress_id_for("user-1", "lesson-1")
+        assert _ph.progress_id_for("user-1", "lesson-1") != _ph.progress_id_for("user-2", "lesson-1")
+
+    def test_progress_update_plan_never_regresses_or_uncompletes(self):
+        current = {"watched_seconds": Decimal("60"), "completed": True}
+        update = _ph.build_monotonic_progress_update(current, watched_seconds=10, total_seconds=90, completed=False)
+        assert update["watched_seconds"] == Decimal("60")
+        assert update["completed"] is True
+
 
 # ---------------------------------------------------------------------------
 # 4. Server-side completion logic (target behaviour)

@@ -55,6 +55,18 @@ def _setup_stubs():
     )
     sys.modules["boto3"] = boto3
     sys.modules["boto3.dynamodb"] = types.ModuleType("boto3.dynamodb")
+    dynamodb_types = types.ModuleType("boto3.dynamodb.types")
+    class TypeSerializer:
+        def serialize(self, value):
+            if value is None: return {"NULL": True}
+            if isinstance(value, bool): return {"BOOL": value}
+            if isinstance(value, Decimal): return {"N": str(value)}
+            if isinstance(value, str): return {"S": value}
+            if isinstance(value, (int, float)): return {"N": str(value)}
+            if isinstance(value, dict): return {"M": {k: self.serialize(v) for k, v in value.items()}}
+            raise TypeError(value)
+    dynamodb_types.TypeSerializer = TypeSerializer
+    sys.modules["boto3.dynamodb.types"] = dynamodb_types
     cond = types.ModuleType("boto3.dynamodb.conditions")
     cond.Key = lambda k: types.SimpleNamespace(eq=lambda v: None)
     sys.modules["boto3.dynamodb.conditions"] = cond
@@ -225,14 +237,7 @@ class TestSyncPurchaseAccessRespectManualRevoke:
             "refunded_amount": Decimal("0"),
         }
         result = _ph.sync_purchase_access(purchase, action="sync")
-        # CURRENT BUG: payment_handler sets access_unlocked=True ignoring access_revoked
-        # After fix via shared layer this must assert False:
-        # assert result["access_unlocked"] is False
-        # For now document the broken outcome:
-        assert result["access_unlocked"] is True, (
-            "CURRENT_BUG: payment_handler.sync_purchase_access does not respect "
-            "access_revoked when action='sync'. After shared-layer fix must be False."
-        )
+        assert result["access_unlocked"] is False
 
     def test_force_unlock_clears_revocation(self):
         """force_unlock is the only operation that can override a revocation."""

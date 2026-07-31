@@ -6,30 +6,10 @@ from typing import Any, Optional
 
 import boto3
 from boto3.dynamodb.conditions import Key
+from botocore.exceptions import ClientError
 
 # ---------------------------------------------------------------------------
-# Shared access-control module (provided via Lambda Layer in AWS; falls back
-# to the inline implementation when the layer is absent, e.g. unit tests).
-# ---------------------------------------------------------------------------
-try:
-    from shared.purchase_access import purchase_grants_access  # type: ignore[import]
-    _USING_SHARED_LAYER = True
-except ImportError:
-    _USING_SHARED_LAYER = False
-    def purchase_grants_access(purchase: "dict[str, Any]") -> bool:  # type: ignore[misc]
-        """Inline fallback — identical logic but without the fail-closed fix.
-        Remove once the layer is deployed to all environments."""
-        from decimal import Decimal as D
-        local_status = str(purchase.get('local_status') or purchase.get('status') or '')
-        _nb = lambda v: v if isinstance(v, bool) else str(v).lower() in {'true','1','yes','on'}
-        access_unlocked = _nb(purchase.get('access_unlocked', local_status in {'paid','active'}))
-        access_revoked  = _nb(purchase.get('access_revoked', False))
-        refunded_amount = D(str(purchase.get('refunded_amount', 0) or 0))
-        manual_override = _nb(purchase.get('manual_access_override', False))
-        return ((local_status in {'paid','needs_review'} or manual_override)
-                and access_unlocked and not access_revoked
-                and refunded_amount <= 0
-                and local_status not in {'refunded','disputed'})
+from shared.purchase_access import purchase_grants_access
 
 
 LEGACY_COURSE_ID = 'legacy-default-course'
@@ -144,8 +124,14 @@ def get_legacy_course():
         'created_at': now_iso(),
         'updated_at': now_iso(),
     }
-    courses_table.put_item(Item=course)
-    return normalize_course(course)
+    try:
+        courses_table.put_item(Item=course, ConditionExpression='attribute_not_exists(course_id)')
+        return normalize_course(course)
+    except ClientError as exc:
+        if exc.response.get('Error', {}).get('Code') != 'ConditionalCheckFailedException':
+            raise
+        # Another cold start seeded the same deterministic legacy row.
+        return normalize_course(courses_table.get_item(Key={'course_id': LEGACY_COURSE_ID})['Item'])
 
 
 def ensure_catalog_seed():
@@ -209,9 +195,9 @@ def can_access_course(user_id: Optional[str], course_id: str) -> bool:
     return False
 
 
-def serialize_course(course: dict[str, Any], user_id: Optional[str]) -> dict[str, Any]:
+def serialize_course(course: dict[str, Any], user_id: Optional[str], has_access: Optional[bool] = None) -> dict[str, Any]:
     normalized = normalize_course(course)
-    normalized['has_access'] = can_access_course(user_id, normalized['course_id']) if user_id else False
+    normalized['has_access'] = has_access if has_access is not None else (can_access_course(user_id, normalized['course_id']) if user_id else False)
     return normalized
 
 
@@ -229,12 +215,13 @@ def get_user_groups(event):
     if not event:
         return []
     try:
-        groups = event.get('requestContext', {}).get('authorizer', {}).get('claims', {}).get('cognito:groups', '')
+        claims = event.get('requestContext', {}).get('authorizer', {}).get('claims') or {}
+        groups = claims.get('cognito:groups', '')
         if isinstance(groups, str):
             return groups.split(',') if groups else []
         if isinstance(groups, list):
             return groups
-    except KeyError:
+    except (KeyError, AttributeError):
         pass
     return []
 
@@ -245,14 +232,14 @@ def filter_lesson_for_access(lesson: dict[str, Any], has_access: bool, is_user_a
     lesson_copy = dict(lesson)
     lesson_copy['is_free_preview'] = normalize_bool(lesson_copy.get('is_free_preview', False))
     lesson_copy['is_locked'] = not (has_access or lesson_copy['is_free_preview'])
-    if not is_user_admin:
+    if lesson_copy['is_locked'] and not is_user_admin:
         lesson_copy.pop('video_s3_key', None)
     return lesson_copy
 
 
-def build_course_structure(course: dict[str, Any], user_id: Optional[str]):
+def build_course_structure(course: dict[str, Any], user_id: Optional[str], event=None):
     has_access = can_access_course(user_id, course['course_id'])
-    is_user_admin = is_admin(current_event)
+    is_user_admin = is_admin(event)
     chapters = []
     for chapter in get_course_chapters(course['course_id']):
         chapter_copy = dict(chapter)
@@ -263,7 +250,7 @@ def build_course_structure(course: dict[str, Any], user_id: Optional[str]):
         chapters.append(chapter_copy)
     return {
         'course': {
-            **serialize_course(course, user_id),
+            **serialize_course(course, user_id, has_access),
             'has_access': has_access,
         },
         'chapters': chapters,
@@ -290,9 +277,9 @@ def resolve_course_for_public_detail(event, course_ref: str):
     return None
 
 
-def choose_legacy_structure_course(user_id: Optional[str]):
-    if current_event:
-        params = current_event.get('queryStringParameters') or {}
+def choose_legacy_structure_course(user_id: Optional[str], event=None):
+    if event:
+        params = event.get('queryStringParameters') or {}
         requested = params.get('course_id')
         if requested:
             course = get_course(requested)
@@ -317,7 +304,7 @@ def get_course_details(event, course_ref: str):
     course = resolve_course_for_public_detail(event, course_ref)
     if not course:
         return create_response(404, {'error': 'Course not found'})
-    return create_response(200, build_course_structure(course, get_user_id(event)))
+    return create_response(200, build_course_structure(course, get_user_id(event), event))
 
 
 def get_my_courses(event):
@@ -349,10 +336,10 @@ def get_my_courses(event):
 
 def get_course_structure_legacy(event):
     user_id = get_user_id(event)
-    course = choose_legacy_structure_course(user_id)
+    course = choose_legacy_structure_course(user_id, event)
     if not course:
         return create_response(404, {'error': 'No courses available'})
-    return create_response(200, build_course_structure(course, user_id))
+    return create_response(200, build_course_structure(course, user_id, event))
 
 
 def get_free_previews():
@@ -380,13 +367,8 @@ lessons_table = dynamodb.Table(os.environ.get('LESSONS_TABLE'))
 purchases_table = dynamodb.Table(os.environ.get('PURCHASES_TABLE'))
 users_table = dynamodb.Table(os.environ.get('USERS_TABLE'))
 
-current_event = None
-
-
 def lambda_handler(event, context):
     del context
-    global current_event
-    current_event = event
     path = event.get('path', '')
     http_method = event.get('httpMethod', '')
     path_parameters = event.get('pathParameters') or {}

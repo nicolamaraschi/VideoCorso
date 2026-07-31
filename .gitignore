@@ -81,3 +81,5 @@ backend/infrastructure/.aws-sam/
 .LSOverride
 Thumbs.db
 desktop.ini
+backend/infrastructure/packaged*.yaml
+backend/infrastructure/.aws-sam/

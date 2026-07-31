@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Optional
@@ -9,24 +10,7 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 # ---------------------------------------------------------------------------
-# Shared access-control module (Lambda Layer in AWS; fallback for unit tests)
-# ---------------------------------------------------------------------------
-try:
-    from shared.purchase_access import purchase_grants_access  # type: ignore[import]
-except ImportError:
-    def purchase_grants_access(purchase: "dict[str, Any]") -> bool:  # type: ignore[misc]
-        """Inline fallback without fail-closed fix. Remove once layer is deployed."""
-        from decimal import Decimal as D
-        local_status = str(purchase.get('local_status') or purchase.get('status') or '')
-        _nb = lambda v: v if isinstance(v, bool) else str(v).lower() in {'true','1','yes','on'}
-        access_unlocked = _nb(purchase.get('access_unlocked', local_status in {'paid','active'}))
-        access_revoked  = _nb(purchase.get('access_revoked', False))
-        refunded_amount = D(str(purchase.get('refunded_amount', 0) or 0))
-        manual_override = _nb(purchase.get('manual_access_override', False))
-        return ((local_status in {'paid','needs_review'} or manual_override)
-                and access_unlocked and not access_revoked
-                and refunded_amount <= 0
-                and local_status not in {'refunded','disputed'})
+from shared.purchase_access import purchase_grants_access
 
 
 LEGACY_COURSE_ID = 'legacy-default-course'
@@ -63,12 +47,13 @@ def get_user_id(event) -> Optional[str]:
 
 def is_admin(event) -> bool:
     try:
-        groups = event['requestContext']['authorizer']['claims'].get('cognito:groups', '')
+        claims = event.get('requestContext', {}).get('authorizer', {}).get('claims') or {}
+        groups = claims.get('cognito:groups', '')
         if isinstance(groups, str):
             return 'admin' in groups.split(',') if groups else False
         if isinstance(groups, list):
             return 'admin' in groups
-    except KeyError:
+    except (KeyError, AttributeError):
         pass
     return False
 
@@ -111,9 +96,14 @@ FALLBACK_CHAINS = {
     'low': ['360p', '480p', '720p', '1080p'],
 }
 DEFAULT_QUALITY_ORDER = ['720p', '480p', '360p', '1080p']
+_rendition_cache: dict[str, tuple[float, dict[str, str]]] = {}
+_RENDITION_CACHE_TTL_SECONDS = 30
 
 
 def get_optimized_video_key(video_s3_key: str, suffix: str) -> str:
+    parts = video_s3_key.strip('/').split('/')
+    if len(parts) >= 4 and parts[0] == 'videos' and parts[-1].startswith('source.'):
+        return f"streaming/{'/'.join(parts[1:-1])}/source_{suffix}.mp4"
     source_name = video_s3_key.rsplit('/', 1)[-1]
     source_stem = source_name.rsplit('.', 1)[0]
     return f'streaming/{source_stem}/{source_stem}_{suffix}.mp4'
@@ -121,14 +111,21 @@ def get_optimized_video_key(video_s3_key: str, suffix: str) -> str:
 
 def get_available_renditions(video_s3_key: str) -> dict[str, str]:
     """Checks each known rendition once and returns {suffix: s3_key} for the ones that exist."""
+    cached = _rendition_cache.get(video_s3_key)
+    now = time.monotonic()
+    if cached and cached[0] > now:
+        return dict(cached[1])
     available = {}
     for suffix in DEFAULT_QUALITY_ORDER:
         key = get_optimized_video_key(video_s3_key, suffix)
         try:
             s3_client.head_object(Bucket=video_bucket_name, Key=key)
             available[suffix] = key
-        except ClientError:
-            continue
+        except ClientError as exc:
+            if exc.response.get('Error', {}).get('Code', '') in {'404', 'NoSuchKey', 'NotFound'}:
+                continue
+            raise
+    _rendition_cache[video_s3_key] = (now + _RENDITION_CACHE_TTL_SECONDS, dict(available))
     return available
 
 
@@ -207,7 +204,7 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requ
     if is_external_video_url(video_s3_key):
         return create_response(200, {
             'video_url': video_s3_key,
-            'expires_at': (datetime.utcnow() + timedelta(hours=1)).isoformat() + 'Z',
+            'expires_at': None,
             'course_id': course_id,
         })
 
@@ -218,17 +215,17 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requ
         presigned_url = s3_client.generate_presigned_url(
             'get_object',
             Params={'Bucket': video_bucket_name, 'Key': served_video_key},
-            ExpiresIn=3600,
+            ExpiresIn=600,
         )
     except ClientError as exc:
         print(f'generate_presigned_url error: {exc}')
         return create_response(500, {'error': 'Failed to generate video URL'})
 
-    available_qualities = [suffix for suffix in ['720p', '480p', '360p'] if suffix in available_renditions]
+    available_qualities = [suffix for suffix in DEFAULT_QUALITY_ORDER if suffix in available_renditions]
 
     return create_response(200, {
         'video_url': presigned_url,
-        'expires_at': (datetime.utcnow() + timedelta(hours=1)).isoformat() + 'Z',
+        'expires_at': (datetime.utcnow() + timedelta(minutes=10)).isoformat() + 'Z',
         'course_id': course_id,
         'video_quality': served_quality or 'source',
         'available_qualities': available_qualities,

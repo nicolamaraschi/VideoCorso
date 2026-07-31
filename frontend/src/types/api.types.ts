@@ -15,6 +15,7 @@ export interface PaginatedResponse<T> {
 
 // Payment API types
 export interface CreateCheckoutRequest {
+  checkout_request_id: string;
   course_id: string;
   success_url: string;
   cancel_url: string;
