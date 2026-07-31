@@ -13,11 +13,21 @@ import {
 } from 'lucide-react';
 import { formatDuration } from '../../utils/formatters';
 import { useVideoProgress } from '../../hooks/useVideoProgress';
+import type { VideoQuality } from '../../types';
+
+const QUALITY_LABELS: Record<VideoQuality, string> = {
+  high: 'Alta (720p)',
+  medium: 'Media (480p)',
+  low: 'Bassa (360p)',
+};
 
 interface VideoPlayerProps {
   videoUrl: string;
   lessonId: string;
   onEnded?: () => void;
+  availableQualities?: string[];
+  quality?: VideoQuality;
+  onQualityChange?: (quality: VideoQuality) => void;
 }
 
 const getIPhoneVideoRotation = async (videoUrl: string, signal: AbortSignal): Promise<0 | 90 | 180 | 270> => {
@@ -61,6 +71,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   videoUrl,
   lessonId,
   onEnded,
+  availableQualities = [],
+  quality,
+  onQualityChange,
 }) => {
   // react-player v3 forwards its ref to the underlying HTMLVideoElement.
   const playerRef = useRef<HTMLVideoElement>(null);
@@ -87,6 +100,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     seekToSeconds,
     clearSeekTo
   } = useVideoProgress({ lessonId });
+
+  // When the user switches quality, the parent fetches a new presigned URL for
+  // the same lesson. We keep track of where playback was so switching quality
+  // resumes from the same point instead of restarting the video from zero.
+  const qualitySwitchStateRef = useRef<{ time: number; wasPlaying: boolean } | null>(null);
+
+  const handleQualitySelect = useCallback((newQuality: VideoQuality) => {
+    if (!onQualityChange) return;
+    qualitySwitchStateRef.current = { time: currentTime, wasPlaying: isPlaying };
+    setShowSettings(false);
+    onQualityChange(newQuality);
+  }, [currentTime, isPlaying, onQualityChange]);
 
   // Handle seeking from progress load
   useEffect(() => {
@@ -242,6 +267,22 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     return () => controller.abort();
   }, [videoUrl]);
 
+  // Resume at the same position (and playing state) right after a quality
+  // switch loads a new source for this same lesson.
+  const handleLoadedMetadata = useCallback((event: React.SyntheticEvent<HTMLVideoElement>) => {
+    const videoEl = event.currentTarget;
+    if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
+      setAspectRatio(videoEl.videoWidth / videoEl.videoHeight);
+    }
+
+    const pending = qualitySwitchStateRef.current;
+    if (pending) {
+      qualitySwitchStateRef.current = null;
+      videoEl.currentTime = pending.time;
+      setIsPlaying(pending.wasPlaying);
+    }
+  }, []);
+
   return (
     <div
       ref={containerRef}
@@ -261,18 +302,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           volume={volume}
           muted={isMuted}
           playbackRate={playbackRate}
+          preload="metadata"
           onTimeUpdate={(event) => {
             const playedSeconds = event.currentTarget.currentTime;
             setCurrentTime(playedSeconds);
             handleTimeUpdate(playedSeconds, duration);
           }}
           onDurationChange={(event) => setDuration(event.currentTarget.duration)}
-          onLoadedMetadata={(event) => {
-            const { videoWidth, videoHeight } = event.currentTarget;
-            if (videoWidth > 0 && videoHeight > 0) {
-              setAspectRatio(videoWidth / videoHeight);
-            }
-          }}
+          onLoadedMetadata={handleLoadedMetadata}
           onEnded={() => {
             setIsPlaying(false);
             markComplete(currentTime, duration);
@@ -409,7 +446,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                         className="fixed inset-0 z-10"
                         onClick={() => setShowSettings(false)}
                       />
-                      <div className="absolute bottom-full right-0 mb-2 bg-black/90 rounded-lg p-2 min-w-[150px] z-20">
+                      <div className="absolute bottom-full right-0 mb-2 bg-black/90 rounded-lg p-2 min-w-[170px] z-20">
                         <div className="text-white text-xs font-semibold mb-2 px-2">
                           Playback Speed
                         </div>
@@ -425,6 +462,30 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                             {rate}x
                           </button>
                         ))}
+
+                        {onQualityChange && availableQualities.length > 0 && (
+                          <>
+                            <div className="text-white text-xs font-semibold mt-3 mb-2 px-2 border-t border-white/10 pt-3">
+                              Qualità video
+                            </div>
+                            {(['high', 'medium', 'low'] as VideoQuality[])
+                              .filter((q) => availableQualities.includes(
+                                q === 'high' ? '720p' : q === 'medium' ? '480p' : '360p'
+                              ))
+                              .map((q) => (
+                                <button
+                                  key={q}
+                                  onClick={() => handleQualitySelect(q)}
+                                  className={`w-full text-left px-3 py-1.5 rounded text-sm ${quality === q || (!quality && q === 'high')
+                                    ? 'bg-primary-600 text-white'
+                                    : 'text-white/80 hover:bg-white/10'
+                                    }`}
+                                >
+                                  {QUALITY_LABELS[q]}
+                                </button>
+                              ))}
+                          </>
+                        )}
                       </div>
                     </>
                   )}

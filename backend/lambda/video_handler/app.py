@@ -80,10 +80,54 @@ def is_external_video_url(value: Any) -> bool:
     return isinstance(value, str) and value.startswith(('http://', 'https://'))
 
 
-def get_optimized_video_key(video_s3_key: str) -> str:
+# Explicit fallback chain per requested quality. If the exact rendition is
+# missing (still transcoding, or an older video), we try the closest
+# available quality in the same direction (lower first) before reaching for
+# a higher one, and only fall back to the legacy single "_1080p" output as
+# the last resort for videos transcoded before multi-quality support existed.
+FALLBACK_CHAINS = {
+    'high': ['720p', '480p', '360p', '1080p'],
+    'medium': ['480p', '360p', '720p', '1080p'],
+    'low': ['360p', '480p', '720p', '1080p'],
+}
+DEFAULT_QUALITY_ORDER = ['720p', '480p', '360p', '1080p']
+
+
+def get_optimized_video_key(video_s3_key: str, suffix: str) -> str:
     source_name = video_s3_key.rsplit('/', 1)[-1]
     source_stem = source_name.rsplit('.', 1)[0]
-    return f'streaming/{source_stem}/{source_stem}_1080p.mp4'
+    return f'streaming/{source_stem}/{source_stem}_{suffix}.mp4'
+
+
+def get_available_renditions(video_s3_key: str) -> dict[str, str]:
+    """Checks each known rendition once and returns {suffix: s3_key} for the ones that exist."""
+    available = {}
+    for suffix in DEFAULT_QUALITY_ORDER:
+        key = get_optimized_video_key(video_s3_key, suffix)
+        try:
+            s3_client.head_object(Bucket=video_bucket_name, Key=key)
+            available[suffix] = key
+        except ClientError:
+            continue
+    return available
+
+
+def resolve_served_video_key(
+    video_s3_key: str,
+    requested_quality: Optional[str],
+    available_renditions: dict[str, str],
+) -> tuple[str, Optional[str]]:
+    """Returns (s3_key_to_serve, quality_label_or_None_for_source)."""
+    normalized_quality = (requested_quality or 'high').lower()
+    suffix_order = FALLBACK_CHAINS.get(normalized_quality, FALLBACK_CHAINS['high'])
+
+    for suffix in suffix_order:
+        if suffix in available_renditions:
+            return available_renditions[suffix], suffix
+
+    # Nothing transcoded yet (e.g. MediaConvert still running) - serve the
+    # original upload so the lesson isn't blocked.
+    return video_s3_key, None
 
 
 def get_user_item(user_id: str) -> dict[str, Any]:
@@ -129,7 +173,7 @@ def can_access_course(user_id: str, course_id: str) -> bool:
     return False
 
 
-def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False):
+def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requested_quality: Optional[str] = None):
     lesson_response = lessons_table.get_item(Key={'lesson_id': lesson_id})
     lesson = lesson_response.get('Item')
     if not lesson:
@@ -156,14 +200,8 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False):
             'course_id': course_id,
         })
 
-    served_video_key = video_s3_key
-    try:
-        optimized_key = get_optimized_video_key(video_s3_key)
-        s3_client.head_object(Bucket=video_bucket_name, Key=optimized_key)
-        served_video_key = optimized_key
-    except ClientError:
-        # The original remains available while MediaConvert processes the HD version.
-        pass
+    available_renditions = get_available_renditions(video_s3_key)
+    served_video_key, served_quality = resolve_served_video_key(video_s3_key, requested_quality, available_renditions)
 
     try:
         presigned_url = s3_client.generate_presigned_url(
@@ -175,11 +213,14 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False):
         print(f'generate_presigned_url error: {exc}')
         return create_response(500, {'error': 'Failed to generate video URL'})
 
+    available_qualities = [suffix for suffix in ['720p', '480p', '360p'] if suffix in available_renditions]
+
     return create_response(200, {
         'video_url': presigned_url,
         'expires_at': (datetime.utcnow() + timedelta(hours=1)).isoformat() + 'Z',
         'course_id': course_id,
-        'video_quality': '1080p_optimized' if served_video_key != video_s3_key else 'source',
+        'video_quality': served_quality or 'source',
+        'available_qualities': available_qualities,
     })
 
 
@@ -208,6 +249,12 @@ def lambda_handler(event, context):
         return create_response(401, {'error': 'Unauthorized'})
 
     if path.startswith('/course/video/') and http_method == 'GET':
-        return get_video_url(user_id, path_parameters.get('lesson_id'), admin_bypass=admin_bypass)
+        query_params = event.get('queryStringParameters') or {}
+        return get_video_url(
+            user_id,
+            path_parameters.get('lesson_id'),
+            admin_bypass=admin_bypass,
+            requested_quality=query_params.get('quality'),
+        )
 
     return create_response(404, {'error': 'Not found'})

@@ -8,6 +8,21 @@ import { ErrorMessage } from '../components/common/ErrorMessage';
 import { useCourse } from '../hooks/useCourse';
 import { courseService } from '../services/courseService';
 import { getErrorMessage } from '../utils/errors';
+import type { VideoQuality } from '../types';
+
+const QUALITY_STORAGE_KEY = 'videocorso_preferred_quality';
+
+const readStoredQuality = (): VideoQuality | undefined => {
+  try {
+    const stored = window.localStorage.getItem(QUALITY_STORAGE_KEY);
+    if (stored === 'high' || stored === 'medium' || stored === 'low') {
+      return stored;
+    }
+  } catch {
+    // localStorage may be unavailable (private browsing); default quality is fine.
+  }
+  return undefined;
+};
 
 export const VideoPlayerPage: React.FC = () => {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
@@ -15,6 +30,8 @@ export const VideoPlayerPage: React.FC = () => {
   const { getLessonById, getNextLesson, getPreviousLesson, refreshProgress, courseStructure } = useCourse(courseId);
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [availableQualities, setAvailableQualities] = useState<string[]>([]);
+  const [quality, setQuality] = useState<VideoQuality | undefined>(() => readStoredQuality());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,18 +47,28 @@ export const VideoPlayerPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await courseService.getVideoUrl(lessonId);
+      const response = await courseService.getVideoUrl(lessonId, quality);
       setVideoUrl(response.video_url);
+      setAvailableQualities(response.available_qualities || []);
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to load video'));
     } finally {
       setLoading(false);
     }
-  }, [lessonId]);
+  }, [lessonId, quality]);
 
   useEffect(() => {
     void loadVideoUrl();
   }, [loadVideoUrl]);
+
+  const handleQualityChange = (newQuality: VideoQuality) => {
+    setQuality(newQuality);
+    try {
+      window.localStorage.setItem(QUALITY_STORAGE_KEY, newQuality);
+    } catch {
+      // Non-critical: worst case the preference just isn't remembered next time.
+    }
+  };
 
   const handleVideoEnded = async () => {
     await refreshProgress();
@@ -108,7 +135,14 @@ export const VideoPlayerPage: React.FC = () => {
       </button>
 
       <div className="-mx-4 mb-6 sm:mx-0 sm:mb-8">
-        <VideoPlayer videoUrl={videoUrl} lessonId={lessonId!} onEnded={handleVideoEnded} />
+        <VideoPlayer
+          videoUrl={videoUrl}
+          lessonId={lessonId!}
+          onEnded={handleVideoEnded}
+          availableQualities={availableQualities}
+          quality={quality}
+          onQualityChange={handleQualityChange}
+        />
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">

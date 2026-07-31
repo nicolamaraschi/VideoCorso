@@ -13,51 +13,90 @@ def mediaconvert_client():
     return boto3.client('mediaconvert', endpoint_url=endpoint)
 
 
+
+# Three progressive-download renditions instead of a single fixed-bitrate 1080p.
+# QVBR lets MediaConvert spend more bits only on complex scenes, keeping files
+# smaller than a constant bitrate would for the same visual quality - a good
+# fit for course footage (talking head, slides, low motion).
+# Bitrates follow AWS's own QVBR reference points for each resolution tier.
+RENDITIONS = [
+    {
+        'name_modifier': '_720p',
+        'width': 1280,
+        'height': 720,
+        'qvbr_quality_level': 7,
+        'max_bitrate': 2000000,
+        'audio_bitrate': 96000,
+    },
+    {
+        'name_modifier': '_480p',
+        'width': 854,
+        'height': 480,
+        'qvbr_quality_level': 6,
+        'max_bitrate': 1000000,
+        'audio_bitrate': 80000,
+    },
+    {
+        'name_modifier': '_360p',
+        'width': 640,
+        'height': 360,
+        'qvbr_quality_level': 5,
+        'max_bitrate': 650000,
+        'audio_bitrate': 64000,
+    },
+]
+
+
+def build_output(rendition: dict) -> dict:
+    return {
+        'NameModifier': rendition['name_modifier'],
+        'ContainerSettings': {
+            'Container': 'MP4',
+            'Mp4Settings': {'MoovPlacement': 'PROGRESSIVE_DOWNLOAD'},
+        },
+        'VideoDescription': {
+            'Width': rendition['width'],
+            'Height': rendition['height'],
+            'ScalingBehavior': 'DEFAULT',
+            'CodecSettings': {
+                'Codec': 'H_264',
+                'H264Settings': {
+                    'RateControlMode': 'QVBR',
+                    'QualityTuningLevel': 'SINGLE_PASS_HQ',
+                    'QvbrSettings': {'QvbrQualityLevel': rendition['qvbr_quality_level']},
+                    'MaxBitrate': rendition['max_bitrate'],
+                    'GopSize': 2,
+                    'GopSizeUnits': 'SECONDS',
+                    'CodecProfile': 'HIGH',
+                    'CodecLevel': 'AUTO',
+                    'FramerateControl': 'INITIALIZE_FROM_SOURCE',
+                },
+            },
+        },
+        'AudioDescriptions': [{
+            'AudioSourceName': 'Audio Selector 1',
+            'CodecSettings': {
+                'Codec': 'AAC',
+                'AacSettings': {
+                    'Bitrate': rendition['audio_bitrate'],
+                    'CodingMode': 'CODING_MODE_2_0',
+                    'SampleRate': 48000,
+                },
+            },
+        }],
+    }
+
+
 def build_job_settings(source_uri: str, destination_uri: str) -> dict:
     return {
         'TimecodeConfig': {'Source': 'ZEROBASED'},
         'OutputGroups': [{
-            'Name': 'HD MP4',
+            'Name': 'Progressive MP4 renditions',
             'OutputGroupSettings': {
                 'Type': 'FILE_GROUP_SETTINGS',
                 'FileGroupSettings': {'Destination': destination_uri},
             },
-            'Outputs': [{
-                'NameModifier': '_1080p',
-                'ContainerSettings': {
-                    'Container': 'MP4',
-                    'Mp4Settings': {'MoovPlacement': 'PROGRESSIVE_DOWNLOAD'},
-                },
-                'VideoDescription': {
-                    'Width': 1920,
-                    'ScalingBehavior': 'DEFAULT',
-                    'CodecSettings': {
-                        'Codec': 'H_264',
-                        'H264Settings': {
-                            'RateControlMode': 'QVBR',
-                            'QualityTuningLevel': 'SINGLE_PASS_HQ',
-                            'QvbrSettings': {'QvbrQualityLevel': 7},
-                            'MaxBitrate': 4000000,
-                            'GopSize': 2,
-                            'GopSizeUnits': 'SECONDS',
-                            'CodecProfile': 'HIGH',
-                            'CodecLevel': 'AUTO',
-                            'FramerateControl': 'INITIALIZE_FROM_SOURCE',
-                        },
-                    },
-                },
-                'AudioDescriptions': [{
-                    'AudioSourceName': 'Audio Selector 1',
-                    'CodecSettings': {
-                        'Codec': 'AAC',
-                        'AacSettings': {
-                            'Bitrate': 128000,
-                            'CodingMode': 'CODING_MODE_2_0',
-                            'SampleRate': 48000,
-                        },
-                    },
-                }],
-            }],
+            'Outputs': [build_output(rendition) for rendition in RENDITIONS],
         }],
         'Inputs': [{
             'FileInput': source_uri,
@@ -97,7 +136,7 @@ def lambda_handler(event, context):
         response = client.create_job(
             Role=role,
             Settings=build_job_settings(f's3://{bucket}/{source_key}', destination),
-            UserMetadata={'source_key': source_key, 'optimized_key': f'streaming/{source_stem}/{source_stem}_1080p.mp4'},
+            UserMetadata={'source_key': source_key, 'optimized_key': f'streaming/{source_stem}/{source_stem}_720p.mp4'},
             StatusUpdateInterval='SECONDS_60',
         )
         print(f"Started MediaConvert job {response['Job']['Id']} for {source_key}")

@@ -37,7 +37,11 @@ export interface GetVideoUrlRequest {
 export interface GetVideoUrlResponse {
   video_url: string;
   expires_at: string;
+  video_quality?: string;
+  available_qualities?: string[];
 }
+
+export type VideoQuality = 'high' | 'medium' | 'low';
 
 // Progress API types
 export interface UpdateProgressRequest {

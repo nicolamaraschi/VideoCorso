@@ -30,8 +30,9 @@ export const courseService = {
     return apiClient.get<CourseStructure>(`/courses/${courseId}`);
   },
 
-  async getVideoUrl(lessonId: string): Promise<GetVideoUrlResponse> {
-    return apiClient.get<GetVideoUrlResponse>(`/course/video/${lessonId}`);
+  async getVideoUrl(lessonId: string, quality?: string): Promise<GetVideoUrlResponse> {
+    const query = quality ? `?quality=${encodeURIComponent(quality)}` : '';
+    return apiClient.get<GetVideoUrlResponse>(`/course/video/${lessonId}${query}`);
   },
 
   async getUserProgress(): Promise<CourseProgress> {
