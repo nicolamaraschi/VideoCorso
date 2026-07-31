@@ -75,7 +75,7 @@ export const LoginPage: React.FC = () => {
       {/* Right Column: Image */}
       <div className="hidden lg:block lg:w-1/2 relative bg-primary-50">
         <img 
-          src="/login-beauty.png" 
+          src="/login-beauty.webp" 
           alt="Microblading Masterclass" 
           className="absolute inset-0 w-full h-full object-cover"
         />
