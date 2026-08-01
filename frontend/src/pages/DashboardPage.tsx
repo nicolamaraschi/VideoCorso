@@ -118,7 +118,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="p-6">
               <div className="flex items-start justify-between gap-4 mb-4">
-                <div>
+                <div className="min-w-0 flex-1">
                   <h2 className="text-xl font-semibold text-gray-900">{course.title}</h2>
                   <p className="text-sm text-gray-600 mt-1">{course.description}</p>
                 </div>
@@ -130,7 +130,7 @@ export const DashboardPage: React.FC = () => {
                 )}
               </div>
 
-              <div className="grid grid-cols-3 gap-3 mb-5">
+              <div className="grid grid-cols-2 gap-3 mb-5 sm:grid-cols-3">
                 <div className="rounded-lg bg-gray-50 p-3">
                   <p className="text-xs uppercase tracking-wide text-gray-500">Progresso</p>
                   <p className="text-lg font-semibold text-gray-900">{Math.round(progress?.percentage || 0)}%</p>
@@ -194,11 +194,11 @@ export const DashboardPage: React.FC = () => {
               <div className="p-6">
               <h3 className="text-xl font-semibold text-gray-900">{course.title}</h3>
               <p className="text-gray-600 mt-2">{course.description}</p>
-              <div className="mt-4 flex items-center justify-between">
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-2xl font-bold text-gray-900">
                   € {Number(course.price).toFixed(2)}
                 </span>
-                <div className="flex gap-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
                   <Link to={getCourseRoute(course)}>
                     <Button variant="secondary">Dettagli</Button>
                   </Link>

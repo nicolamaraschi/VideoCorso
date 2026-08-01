@@ -21,18 +21,10 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const handleSelect = async (selectedFile: File) => {
-    if (!selectedFile.type.startsWith('image/')) {
-      setError('Seleziona un file immagine valido.');
-      return;
-    }
-    setFile(selectedFile);
-    setError(null);
-    setSuccess(false);
-    
-    // Auto-upload
+  const uploadImage = async (selectedFile: File) => {
     try {
       setUploading(true);
+      setError(null);
       const uploadData = await adminService.getImageUploadUrl({
         file_name: selectedFile.name,
         file_type: selectedFile.type,
@@ -52,8 +44,21 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     }
   };
 
-  const handleUpload = async () => {
-    // Keep this just in case, but it's no longer the primary way
+  const handleSelect = (selectedFile: File) => {
+    if (!selectedFile.type.startsWith('image/')) {
+      setError('Seleziona un file immagine valido.');
+      return;
+    }
+    setFile(selectedFile);
+    setError(null);
+    setSuccess(false);
+    void uploadImage(selectedFile);
+  };
+
+  const handleUpload = () => {
+    if (file && !uploading) {
+      void uploadImage(file);
+    }
   };
 
   return (
@@ -80,7 +85,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
             <p className="text-xs text-gray-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
           </div>
           {!uploading && (
-            <button type="button" onClick={() => setFile(null)} className="text-gray-400 hover:text-gray-600">
+            <button type="button" onClick={() => setFile(null)} className="-m-2 min-h-11 min-w-11 rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600" aria-label="Rimuovi immagine selezionata">
               <X className="h-4 w-4" />
             </button>
           )}
@@ -114,8 +119,8 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         </div>
       )}
 
-      <Button type="button" onClick={handleUpload} variant="secondary" fullWidth loading={uploading} disabled={!file}>
-        Carica immagine
+      <Button type="button" onClick={handleUpload} variant="secondary" fullWidth loading={uploading} disabled={!file || success}>
+        {error ? 'Riprova caricamento immagine' : 'Carica immagine'}
       </Button>
     </div>
   );

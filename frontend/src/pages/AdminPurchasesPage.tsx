@@ -84,7 +84,7 @@ export const AdminPurchasesPage: React.FC = () => {
         <p className="text-gray-600">Storico ordini con stato locale, stato Stripe, accesso sbloccato e origine acquisto.</p>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-5 mb-6">
+      <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <select
             value={filters.status}
@@ -132,15 +132,45 @@ export const AdminPurchasesPage: React.FC = () => {
             className="px-3 py-2 border border-gray-300 rounded-lg"
           />
 
-          <Button variant="secondary" onClick={() => void loadPurchases()}>
+          <Button className="w-full md:w-auto" variant="secondary" onClick={() => void loadPurchases()}>
             Applica filtri
           </Button>
         </div>
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="space-y-3 p-3 sm:hidden">
+          {purchases.map((purchase) => {
+            const localStatus = purchase.local_status || purchase.status;
+            const email = purchase.customer_email || purchase.user_email || 'Non disponibile';
+            return (
+              <article key={purchase.purchase_id} className="rounded-lg border border-gray-200 p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="break-words font-semibold text-gray-900">{purchase.user_name || 'Cliente'}</h2>
+                    <p className="mt-1 break-all text-sm text-gray-500">{email}</p>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold ${statusStyles[localStatus] || statusStyles.needs_review}`}>
+                    {statusLabels[localStatus] || localStatus || 'Da verificare'}
+                  </span>
+                </div>
+                <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                  <div className="col-span-2"><dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Corso</dt><dd className="mt-1 break-words text-gray-800">{purchase.course_title || purchase.course_id}</dd></div>
+                  <div><dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Importo</dt><dd className="mt-1 font-semibold text-gray-900">{formatCurrency(Number(purchase.amount_gross ?? purchase.amount ?? 0))}</dd></div>
+                  <div><dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Accesso</dt><dd className="mt-1 text-gray-800">{purchase.access_unlocked && !purchase.access_revoked ? 'Sbloccato' : 'Non attivo'}</dd></div>
+                  <div className="col-span-2"><dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Data</dt><dd className="mt-1 text-gray-800">{formatDateTime(purchase.purchase_date || purchase.created_at || '')}</dd></div>
+                </dl>
+                <div className="mt-4 border-t border-gray-100 pt-3">
+                  <Link to={`/admin/purchases/${purchase.purchase_id}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-primary-700 hover:text-primary-800">Apri dettaglio pagamento</Link>
+                </div>
+              </article>
+            );
+          })}
+          {purchases.length === 0 && <div className="py-12 text-center text-gray-500">Nessun acquisto trovato</div>}
+        </div>
+
+        <div className="hidden overflow-x-auto sm:block">
+          <table className="w-full min-w-[960px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>

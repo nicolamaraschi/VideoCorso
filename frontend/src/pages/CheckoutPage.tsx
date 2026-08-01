@@ -206,7 +206,7 @@ export const CheckoutPage: React.FC = () => {
 
     return (
       <div className="min-h-screen bg-primary-50/30 py-12 px-4 sm:px-6 lg:px-8">
-        <section className="max-w-2xl mx-auto bg-white rounded-2xl shadow-soft p-8 border border-primary-100 text-center">
+        <section className="max-w-2xl mx-auto rounded-2xl border border-primary-100 bg-white p-5 text-center shadow-soft sm:p-8">
           {checkingPayment && <Loading text="Stiamo verificando il pagamento con Stripe..." />}
           {!checkingPayment && paymentVerificationError && (
             <>
@@ -230,9 +230,9 @@ export const CheckoutPage: React.FC = () => {
               ) : (
                 <p className="mt-2 text-amber-800">Il pagamento è confermato ma l’accesso richiede una verifica. Non effettuare un secondo pagamento; contatta l’assistenza.</p>
               )}
-              <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
-                <Button variant="primary" onClick={() => navigate('/login')}>Vai al login</Button>
-                {isProcessing && <Button variant="secondary" onClick={() => void verifyReturnedPayment()}><RefreshCw className="w-4 h-4 mr-2" /> Aggiorna accesso</Button>}
+              <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+                <Button className="w-full sm:w-auto" variant="primary" onClick={() => navigate('/login')}>Vai al login</Button>
+                {isProcessing && <Button className="w-full sm:w-auto" variant="secondary" onClick={() => void verifyReturnedPayment()}><RefreshCw className="w-4 h-4 mr-2" /> Aggiorna accesso</Button>}
               </div>
             </>
           )}
@@ -256,17 +256,17 @@ export const CheckoutPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-primary-50/30 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-primary-50/30 px-4 py-6 sm:px-6 sm:py-12 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
         {paymentReturn === 'cancelled' && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-900">
             Il pagamento è stato annullato: Stripe non ha confermato alcun acquisto. Puoi riprovare quando vuoi.
           </div>
         )}
-        <section className="bg-white rounded-2xl shadow-soft p-8 border border-primary-100">
-          <div className="flex items-start justify-between gap-6 mb-8">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-2">Scegli la tua Masterclass</h1>
+        <section className="rounded-2xl border border-primary-100 bg-white p-5 shadow-soft sm:p-8">
+          <div className="mb-8 flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-6">
+            <div className="min-w-0">
+              <h1 className="mb-2 text-3xl font-serif font-bold text-gray-900 md:text-4xl">Scegli la tua Masterclass</h1>
               <p className="text-gray-500">
                 Seleziona il percorso formativo più adatto alle tue esigenze.
               </p>
@@ -303,7 +303,7 @@ export const CheckoutPage: React.FC = () => {
 
                   <h2 className="text-lg font-semibold text-gray-900">{item.title}</h2>
                   <p className="text-sm text-gray-600 mt-2 line-clamp-3">{item.short_description || item.description}</p>
-                  <div className="mt-4 flex items-center justify-between">
+                  <div className="mt-4 flex items-end justify-between gap-3">
                     <div>
                       {item.discounted_price && Number(item.discounted_price) < Number(item.price) && (
                         <span className="block text-sm text-gray-400 line-through">€ {Number(item.price).toFixed(2)}</span>
@@ -322,8 +322,8 @@ export const CheckoutPage: React.FC = () => {
           </div>
         </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-        <div className="bg-white rounded-2xl shadow-soft p-8 border border-primary-100">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-12">
+        <div className="rounded-2xl border border-primary-100 bg-white p-5 shadow-soft sm:p-8">
           <h2 className="text-2xl font-serif font-bold text-gray-900 mb-6">
             Riepilogo Ordine
           </h2>
@@ -345,7 +345,7 @@ export const CheckoutPage: React.FC = () => {
             })}
           </ul>
 
-          <div className="mt-8 p-6 bg-primary-50/50 rounded-xl border border-primary-100">
+          <div className="mt-8 rounded-xl border border-primary-100 bg-primary-50/50 p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-2">
               <Shield className="w-5 h-5 text-primary-600" />
               <h4 className="font-semibold text-gray-900">Garanzia 14 Giorni</h4>
@@ -356,13 +356,13 @@ export const CheckoutPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-soft p-8 border border-primary-100 h-fit">
+        <div className="h-fit rounded-2xl border border-primary-100 bg-white p-5 shadow-soft sm:p-8">
           <h2 className="text-2xl font-serif font-bold text-gray-900 mb-6">Pagamento Sicuro</h2>
 
           <div className="space-y-3 mb-6">
-            <div className="flex justify-between text-gray-600">
+            <div className="flex flex-col gap-1 text-gray-600 sm:flex-row sm:justify-between sm:gap-4">
               <span>Corso selezionato</span>
-              <span>{course.title}</span>
+              <span className="break-words text-right sm:max-w-[55%]">{course.title}</span>
             </div>
             
             {!user && (
@@ -397,8 +397,8 @@ export const CheckoutPage: React.FC = () => {
                 placeholder="Inserisci coupon se disponibile"
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all outline-none"
               />
-              <div className="mt-2 flex items-center gap-3">
-                <Button type="button" size="sm" variant="secondary" loading={checkingCoupon} onClick={handleApplyCoupon}>
+              <div className="mt-2 flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <Button className="w-full sm:w-auto" type="button" size="sm" variant="secondary" loading={checkingCoupon} onClick={handleApplyCoupon}>
                   Applica coupon
                 </Button>
                 {couponMessage && (

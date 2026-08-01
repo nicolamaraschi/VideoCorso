@@ -122,6 +122,7 @@ export const AdminAccountsPage: React.FC = () => {
           <p className="text-gray-600">CRUD separato per gli amministratori della piattaforma.</p>
         </div>
         <Button
+          className="w-full md:w-auto"
           variant="primary"
           onClick={() => {
             setCreateForm({ email: '', full_name: '' });
@@ -134,8 +135,32 @@ export const AdminAccountsPage: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="space-y-3 p-3 sm:hidden">
+          {accounts.map((account) => (
+            <article key={account.email} className="rounded-lg border border-gray-200 p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-50"><Shield className="h-5 w-5 text-primary-700" /></div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="break-words font-semibold text-gray-900">{account.full_name || account.email}</h2>
+                  <p className="mt-1 break-all text-sm text-gray-500">{account.email}</p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${account.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>{account.enabled ? 'Attivo' : 'Disattivato'}</span>
+                    <span>{formatDate(account.created_at)}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2 border-t border-gray-100 pt-3">
+                <button type="button" onClick={() => handleResendInvite(account)} className="min-h-11 rounded-lg text-sm font-medium text-primary-700 hover:bg-primary-50">Invia invito</button>
+                <button type="button" onClick={() => handleOpenEdit(account)} className="min-h-11 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Modifica</button>
+                <button type="button" onClick={() => handleDelete(account)} className="min-h-11 rounded-lg text-sm font-medium text-red-700 hover:bg-red-50">Elimina</button>
+              </div>
+            </article>
+          ))}
+          {accounts.length === 0 && <div className="py-12 text-center text-gray-500">Nessun admin configurato.</div>}
+        </div>
+
+        <div className="hidden overflow-x-auto sm:block">
+          <table className="w-full min-w-[640px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
@@ -167,13 +192,13 @@ export const AdminAccountsPage: React.FC = () => {
                   <td className="px-6 py-4 text-sm text-gray-700">{formatDate(account.created_at)}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => handleResendInvite(account)} className="p-2 text-gray-600 hover:text-primary-700">
+                      <button aria-label={`Invia invito a ${account.email}`} onClick={() => handleResendInvite(account)} className="min-h-11 min-w-11 p-2 text-gray-600 hover:text-primary-700">
                         <Mail className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleOpenEdit(account)} className="p-2 text-gray-600 hover:text-primary-700">
+                      <button aria-label={`Modifica ${account.email}`} onClick={() => handleOpenEdit(account)} className="min-h-11 min-w-11 p-2 text-gray-600 hover:text-primary-700">
                         <Pencil className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDelete(account)} className="p-2 text-gray-600 hover:text-red-700">
+                      <button aria-label={`Elimina ${account.email}`} onClick={() => handleDelete(account)} className="min-h-11 min-w-11 p-2 text-gray-600 hover:text-red-700">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>

@@ -36,7 +36,7 @@ function App() {
     // Questo evita che elementi fixed/sticky (sidebar, barre di azione)
     // finiscano per sovrapporsi a navbar/footer su pagine lunghe.
     return (
-      <div className="h-screen flex flex-col overflow-hidden">
+      <div className="h-[100dvh] flex flex-col overflow-hidden">
         <Navbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
         <div className="flex flex-1 w-full max-w-full min-h-0">
@@ -49,7 +49,7 @@ function App() {
           )}
           <Sidebar isAdmin={isAdmin} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
-          <main className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto relative">
+          <main className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain relative">
             <Routes>
               <Route
                 path="/dashboard"

@@ -102,9 +102,9 @@ export const AdminDashboardPage: React.FC = () => {
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div><h2 className="text-xl font-semibold text-gray-900">Andamento dei corsi</h2><p className="mt-1 text-sm text-gray-600">Studenti iscritti, attivi e avanzamento per ogni corso.</p></div>
-            <Link to="/admin/course" className="text-sm font-medium text-primary-700 hover:text-primary-800">Gestisci corsi</Link>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0"><h2 className="text-xl font-semibold text-gray-900">Andamento dei corsi</h2><p className="mt-1 text-sm text-gray-600">Studenti iscritti, attivi e avanzamento per ogni corso.</p></div>
+            <Link to="/admin/course" className="shrink-0 text-sm font-medium text-primary-700 hover:text-primary-800">Gestisci corsi</Link>
           </div>
           <div className="mt-5 overflow-x-auto">
             <table className="w-full min-w-[540px] text-left text-sm">
@@ -118,9 +118,9 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <div className="flex items-center justify-between gap-3"><div><h2 className="text-xl font-semibold text-gray-900">Ultimi acquisti</h2><p className="mt-1 text-sm text-gray-600">Gli ultimi ordini registrati, con il loro stato.</p></div><Link to="/admin/purchases" className="text-sm font-medium text-primary-700 hover:text-primary-800">Vedi tutti</Link></div>
+          <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="text-xl font-semibold text-gray-900">Ultimi acquisti</h2><p className="mt-1 text-sm text-gray-600">Gli ultimi ordini registrati, con il loro stato.</p></div><Link to="/admin/purchases" className="shrink-0 text-sm font-medium text-primary-700 hover:text-primary-800">Vedi tutti</Link></div>
           <div className="mt-5 divide-y divide-gray-100">
-            {dashboardStats.recent_purchases.map((purchase) => <Link key={purchase.purchase_id} to={`/admin/purchases/${purchase.purchase_id}`} className="flex items-center justify-between gap-4 py-3 hover:bg-gray-50"><div><p className="font-medium text-gray-900">{purchase.user_email || 'Email non disponibile'}</p><p className="mt-1 text-sm text-gray-500">{formatDate(purchase.purchase_date)} · {purchaseStatusLabels[purchase.status || ''] || 'Da verificare'}</p></div><span className="shrink-0 font-semibold text-gray-900">{formatCurrency(purchase.amount)}</span></Link>)}
+            {dashboardStats.recent_purchases.map((purchase) => <Link key={purchase.purchase_id} to={`/admin/purchases/${purchase.purchase_id}`} className="flex items-center justify-between gap-4 py-3 hover:bg-gray-50"><div className="min-w-0"><p className="break-all font-medium text-gray-900">{purchase.user_email || 'Email non disponibile'}</p><p className="mt-1 text-sm text-gray-500">{formatDate(purchase.purchase_date)} · {purchaseStatusLabels[purchase.status || ''] || 'Da verificare'}</p></div><span className="shrink-0 font-semibold text-gray-900">{formatCurrency(purchase.amount)}</span></Link>)}
             {dashboardStats.recent_purchases.length === 0 && <p className="py-5 text-sm text-gray-500">Non ci sono ancora acquisti.</p>}
           </div>
         </div>
@@ -129,11 +129,11 @@ export const AdminDashboardPage: React.FC = () => {
       <section className="rounded-xl border border-gray-200 bg-white p-5">
         <h2 className="text-xl font-semibold text-gray-900">Partecipazione negli ultimi 7 giorni</h2>
         <p className="mt-1 text-sm text-gray-600">Numero di studenti che hanno seguito almeno una lezione ogni giorno.</p>
-        <div className="mt-6 grid grid-cols-7 items-end gap-2 sm:gap-4 h-44">
+        <div className="mt-6 grid h-44 grid-cols-7 items-end gap-1 sm:gap-4">
           {dashboardStats.daily_access_chart.map((day) => {
             const height = Math.max((day.active_users / chartMaximum) * 100, day.active_users ? 10 : 2);
             const label = new Date(`${day.date}T12:00:00Z`).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric' });
-            return <div key={day.date} className="flex h-full flex-col justify-end text-center"><span className="mb-2 text-sm font-semibold text-gray-800">{day.active_users || ''}</span><div className="rounded-t-md bg-primary-600" style={{ height: `${height}%` }} /><span className="mt-2 text-xs text-gray-500">{label}</span></div>;
+            return <div key={day.date} className="flex h-full min-w-0 flex-col justify-end text-center"><span className="mb-2 text-xs font-semibold text-gray-800 sm:text-sm">{day.active_users || ''}</span><div className="rounded-t-md bg-primary-600" style={{ height: `${height}%` }} /><span className="mt-2 text-[10px] text-gray-500 sm:text-xs">{label}</span></div>;
           })}
         </div>
       </section>

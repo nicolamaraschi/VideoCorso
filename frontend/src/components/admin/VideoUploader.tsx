@@ -66,7 +66,67 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
     });
   };
 
-  const handleFileSelect = async (selectedFile: File) => {
+  const uploadVideo = async (selectedFile: File) => {
+    try {
+      setUploading(true);
+      setError(null);
+      setProgress(0);
+
+      let duration = 0;
+      try {
+        duration = await getVideoDuration(selectedFile);
+      } catch (err) {
+        console.error(err);
+      }
+
+      const uploadData = await adminService.getUploadUrl({
+        file_name: selectedFile.name,
+        file_type: selectedFile.type,
+        lesson_id: lessonId,
+      });
+
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          setProgress((e.loaded / e.total) * 100);
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status === 200) {
+          setSuccess(true);
+          setProgress(100);
+          setUploading(false);
+          onUploadComplete(uploadData.video_s3_key, duration);
+
+          setTimeout(() => {
+            setFile(null);
+            setSuccess(false);
+            setProgress(0);
+          }, 2000);
+        } else {
+          setError('Upload fallito. Riprova.');
+          setUploading(false);
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        setError('Upload fallito. Controlla la connessione e riprova.');
+        setUploading(false);
+      });
+
+      xhr.open('PUT', uploadData.upload_url);
+      xhr.setRequestHeader('Content-Type', selectedFile.type);
+      xhr.send(selectedFile);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Caricamento video fallito'));
+      setProgress(0);
+      setUploading(false);
+    }
+  };
+
+  const handleFileSelect = (selectedFile: File) => {
     const validation = validateVideoFile(selectedFile);
 
     if (!validation.valid) {
@@ -78,73 +138,13 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
     setError(null);
     setSuccess(false);
 
-    // Auto-upload the video
-    try {
-      setUploading(true);
-      setError(null);
-      setProgress(0);
-
-      // FIX: Ottieni la durata prima di iniziare l'upload
-      let duration = 0;
-      try {
-        duration = await getVideoDuration(selectedFile);
-      } catch (err) {
-        console.error(err);
-      }
-
-      // Get pre-signed URL
-      const uploadData = await adminService.getUploadUrl({
-        file_name: selectedFile.name,
-        file_type: selectedFile.type,
-        lesson_id: lessonId,
-      });
-
-      // Upload to S3 with progress tracking
-      const xhr = new XMLHttpRequest();
-
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-          const percentComplete = (e.loaded / e.total) * 100;
-          setProgress(percentComplete);
-        }
-      });
-
-      xhr.addEventListener('load', () => {
-        if (xhr.status === 200) {
-          setSuccess(true);
-          setProgress(100);
-          onUploadComplete(uploadData.video_s3_key, duration);
-
-          // Reset after 2 seconds
-          setTimeout(() => {
-            setFile(null);
-            setSuccess(false);
-            setProgress(0);
-          }, 2000);
-        } else {
-          setError('Upload failed');
-          setUploading(false);
-        }
-      });
-
-      xhr.addEventListener('error', () => {
-        setError('Upload failed');
-        setUploading(false);
-      });
-
-      xhr.open('PUT', uploadData.upload_url);
-      xhr.setRequestHeader('Content-Type', selectedFile.type);
-      xhr.send(selectedFile);
-
-    } catch (err) {
-      setError(getErrorMessage(err, 'Failed to upload video'));
-      setProgress(0);
-      setUploading(false);
-    }
+    void uploadVideo(selectedFile);
   };
 
-  const handleUpload = async () => {
-    // Keep this just in case, but it's no longer the primary way
+  const handleUpload = () => {
+    if (file && !uploading) {
+      void uploadVideo(file);
+    }
   };
 
 
@@ -167,18 +167,18 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
+          className={`cursor-pointer rounded-lg border-2 border-dashed p-5 text-center transition-colors sm:p-12 ${
             isDragging
               ? 'border-primary-500 bg-primary-50'
               : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50'
           }`}
         >
           <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-          <p className="text-lg font-medium text-gray-700 mb-2">
-            Drop video file here or click to browse
+          <p className="mb-2 text-base font-medium text-gray-700 sm:text-lg">
+            Carica un video o tocca per sceglierlo
           </p>
           <p className="text-sm text-gray-500">
-            Supported formats: MP4, MOV, WebM, OGG (Max 2GB)
+            Formati: MP4, MOV, WebM, OGG — massimo 2 GB
           </p>
           <input
             ref={fileInputRef}
@@ -192,7 +192,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
 
       {/* File Selected */}
       {file && (
-        <div className="border border-gray-200 rounded-lg p-6">
+        <div className="rounded-lg border border-gray-200 p-4 sm:p-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-start gap-3 flex-1">
               <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -206,7 +206,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
               </div>
             </div>
             {!uploading && !success && (
-              <button onClick={removeFile} className="text-gray-400 hover:text-gray-600">
+              <button type="button" onClick={removeFile} className="-m-2 min-h-11 min-w-11 rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600" aria-label="Rimuovi video selezionato">
                 <X className="w-5 h-5" />
               </button>
             )}
@@ -254,7 +254,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
               fullWidth
               variant="primary"
             >
-              Upload Video
+              Riprova caricamento video
             </Button>
           )}
         </div>

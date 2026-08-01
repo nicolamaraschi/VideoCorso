@@ -181,6 +181,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, []);
 
+  const revealControls = useCallback(() => {
+    setShowControls(true);
+  }, []);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -292,6 +296,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         isPortrait ? 'max-w-[480px]' : 'w-full'
       }`}
       style={{ aspectRatio: String(displayAspectRatio) }}
+      onTouchStart={revealControls}
     >
       {/* Video Element */}
       <div className="absolute inset-0 pointer-events-none">
@@ -365,7 +370,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           )}
 
           {/* Bottom Controls */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2 pointer-events-auto">
+          <div className="absolute bottom-0 left-0 right-0 space-y-2 p-3 sm:p-4 pointer-events-auto">
             {/* Progress Bar */}
             <div
               ref={progressBarRef}
@@ -381,9 +386,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             </div>
 
             {/* Control Buttons */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <button onClick={togglePlay} className="text-white hover:text-primary-400">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                <button onClick={togglePlay} className="-m-1.5 min-h-11 min-w-11 rounded-full p-2 text-white hover:bg-white/10 hover:text-primary-400" aria-label={isPlaying ? 'Metti in pausa' : 'Riproduci'}>
                   {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
                 </button>
 
@@ -392,21 +397,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                     if (playerRef.current) playerRef.current.currentTime = 0;
                     if (!isPlaying) togglePlay();
                   }}
-                  className="text-white hover:text-primary-400 hidden sm:block"
+                  className="hidden min-h-11 min-w-11 rounded-full p-2 text-white hover:bg-white/10 hover:text-primary-400 sm:block"
                   title="Restart"
                 >
                   <RotateCcw className="w-5 h-5" />
                 </button>
 
-                <button onClick={() => skip(-10)} className="text-white hover:text-primary-400 hidden sm:block">
+                <button onClick={() => skip(-10)} className="hidden min-h-11 min-w-11 rounded-full p-2 text-white hover:bg-white/10 hover:text-primary-400 sm:block" aria-label="Indietro di dieci secondi">
                   <SkipBack className="w-5 h-5" />
                 </button>
 
-                <button onClick={() => skip(10)} className="text-white hover:text-primary-400 hidden sm:block">
+                <button onClick={() => skip(10)} className="hidden min-h-11 min-w-11 rounded-full p-2 text-white hover:bg-white/10 hover:text-primary-400 sm:block" aria-label="Avanti di dieci secondi">
                   <SkipForward className="w-5 h-5" />
                 </button>
 
-                <button onClick={toggleMute} className="text-white hover:text-primary-400">
+                <button onClick={toggleMute} className="-m-1.5 min-h-11 min-w-11 rounded-full p-2 text-white hover:bg-white/10 hover:text-primary-400" aria-label={isMuted ? 'Attiva audio' : 'Disattiva audio'}>
                   {isMuted || volume === 0 ? (
                     <VolumeX className="w-5 h-5" />
                   ) : (
@@ -427,17 +432,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   className="w-20 hidden sm:block"
                 />
 
-                <span className="text-white text-sm font-medium">
+                <span className="whitespace-nowrap text-xs font-medium text-white sm:text-sm">
                   {formatDuration(currentTime)} / {formatDuration(duration)}
                 </span>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex shrink-0 items-center gap-1 sm:gap-3">
                 {/* Settings Menu */}
                 <div className="relative">
                   <button
                     onClick={() => setShowSettings(!showSettings)}
-                    className="text-white hover:text-primary-400"
+                    className="min-h-11 min-w-11 rounded-full p-2 text-white hover:bg-white/10 hover:text-primary-400"
+                    aria-label="Impostazioni video"
                   >
                     <Settings className="w-5 h-5" />
                   </button>
@@ -493,7 +499,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   )}
                 </div>
 
-                <button onClick={toggleFullscreen} className="text-white hover:text-primary-400">
+                <button onClick={toggleFullscreen} className="min-h-11 min-w-11 rounded-full p-2 text-white hover:bg-white/10 hover:text-primary-400" aria-label="Schermo intero">
                   <Maximize className="w-5 h-5" />
                 </button>
               </div>
