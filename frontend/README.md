@@ -1,73 +1,48 @@
-# React + TypeScript + Vite
+# Frontend VideoCorso
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Applicazione React + TypeScript + Vite pubblicata da AWS Amplify. I rami `main` e `development` sono collegati all'app Amplify `d26u0xz2smmxfz`; i rilasci ordinari avvengono con il push Git, non caricando manualmente file su S3.
 
-Currently, two official plugins are available:
+## Avvio locale
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm ci
+cp .env.example .env.local
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Per il controllo che replica CodeBuild:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npx tsc -b
+npm run lint
+npm run build
 ```
+
+## Variabili di ambiente
+
+Usare `.env.example` solo come schema. Le variabili richieste sono:
+
+- `VITE_COGNITO_USER_POOL_ID`
+- `VITE_COGNITO_USER_POOL_CLIENT_ID`
+- `VITE_COGNITO_IDENTITY_POOL_ID`
+- `VITE_API_BASE_URL`
+- `VITE_STRIPE_PUBLIC_KEY`
+- `VITE_AWS_REGION`
+
+Le variabili `VITE_*` diventano pubbliche nel bundle. Possono contenere endpoint, identificatori Cognito e la chiave pubblica Stripe `pk_*`, ma mai chiavi Stripe private, webhook secret, credenziali AWS o chiavi Resend.
+
+`VITE_API_BASE_URL` deve puntare all'API dell'ambiente previsto. Al momento il sito `development` usa ancora l'API `prod`: non considerarlo un backend isolato e non usare il sito per prove distruttive.
+
+## Pagamento e conferma
+
+Il checkout usa Stripe Checkout. Il ritorno da Stripe non basta per visualizzare un pagamento come concluso: la pagina di esito passa il `session_id` a `GET /payment/verify/{sessionId}` e mostra separatamente stato del pagamento e stato dell'accesso. Non modificare questo flusso per mostrare una conferma ottimistica o per proporre un secondo pagamento mentre la verifica è in corso.
+
+Gli origin di ritorno Stripe sono autorizzati dal backend, non dal frontend. Gli ambienti autorizzati sono i due domini Amplify documentati nel README principale.
+
+## Rilascio
+
+1. Sviluppare e validare su `development`.
+2. Aprire una Pull Request verso `main`.
+3. Dopo il merge, controllare l'ultimo job Amplify del ramo `main`.
+
+Per la configurazione AWS, il deploy backend e le procedure di incidente, usare il [runbook operativo](../docs/OPERATIONS.md). Ogni comando AWS/SAM va eseguito con il profilo `personale`.
