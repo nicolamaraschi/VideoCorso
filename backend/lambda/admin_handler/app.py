@@ -1313,7 +1313,7 @@ def ensure_cognito_student(email: str, full_name: str):
 
 
 def create_manual_student(body):
-    email = (body.get('email') or '').strip()
+    email = (body.get('email') or '').strip().lower()
     full_name = (body.get('full_name') or '').strip()
     if not email or not full_name:
         return create_response(400, {'error': 'email and full_name are required'})
