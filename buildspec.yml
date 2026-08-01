@@ -38,6 +38,7 @@ phases:
     commands:
       - echo "Installing test dependencies..."
       - pip install --quiet -r backend/tests/requirements-test.txt
+      - npm --prefix frontend install --legacy-peer-deps
 
   pre_build:
     commands:
@@ -57,6 +58,8 @@ phases:
   build:
     commands:
       - mkdir -p test-results
+      - echo "Running frontend type-check, lint and production build"
+      - cd frontend && npx tsc -b && npm run lint && npm run build && cd ..
       - echo "Running local regression suite"
       - |
         python -m pytest \
@@ -66,6 +69,7 @@ phases:
           backend/tests/test_provisioning_outbox.py \
           backend/tests/test_video_asset_cleanup.py \
           backend/tests/test_video_transcode_lifecycle.py \
+          backend/tests/test_video_quality_resolution.py \
           backend/tests/test_webhook_idempotency.py \
           backend/tests/test_webhook_transactions.py \
           -v \
