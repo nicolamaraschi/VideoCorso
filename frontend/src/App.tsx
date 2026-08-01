@@ -43,7 +43,7 @@ function App() {
           {/* Mobile Overlay */}
           {mobileMenuOpen && (
             <div
-              className="fixed inset-0 bg-gray-900/50 z-40 md:hidden"
+              className="fixed inset-0 bg-gray-900/50 z-40 xl:hidden"
               onClick={() => setMobileMenuOpen(false)}
             />
           )}
