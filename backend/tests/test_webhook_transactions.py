@@ -333,6 +333,20 @@ def test_checkout_without_stripe_key_is_controlled_error(configured_payment, mon
     assert "STRIPE_SECRET_KEY_PARAMETER" in response["body"]
 
 
+def test_checkout_redirects_allow_only_the_configured_amplify_origins(configured_payment):
+    configured_payment.ALLOWED_CHECKOUT_ORIGINS = {
+        "https://main.d26u0xz2smmxfz.amplifyapp.com",
+        "https://development.d26u0xz2smmxfz.amplifyapp.com",
+    }
+    assert configured_payment.validate_checkout_redirect_url(
+        "https://main.d26u0xz2smmxfz.amplifyapp.com/checkout?payment=success", "success_url",
+    ).startswith("https://main.d26u0xz2smmxfz.amplifyapp.com")
+    with pytest.raises(ValueError):
+        configured_payment.validate_checkout_redirect_url("https://evil.example/checkout", "success_url")
+    with pytest.raises(ValueError):
+        configured_payment.validate_checkout_redirect_url("https://development.evil.example/checkout", "success_url")
+
+
 def test_email_without_resend_key_is_scoped_and_never_logs_secret(configured_payment, monkeypatch, capsys):
     configured_payment._secret_cache.clear()
     monkeypatch.setenv("RESEND_API_KEY_PARAMETER", "/videocorso/dev/resend/api-key")

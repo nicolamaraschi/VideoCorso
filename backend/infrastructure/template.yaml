@@ -12,7 +12,11 @@ Parameters:
     Description: Environment name
   AllowedCheckoutOrigins:
     Type: String
-    Description: Application origin permitted for Stripe redirects and browser API calls (for example https://academy.example.it)
+    Description: Comma-separated application origins permitted only for Stripe success/cancel redirects.
+  AllowedCorsOrigin:
+    Type: String
+    Default: "*"
+    Description: Browser API CORS origin. This is intentionally separate from the strict Stripe redirect allowlist.
   ResendTestRecipients:
     Type: String
     Default: ""
@@ -484,7 +488,7 @@ Resources:
       Cors:
         AllowMethods: "'GET,POST,PUT,DELETE,PATCH,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization'"
-        AllowOrigin: !Sub "'${AllowedCheckoutOrigins}'"
+        AllowOrigin: !Sub "'${AllowedCorsOrigin}'"
       Auth:
         AddDefaultAuthorizerToCorsPreflight: false
         Authorizers:
