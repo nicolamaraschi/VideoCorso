@@ -11,13 +11,17 @@ from urllib.parse import urlparse
 
 import boto3
 import stripe
+from boto3.dynamodb.conditions import Key
 from boto3.dynamodb.types import TypeSerializer
 from botocore.exceptions import ClientError
 
 # ---------------------------------------------------------------------------
 # Shared layer (fail-closed access policy)
 # ---------------------------------------------------------------------------
-from shared.purchase_access import sync_purchase_access as _shared_sync_purchase_access
+from shared.purchase_access import (
+    purchase_grants_access as _shared_purchase_grants_access,
+    sync_purchase_access as _shared_sync_purchase_access,
+)
 
 # ---------------------------------------------------------------------------
 # Fields that a Stripe webhook is allowed to update on an existing purchase.
@@ -1817,18 +1821,73 @@ def create_checkout_session(event):
     return create_response(200, {'session_id': stored['stripe_session_id'], 'checkout_url': stored['checkout_url']})
 
 
+def find_purchase_by_stripe_session(session_id: str) -> Optional[dict[str, Any]]:
+    """Find the local sale corresponding to one Stripe Checkout session.
+
+    The index is intentionally used instead of a table scan: this endpoint is
+    public because Stripe redirects an unauthenticated customer to it, so it
+    must stay bounded even as the order history grows.
+    """
+    try:
+        response = purchases_table.query(
+            IndexName='StripeSessionIndex',
+            KeyConditionExpression=Key('stripe_session_id').eq(session_id),
+            Limit=1,
+        )
+        items = response.get('Items') or []
+        return items[0] if items else None
+    except Exception as exc:
+        # Stripe remains the source of truth for the payment.  If the local
+        # projection is temporarily unavailable, tell the UI that activation
+        # is still processing instead of declaring an unverified success.
+        print(f'checkout verification purchase lookup warning: {exc}')
+        return None
+
+
+def payment_verification_data(session: dict[str, Any]) -> dict[str, Any]:
+    """Return customer-safe payment and access states for a Checkout return."""
+    payment_status = str(session.get('payment_status') or '').lower()
+    checkout_status = str(session.get('status') or '').lower()
+    metadata = session.get('metadata') or {}
+    purchase = find_purchase_by_stripe_session(str(session.get('id') or ''))
+
+    if payment_status == 'paid':
+        payment_state = 'paid'
+    elif checkout_status == 'expired':
+        payment_state = 'expired'
+    else:
+        payment_state = 'pending'
+
+    access_state = 'not_available'
+    local_status = None
+    if payment_state == 'paid':
+        if not purchase:
+            access_state = 'processing'
+        else:
+            normalized = normalize_purchase_defaults(purchase)
+            local_status = normalized.get('local_status')
+            access_state = 'active' if _shared_purchase_grants_access(normalized) else (
+                'processing' if local_status in {'pending', 'needs_review'} else 'not_available'
+            )
+
+    return {
+        'session_id': session.get('id'),
+        'payment_state': payment_state,
+        'payment_status': payment_status or 'unknown',
+        'checkout_status': checkout_status or 'unknown',
+        'access_state': access_state,
+        'local_status': local_status,
+        'course_id': metadata.get('course_id'),
+        'course_title': metadata.get('course_title'),
+    }
+
+
 def verify_payment(session_id: str):
     configure_stripe()
     session = stripe.checkout.Session.retrieve(session_id, expand=['payment_intent'])
-    payment_intent = session.get('payment_intent')
     return create_response(200, {
         'success': True,
-        'data': {
-            'session_id': session.get('id'),
-            'payment_status': session.get('payment_status'),
-            'status': session.get('status'),
-            'payment_intent_id': payment_intent.get('id') if isinstance(payment_intent, dict) else payment_intent,
-        },
+        'data': payment_verification_data(session),
     })
 
 

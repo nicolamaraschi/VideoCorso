@@ -141,6 +141,8 @@ Resources:
           AttributeType: S
         - AttributeName: user_id
           AttributeType: S
+        - AttributeName: stripe_session_id
+          AttributeType: S
       KeySchema:
         - AttributeName: purchase_id
           KeyType: HASH
@@ -148,6 +150,15 @@ Resources:
         - IndexName: UserIndex
           KeySchema:
             - AttributeName: user_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        # Used only after Stripe sends the customer back to us.  It lets the
+        # public confirmation screen report the *actual* access state without
+        # scanning sales records or guessing from a redirect query parameter.
+        - IndexName: StripeSessionIndex
+          KeySchema:
+            - AttributeName: stripe_session_id
               KeyType: HASH
           Projection:
             ProjectionType: ALL

@@ -30,6 +30,17 @@ export interface CreateCheckoutResponse {
   is_free_access?: boolean;
 }
 
+export interface PaymentVerification {
+  session_id: string;
+  payment_state: 'paid' | 'pending' | 'expired';
+  payment_status: string;
+  checkout_status: string;
+  access_state: 'active' | 'processing' | 'not_available';
+  local_status?: string | null;
+  course_id?: string;
+  course_title?: string;
+}
+
 // Video API types
 export interface GetVideoUrlRequest {
   lesson_id: string;

@@ -3,6 +3,7 @@ import type{
   CreateCheckoutRequest,
   CreateCheckoutResponse,
   ApiResponse,
+  PaymentVerification,
   Subscription,
 } from '../types';
 
@@ -22,8 +23,8 @@ export const paymentService = {
   },
 
   // Verify payment status (after redirect from Stripe)
-  async verifyPayment(sessionId: string): Promise<ApiResponse<unknown>> {
-    return apiClient.get<ApiResponse<unknown>>(`/payment/verify/${sessionId}`);
+  async verifyPayment(sessionId: string): Promise<ApiResponse<PaymentVerification>> {
+    return apiClient.get<ApiResponse<PaymentVerification>>(`/payment/verify/${encodeURIComponent(sessionId)}`);
   },
 
   async getSubscription(): Promise<Subscription> {
