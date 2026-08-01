@@ -1317,6 +1317,8 @@ def create_manual_student(body):
     full_name = (body.get('full_name') or '').strip()
     if not email or not full_name:
         return create_response(400, {'error': 'email and full_name are required'})
+    if not is_valid_email(email.lower()):
+        return create_response(400, {'error': 'Inserisci un indirizzo email valido'})
 
     user_id, _, _ = ensure_cognito_student(email, full_name)
     item = {
@@ -1349,6 +1351,11 @@ def grant_course_to_student(student_id, body):
     course = get_course(course_id)
     if not course:
         return create_response(404, {'error': 'Course not found'})
+    if any(
+        normalize_purchase_course_id(purchase) == course_id and purchase_grants_access(purchase)
+        for purchase in get_user_purchases(student_id)
+    ):
+        return create_response(409, {'error': 'La studentessa ha già accesso attivo a questo corso'})
     
     purchase_id = f"MANUAL_{uuid.uuid4().hex[:16]}"
     purchase_item = {
@@ -1440,6 +1447,10 @@ def update_student(student_id, body):
         subscription_status=subscription_status,
         subscription_end_date=subscription_end_date if subscription_end_date else None,
     )
+    record_audit_log('update_student', 'student', student_id, {
+        'global_access': global_access,
+        'subscription_status': subscription_status,
+    })
     return create_response(200, {'success': True, 'data': updated_item})
 
 
@@ -2027,6 +2038,8 @@ def create_admin_account(body):
 
     if not email or not full_name:
         return create_response(400, {'error': 'email and full_name are required'})
+    if not is_valid_email(email):
+        return create_response(400, {'error': 'Inserisci un indirizzo email valido'})
 
     temp_password = generate_temp_password()
     try:

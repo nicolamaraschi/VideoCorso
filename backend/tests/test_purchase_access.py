@@ -412,11 +412,26 @@ class TestAdminOperationGuards:
         assert response["statusCode"] == 409
         assert "accessi attivi" in json.loads(response["body"])["error"]
 
+    @pytest.mark.parametrize("creator,payload", [
+        (_admin.create_manual_student, {"email": "not-an-email", "full_name": "Student"}),
+        (_admin.create_admin_account, {"email": "not-an-email", "full_name": "Admin"}),
+    ])
+    def test_account_creation_validates_email_before_calling_cognito(self, creator, payload):
+        assert creator(payload)["statusCode"] == 400
+
+    def test_manual_course_grant_does_not_duplicate_an_existing_active_access(self, monkeypatch):
+        monkeypatch.setattr(_admin, "get_user_item", lambda _student_id: {"user_id": "student-1", "email": "student@example.test"})
+        monkeypatch.setattr(_admin, "get_course", lambda _course_id: {"course_id": "course-1", "title": "Course"})
+        monkeypatch.setattr(_admin, "get_user_purchases", lambda _student_id: [make_purchase("paid", True)])
+        response = _admin.grant_course_to_student("student-1", {"course_id": "course-1"})
+        assert response["statusCode"] == 409
+
     def test_manual_grant_is_an_explicit_access_record_not_a_fake_stripe_session(self, monkeypatch):
         purchases = _AdminMemoryTable()
         monkeypatch.setitem(_admin.TABLES, "PURCHASES", purchases)
         monkeypatch.setattr(_admin, "get_user_item", lambda _student_id: {"user_id": "student-1", "email": "student@example.test"})
         monkeypatch.setattr(_admin, "get_course", lambda _course_id: {"course_id": "course-1", "title": "Course"})
+        monkeypatch.setattr(_admin, "get_user_purchases", lambda _student_id: [])
         monkeypatch.setattr(_admin, "record_audit_log", lambda *_args, **_kwargs: None)
 
         response = _admin.grant_course_to_student("student-1", {"course_id": "course-1"})
