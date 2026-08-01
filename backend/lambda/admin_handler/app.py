@@ -1005,6 +1005,7 @@ def update_lesson(lesson_id, body):
     values = {}
     expression_names = {}
     replacing_video = body.get('video_s3_key') and body.get('video_s3_key') != lesson.get('video_s3_key')
+    pending_replacement = False
     for key, value in body.items():
         if key in {'lesson_id', 'asset_version', 'transcode_job_id'} or (key == 'video_s3_key' and replacing_video):
             continue
@@ -1015,7 +1016,14 @@ def update_lesson(lesson_id, body):
         asset_version = extract_asset_version(body['video_s3_key'], lesson_id)
         if not asset_version:
             return create_response(400, {'error': 'Replacement video must use videos/<lesson_id>/<asset_version>/source.ext'})
-        if asset_version:
+        # The upload URL endpoint records the pending asset before the browser
+        # uploads it. The following lesson PUT normally arrives afterwards;
+        # preserve its in-flight transcode rather than resetting its job state.
+        pending_replacement = (
+            lesson.get('pending_video_s3_key') == body['video_s3_key']
+            and lesson.get('pending_asset_version') == asset_version
+        )
+        if asset_version and not pending_replacement:
             expression_names['#asset_version'] = 'pending_asset_version'
             expression_names['#video_s3_key'] = 'pending_video_s3_key'
             expression_names['#transcode_job_id'] = 'transcode_job_id'
@@ -1029,6 +1037,8 @@ def update_lesson(lesson_id, body):
                 '#transcode_status = :transcode_status',
             ])
     if not fields:
+        if pending_replacement:
+            return create_response(200, {'success': True, 'data': lesson})
         return create_response(400, {'error': 'No editable lesson fields supplied'})
     updated = TABLES['LESSONS'].update_item(
         Key={'lesson_id': lesson_id},
