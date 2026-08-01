@@ -12,6 +12,7 @@ Run with:
 import sys
 import types
 import importlib
+import json
 from decimal import Decimal
 from typing import Any
 import pathlib
@@ -284,6 +285,145 @@ class TestAdminCustomerView:
         assert view["account_ready"] is True
         assert view["course_access_active"] is False
         assert view["course_access_reason"] == "payment_or_access_not_active"
+
+
+class _AdminMemoryTable:
+    def __init__(self, item=None):
+        self.item = item
+        self.update_calls = []
+        self.deleted = []
+        self.puts = []
+
+    def get_item(self, **_kwargs):
+        return {"Item": self.item} if self.item else {}
+
+    def update_item(self, **kwargs):
+        self.update_calls.append(kwargs)
+        return {"Attributes": self.item or {}}
+
+    def delete_item(self, **kwargs):
+        self.deleted.append(kwargs)
+
+    def put_item(self, **kwargs):
+        self.puts.append(kwargs)
+
+
+class TestAdminOperationGuards:
+    """Regression tests for destructive and payment-affecting admin actions."""
+
+    @pytest.mark.parametrize("path,method", [
+        ("/admin/accounts", "GET"), ("/admin/account", "POST"),
+        ("/admin/account/admin@example.test", "PATCH"), ("/admin/account/admin@example.test", "DELETE"),
+        ("/admin/account/admin@example.test/resend-invite", "POST"),
+        ("/admin/courses", "GET"), ("/admin/course", "POST"),
+        ("/admin/course/course-1", "PUT"), ("/admin/course/course-1", "DELETE"),
+        ("/admin/course/chapter", "POST"), ("/admin/course/chapter/chapter-1", "PUT"),
+        ("/admin/course/chapter/chapter-1", "DELETE"), ("/admin/course/reorder-chapters", "PUT"),
+        ("/admin/course/lesson", "POST"), ("/admin/course/lesson/lesson-1", "PUT"),
+        ("/admin/course/lesson/lesson-1", "DELETE"), ("/admin/course/reorder-lessons", "PUT"),
+        ("/admin/coupons", "GET"), ("/admin/coupon", "POST"),
+        ("/admin/coupon/COUPON", "PUT"), ("/admin/coupon/COUPON", "DELETE"), ("/admin/coupon/test", "POST"),
+        ("/admin/students", "GET"), ("/admin/students/search", "GET"), ("/admin/student/create", "POST"),
+        ("/admin/student/student-1", "GET"), ("/admin/student/student-1", "PATCH"),
+        ("/admin/student/student-1", "DELETE"), ("/admin/student/student-1/resend-invite", "POST"),
+        ("/admin/student/student-1/reset-password", "POST"), ("/admin/student/student-1/grant-course", "POST"),
+        ("/admin/purchases", "GET"), ("/admin/purchase/pi-1", "GET"), ("/admin/purchase/pi-1", "DELETE"),
+        ("/admin/purchase/pi-1/resync", "POST"), ("/admin/purchase/pi-1/unlock", "POST"),
+        ("/admin/purchase/pi-1/revoke", "POST"), ("/admin/purchase/pi-1/refund", "POST"),
+        ("/admin/purchase/pi-1/mark-verified", "POST"), ("/admin/purchase/pi-1/correct-email", "POST"),
+        ("/admin/stats", "GET"), ("/admin/video/upload", "POST"), ("/admin/image/upload", "POST"),
+        ("/admin/video/video-key", "DELETE"), ("/admin/video/thumbnail", "POST"),
+    ])
+    def test_every_sensitive_admin_operation_rejects_a_non_admin(self, path, method):
+        response = _admin.lambda_handler({"path": path, "httpMethod": method, "body": "{}"}, None)
+        assert response["statusCode"] == 403
+
+    def test_hiding_a_published_course_also_clears_is_active(self, monkeypatch):
+        table = _AdminMemoryTable({"course_id": "course-1", "status": "published", "is_active": True})
+        monkeypatch.setitem(_admin.TABLES, "COURSES", table)
+        monkeypatch.setattr(_admin, "get_course", lambda _course_id: table.item)
+
+        response = _admin.update_course("course-1", {"is_active": False})
+        call = table.update_calls[0]
+        assert response["statusCode"] == 200
+        assert call["ExpressionAttributeValues"][":status"] == "hidden"
+        assert call["ExpressionAttributeValues"][":is_active"] is False
+
+    @pytest.mark.parametrize("course,expected_error", [
+        ({"title": "Course", "status": "published", "price": -1, "public_slug": "course"}, "price cannot be negative"),
+        ({"title": "Course", "status": "published", "price": 10, "discounted_price": 11, "public_slug": "course"}, "discounted_price must be between zero and the full price"),
+        ({"title": "Course", "status": "unknown", "price": 10, "public_slug": "course"}, "status is invalid"),
+        ({"title": "Course", "status": "published", "price": 10, "public_slug": "Corso Maiuscolo"}, "public_slug"),
+    ])
+    def test_invalid_catalog_data_is_rejected_before_it_can_reach_checkout(self, course, expected_error):
+        assert expected_error in _admin.validate_course_payload(course)
+
+    def test_public_course_slug_must_be_unique(self, monkeypatch):
+        monkeypatch.setattr(_admin, "list_all_items", lambda _table: [{"course_id": "other", "public_slug": "masterclass"}])
+        error = _admin.validate_course_payload({"title": "Course", "status": "published", "price": 10, "public_slug": "masterclass"}, "course-1")
+        assert error == "Esiste già un corso con questo URL pubblico"
+
+    def test_malformed_course_price_returns_a_validation_error_instead_of_a_server_error(self):
+        response = _admin.create_course({"title": "Course", "status": "published", "price": "not-a-price", "public_slug": "course"})
+        assert response["statusCode"] == 400
+
+    def test_chapter_and_lesson_updates_reject_empty_or_unsafe_payloads(self, monkeypatch):
+        chapter_table = _AdminMemoryTable({"chapter_id": "chapter-1", "course_id": "course-1"})
+        lesson_table = _AdminMemoryTable({"lesson_id": "lesson-1", "chapter_id": "chapter-1"})
+        monkeypatch.setitem(_admin.TABLES, "CHAPTERS", chapter_table)
+        monkeypatch.setitem(_admin.TABLES, "LESSONS", lesson_table)
+
+        assert _admin.update_chapter("chapter-1", {"course_id": "other-course"})["statusCode"] == 400
+        assert _admin.update_lesson("lesson-1", {"chapter_id": "other-chapter"})["statusCode"] == 400
+
+    def test_reorder_rejects_cross_course_or_duplicate_items(self, monkeypatch):
+        class Chapters:
+            def get_item(self, Key):
+                course_id = {"chapter-1": "course-1", "chapter-2": "course-2"}.get(Key["chapter_id"])
+                return {"Item": {"chapter_id": Key["chapter_id"], "course_id": course_id}} if course_id else {}
+
+        monkeypatch.setitem(_admin.TABLES, "CHAPTERS", Chapters())
+        assert _admin.reorder_chapters({"items": [
+            {"id": "chapter-1", "order_number": 1}, {"id": "chapter-2", "order_number": 2},
+        ]})["statusCode"] == 400
+        assert _admin.reorder_chapters({"items": [
+            {"id": "chapter-1", "order_number": 1}, {"id": "chapter-1", "order_number": 2},
+        ]})["statusCode"] == 400
+
+    @pytest.mark.parametrize("payload", [
+        {"code": "BAD SPACE", "discount_type": "percent", "discount_value": 10},
+        {"code": "NEGATIVE", "discount_type": "fixed", "discount_value": -1},
+        {"code": "OVER", "discount_type": "percent", "discount_value": 101},
+        {"code": "LIMIT", "discount_type": "percent", "discount_value": 10, "max_redemptions": 0},
+        {"code": "DATES", "discount_type": "percent", "discount_value": 10, "starts_at": "2026-12-02T00:00:00Z", "expires_at": "2026-12-01T00:00:00Z"},
+    ])
+    def test_invalid_coupon_rules_are_rejected_before_checkout_can_use_them(self, payload):
+        assert _admin.create_coupon(payload)["statusCode"] == 400
+
+    def test_duplicate_coupon_code_cannot_overwrite_an_existing_promotion(self, monkeypatch):
+        monkeypatch.setattr(_admin, "get_coupon", lambda _code: {"coupon_id": "SAVE10"})
+        response = _admin.create_coupon({"code": "SAVE10", "discount_type": "percent", "discount_value": 10})
+        assert response["statusCode"] == 409
+
+    def test_paid_student_cannot_be_deleted_and_lose_course_access(self, monkeypatch):
+        monkeypatch.setattr(_admin, "resolve_student_record", lambda _student_id: {"user_id": "student-1", "email": "student@example.test"})
+        monkeypatch.setattr(_admin, "get_user_purchases", lambda _user_id: [make_purchase("paid", True)])
+        response = _admin.delete_student("student-1")
+        assert response["statusCode"] == 409
+        assert "accessi attivi" in json.loads(response["body"])["error"]
+
+    def test_manual_grant_is_an_explicit_access_record_not_a_fake_stripe_session(self, monkeypatch):
+        purchases = _AdminMemoryTable()
+        monkeypatch.setitem(_admin.TABLES, "PURCHASES", purchases)
+        monkeypatch.setattr(_admin, "get_user_item", lambda _student_id: {"user_id": "student-1", "email": "student@example.test"})
+        monkeypatch.setattr(_admin, "get_course", lambda _course_id: {"course_id": "course-1", "title": "Course"})
+        monkeypatch.setattr(_admin, "record_audit_log", lambda *_args, **_kwargs: None)
+
+        response = _admin.grant_course_to_student("student-1", {"course_id": "course-1"})
+        purchase = json.loads(response["body"], parse_float=str)["purchase"]
+        assert response["statusCode"] == 200
+        assert purchase["manual_access_override"] is True
+        assert purchase["stripe_session_id"] is None
 
 
 class TestAccessControlConsistency:
