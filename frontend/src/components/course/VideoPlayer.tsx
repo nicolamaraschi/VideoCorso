@@ -28,6 +28,7 @@ interface VideoPlayerProps {
   availableQualities?: string[];
   quality?: VideoQuality;
   onQualityChange?: (quality: VideoQuality) => void;
+  trackProgress?: boolean;
 }
 
 const getIPhoneVideoRotation = async (videoUrl: string, signal: AbortSignal): Promise<0 | 90 | 180 | 270> => {
@@ -74,6 +75,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   availableQualities = [],
   quality,
   onQualityChange,
+  trackProgress = true,
 }) => {
   // react-player v3 forwards its ref to the underlying HTMLVideoElement.
   const playerRef = useRef<HTMLVideoElement>(null);
@@ -99,7 +101,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     markComplete,
     seekToSeconds,
     clearSeekTo
-  } = useVideoProgress({ lessonId });
+  } = useVideoProgress({ lessonId, enabled: trackProgress });
 
   // When the user switches quality, the parent fetches a new presigned URL for
   // the same lesson. We keep track of where playback was so switching quality
@@ -124,21 +126,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Handle unmount save
   useEffect(() => {
     return () => {
-      if (currentTime > 0 && duration > 0) {
+      if (trackProgress && currentTime > 0 && duration > 0) {
         saveProgress(currentTime, duration);
       }
     };
-  }, [currentTime, duration, saveProgress]);
+  }, [currentTime, duration, saveProgress, trackProgress]);
 
   const togglePlay = useCallback(() => {
     if (!playerRef.current) return;
     
     // If saving pause progress manually
-    if (isPlaying) {
+    if (trackProgress && isPlaying) {
       saveProgress(currentTime, duration);
     }
     setIsPlaying(!isPlaying);
-  }, [isPlaying, currentTime, duration, saveProgress]);
+  }, [isPlaying, currentTime, duration, saveProgress, trackProgress]);
 
   const skip = useCallback((seconds: number) => {
     if (!playerRef.current) return;
@@ -312,7 +314,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           onLoadedMetadata={handleLoadedMetadata}
           onEnded={() => {
             setIsPlaying(false);
-            markComplete(currentTime, duration);
+            if (trackProgress) markComplete(currentTime, duration);
             if (onEnded) onEnded();
           }}
           style={rotation === 0 ? {

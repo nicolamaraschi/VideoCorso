@@ -4,9 +4,10 @@ import type { Progress } from '../types';
 
 interface UseVideoProgressProps {
   lessonId: string;
+  enabled?: boolean;
 }
 
-export const useVideoProgress = ({ lessonId }: UseVideoProgressProps) => {
+export const useVideoProgress = ({ lessonId, enabled = true }: UseVideoProgressProps) => {
   const [progress, setProgress] = useState<Progress | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const lastSavedTime = useRef<number>(0);
@@ -15,6 +16,7 @@ export const useVideoProgress = ({ lessonId }: UseVideoProgressProps) => {
   const [seekToSeconds, setSeekToSeconds] = useState<number | null>(null);
 
   const loadProgress = useCallback(async () => {
+    if (!enabled) return;
     try {
       const data = await courseService.getLessonProgress(lessonId);
       setProgress(data);
@@ -24,9 +26,10 @@ export const useVideoProgress = ({ lessonId }: UseVideoProgressProps) => {
     } catch (err) {
       console.error('Failed to load progress:', err);
     }
-  }, [lessonId]);
+  }, [enabled, lessonId]);
 
   const saveProgress = useCallback(async (watchedSeconds: number, totalSeconds: number) => {
+    if (!enabled) return;
     try {
       setIsSaving(true);
       const response = await courseService.updateProgress({
@@ -43,9 +46,10 @@ export const useVideoProgress = ({ lessonId }: UseVideoProgressProps) => {
     } finally {
       setIsSaving(false);
     }
-  }, [lessonId]);
+  }, [enabled, lessonId]);
 
   const markComplete = useCallback(async (watchedSeconds: number, totalSeconds: number) => {
+    if (!enabled) return;
     try {
       setIsSaving(true);
       const response = await courseService.updateProgress({
@@ -62,7 +66,7 @@ export const useVideoProgress = ({ lessonId }: UseVideoProgressProps) => {
     } finally {
       setIsSaving(false);
     }
-  }, [lessonId]);
+  }, [enabled, lessonId]);
 
   const debouncedSave = useCallback((watchedSeconds: number, totalSeconds: number) => {
     if (saveTimeout.current) {
@@ -78,6 +82,7 @@ export const useVideoProgress = ({ lessonId }: UseVideoProgressProps) => {
   }, [loadProgress]);
 
   const handleTimeUpdate = useCallback((currentTime: number, duration: number) => {
+    if (!enabled) return;
     if (!progress) return;
     if (Math.abs(currentTime - lastSavedTime.current) >= 300) {
       lastSavedTime.current = currentTime;
@@ -89,9 +94,10 @@ export const useVideoProgress = ({ lessonId }: UseVideoProgressProps) => {
         completionInFlight.current = false;
       });
     }
-  }, [progress, debouncedSave, markComplete]);
+  }, [enabled, progress, debouncedSave, markComplete]);
 
   const resetProgress = async () => {
+    if (!enabled) return;
     try {
       await courseService.updateProgress({
         lesson_id: lessonId,

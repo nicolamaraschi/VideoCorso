@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, GripVertical, Save, Play } from 'lucide-react';
 import { Reorder } from 'framer-motion';
-import type { Chapter, Lesson } from '../../types';
+import type { Chapter, Lesson, VideoQuality } from '../../types';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { VideoUploader } from './VideoUploader';
@@ -100,6 +100,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
   const [previewLessonId, setPreviewLessonId] = useState<string | null>(null);
+  const [previewAvailableQualities, setPreviewAvailableQualities] = useState<string[]>([]);
+  const [previewQuality, setPreviewQuality] = useState<VideoQuality>('high');
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewMissing, setPreviewMissing] = useState(false);
   const [replacingThumbnail, setReplacingThumbnail] = useState(false);
@@ -195,6 +197,12 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   };
 
   // FIX: Funzione per gestire l'anteprima del video
+  const loadPreviewVideo = async (lessonId: string, quality: VideoQuality) => {
+    const response = await courseService.getVideoUrl(lessonId, quality);
+    setPreviewVideoUrl(response.video_url);
+    setPreviewAvailableQualities(response.available_qualities || []);
+  };
+
   const handlePreviewLesson = async (lesson: Lesson) => {
     if (!lesson.video_s3_key) {
       setPreviewMissing(true);
@@ -208,16 +216,27 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       setPreviewLoading(true);
       setPreviewMissing(false);
       setShowPreviewModal(true);
+      setPreviewLessonId(lesson.lesson_id);
+      setPreviewQuality('high');
 
-      // Chiamiamo lo stesso servizio usato dagli studenti
-      const response = await courseService.getVideoUrl(lesson.lesson_id);
-
-      setPreviewVideoUrl(response.video_url);
-      setPreviewLessonId(lesson.lesson_id); // Usato per il tracciamento
+      await loadPreviewVideo(lesson.lesson_id, 'high');
     } catch (err) {
       console.error("Failed to load preview video", err);
       setPreviewMissing(true);
       setPreviewVideoUrl(null);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handlePreviewQualityChange = async (quality: VideoQuality) => {
+    if (!previewLessonId) return;
+    try {
+      setPreviewLoading(true);
+      setPreviewQuality(quality);
+      await loadPreviewVideo(previewLessonId, quality);
+    } catch (err) {
+      console.error('Failed to switch preview quality', err);
     } finally {
       setPreviewLoading(false);
     }
@@ -228,6 +247,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     setShowPreviewModal(false);
     setPreviewVideoUrl(null);
     setPreviewLessonId(null);
+    setPreviewAvailableQualities([]);
+    setPreviewQuality('high');
     setPreviewMissing(false);
   };
 
@@ -636,6 +657,10 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
           <VideoPlayer
             videoUrl={previewVideoUrl}
             lessonId={previewLessonId} // Passiamo l'ID per il tracciamento
+            availableQualities={previewAvailableQualities}
+            quality={previewQuality}
+            onQualityChange={handlePreviewQualityChange}
+            trackProgress={false}
           />
         ) : previewMissing ? (
           <div className="text-center py-8">
