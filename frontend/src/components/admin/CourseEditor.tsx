@@ -530,6 +530,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             ) : (
               <div className="space-y-3">
                 <VideoUploader
+                  lessonId={editingLesson?.lesson_id}
                   onUploadComplete={(videoKey, duration) => {
                     setLessonForm((current) => ({
                       ...current,
