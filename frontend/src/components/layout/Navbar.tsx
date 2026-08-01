@@ -56,7 +56,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             {/* Mobile Menu Button */}
-            <div className="md:hidden flex-shrink-0 mr-2">
+            <div className="xl:hidden flex-shrink-0 mr-2">
               <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 -ml-2 rounded-lg hover:bg-gray-100">
                 {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
