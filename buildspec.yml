@@ -56,7 +56,24 @@ phases:
 
   build:
     commands:
-      - echo "Running API test suite against $API_ENDPOINT"
+      - mkdir -p test-results
+      - echo "Running local regression suite"
+      - |
+        python -m pytest \
+          backend/tests/test_purchase_access.py \
+          backend/tests/test_progress_invariants.py \
+          backend/tests/test_coupon_redemption.py \
+          backend/tests/test_provisioning_outbox.py \
+          backend/tests/test_video_asset_cleanup.py \
+          backend/tests/test_video_transcode_lifecycle.py \
+          backend/tests/test_webhook_idempotency.py \
+          backend/tests/test_webhook_transactions.py \
+          -v \
+          --tb=short \
+          -p no:cacheprovider \
+          --junitxml=test-results/regression-tests.xml \
+          2>&1 | tee test-results/regression-tests.log
+      - echo "Running API availability suite against $API_ENDPOINT"
       - |
         python -m pytest backend/tests/test_api_availability.py \
           -v \
@@ -77,6 +94,10 @@ phases:
         fi
 
 reports:
+  regression-test-report:
+    files:
+      - "test-results/regression-tests.xml"
+    file-format: JUNITXML
   api-test-report:
     files:
       - "test-results/api-tests.xml"
@@ -84,6 +105,8 @@ reports:
 
 artifacts:
   files:
+    - "test-results/regression-tests.log"
+    - "test-results/regression-tests.xml"
     - "test-results/api-tests.log"
     - "test-results/api-tests.xml"
   name: api-test-results
