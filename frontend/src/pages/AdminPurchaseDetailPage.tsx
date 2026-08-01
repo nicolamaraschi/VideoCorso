@@ -208,18 +208,18 @@ export const AdminPurchaseDetailPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <Link to="/admin/purchases" className="text-sm text-primary-600 hover:text-primary-700">
             Torna agli acquisti
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mt-2">{purchase.course_title || purchase.course_id}</h1>
-          <p className="text-gray-600">{purchase.customer_email || purchase.user_email || 'Email non disponibile'}</p>
+          <h1 className="mt-2 break-words text-3xl font-bold text-gray-900">{purchase.course_title || purchase.course_id}</h1>
+          <p className="break-all text-gray-600">{purchase.customer_email || purchase.user_email || 'Email non disponibile'}</p>
         </div>
 
         <div className="w-full md:w-auto rounded-lg border border-gray-200 bg-white p-4 md:max-w-md">
           <p className="text-sm font-semibold text-gray-900">Prima azione consigliata</p>
           <p className="mt-1 text-sm text-gray-600">Aggiorna i dati da Stripe prima di modificare manualmente l’accesso.</p>
-          <Button className="mt-3" variant="secondary" loading={actionLoading === 'resync'} onClick={() => void runAction('resync')}>
+          <Button className="mt-3 w-full md:w-auto" variant="secondary" loading={actionLoading === 'resync'} onClick={() => void runAction('resync')}>
             Aggiorna dati da Stripe
           </Button>
         </div>
@@ -280,7 +280,7 @@ export const AdminPurchaseDetailPage: React.FC = () => {
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-5">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 space-y-5">
           <h2 className="text-xl font-semibold text-gray-900">Dettaglio ordine</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -341,7 +341,7 @@ export const AdminPurchaseDetailPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-5">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 space-y-5">
           <h2 className="text-xl font-semibold text-gray-900">Rimborsi e accesso</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -403,7 +403,7 @@ export const AdminPurchaseDetailPage: React.FC = () => {
         </div>
       </section>
 
-      <section className="rounded-lg border border-gray-200 bg-white p-6">
+      <section className="rounded-lg border border-gray-200 bg-white p-4 sm:p-6">
         <h2 className="text-xl font-semibold text-gray-900">Gestione manuale</h2>
         <p className="mt-1 text-sm text-gray-600">Usa queste azioni solo per gestire un’eccezione già verificata.</p>
         <div className="mt-5 flex flex-wrap gap-3">
@@ -415,11 +415,11 @@ export const AdminPurchaseDetailPage: React.FC = () => {
         {!canManuallyGrant && !canRevoke && !purchase.is_stripe_test_purchase && <p className="mt-4 text-sm text-gray-500">Nessuna modifica manuale disponibile per questo ordine.</p>}
       </section>
 
-      <section className="bg-white rounded-lg border border-gray-200 p-6">
+      <section className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Timeline operativa</h2>
         <div className="space-y-3">
           {timeline.map((item) => (
-            <div key={`${item.label}-${item.at}`} className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 px-4 py-3">
+            <div key={`${item.label}-${item.at}`} className="flex flex-col gap-1 rounded-lg border border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <p className="font-medium text-gray-900">{item.label}</p>
               <p className="text-sm text-gray-600">{formatDateTime(item.at)}</p>
             </div>

@@ -184,13 +184,13 @@ export const AdminCouponsPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Coupon</h1>
           <p className="text-gray-600">Codici promo course-scoped con validazione, scadenza, limiti uso e free access.</p>
         </div>
-        <Button variant="primary" onClick={openCreateModal}>
+        <Button className="w-full md:w-auto" variant="primary" onClick={openCreateModal}>
           <Plus className="w-4 h-4 mr-2" />
           Nuovo coupon
         </Button>
       </div>
 
-      <section className="bg-white rounded-lg border border-gray-200 p-6">
+      <section className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Test rapido coupon</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <input
@@ -217,7 +217,7 @@ export const AdminCouponsPage: React.FC = () => {
             onChange={(event) => setTestForm((prev) => ({ ...prev, email: event.target.value }))}
             className="px-3 py-2 border border-gray-300 rounded-lg"
           />
-          <Button variant="secondary" loading={testing} onClick={handleTestCoupon}>
+          <Button className="w-full md:w-auto" variant="secondary" loading={testing} onClick={handleTestCoupon}>
             Verifica coupon
           </Button>
         </div>
@@ -236,8 +236,32 @@ export const AdminCouponsPage: React.FC = () => {
       </section>
 
       <section className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="space-y-3 p-3 sm:hidden">
+          {coupons.map((coupon) => (
+            <article key={coupon.coupon_id} className="rounded-lg border border-gray-200 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="break-all font-semibold text-gray-900">{coupon.code}</h2>
+                  <p className="mt-1 text-sm text-gray-600">{coupon.is_free_access ? '100% / accesso gratuito' : coupon.discount_type === 'percent' ? `${Number(coupon.discount_value)}%` : `€ ${Number(coupon.discount_value).toFixed(2)}`}</p>
+                </div>
+                <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold ${coupon.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-700'}`}>{coupon.is_active ? 'Attivo' : 'Disattivo'}</span>
+              </div>
+              <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <div><dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Corsi</dt><dd className="mt-1 text-gray-800">{coupon.course_scope.length > 0 ? `${coupon.course_scope.length} corsi` : 'Tutti i corsi'}</dd></div>
+                <div><dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Utilizzi</dt><dd className="mt-1 text-gray-800">{coupon.current_redemptions}/{coupon.max_redemptions ?? '∞'}</dd></div>
+              </dl>
+              {coupon.expires_at && <p className="mt-3 text-sm text-amber-700">Scade {formatDateTime(coupon.expires_at)}</p>}
+              <div className="mt-4 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
+                <button type="button" onClick={() => openEditModal(coupon)} className="min-h-11 rounded-lg text-sm font-medium text-primary-700 hover:bg-primary-50">Modifica</button>
+                <button type="button" onClick={() => handleDeleteCoupon(coupon)} className="min-h-11 rounded-lg text-sm font-medium text-red-700 hover:bg-red-50">Elimina</button>
+              </div>
+            </article>
+          ))}
+          {coupons.length === 0 && <div className="py-12 text-center text-gray-500">Nessun coupon configurato.</div>}
+        </div>
+
+        <div className="hidden overflow-x-auto sm:block">
+          <table className="w-full min-w-[760px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Codice</th>
@@ -288,10 +312,10 @@ export const AdminCouponsPage: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button onClick={() => openEditModal(coupon)} className="p-2 text-gray-600 hover:text-primary-700" title="Modifica">
+                    <button aria-label={`Modifica coupon ${coupon.code}`} onClick={() => openEditModal(coupon)} className="min-h-11 min-w-11 p-2 text-gray-600 hover:text-primary-700" title="Modifica">
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleDeleteCoupon(coupon)} className="p-2 text-red-600 hover:text-red-800" title="Elimina">
+                    <button aria-label={`Elimina coupon ${coupon.code}`} onClick={() => handleDeleteCoupon(coupon)} className="min-h-11 min-w-11 p-2 text-red-600 hover:text-red-800" title="Elimina">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </td>

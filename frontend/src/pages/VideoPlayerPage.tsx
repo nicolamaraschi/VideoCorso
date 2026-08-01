@@ -145,19 +145,20 @@ export const VideoPlayerPage: React.FC = () => {
         />
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+      <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 mb-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">{lesson.title}</h1>
         {lesson.description && (
           <p className="text-gray-600 mb-4">{lesson.description}</p>
         )}
       </div>
 
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="w-full sm:w-auto">
           {previousLesson ? (
             <Button
               onClick={() => navigate(`/courses/${courseId}/lessons/${previousLesson.lesson_id}`)}
               variant="secondary"
+              className="w-full sm:w-auto"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Lezione precedente
@@ -167,17 +168,18 @@ export const VideoPlayerPage: React.FC = () => {
           )}
         </div>
 
-        <div>
+        <div className="w-full sm:w-auto">
           {nextLesson ? (
             <Button
               onClick={() => navigate(`/courses/${courseId}/lessons/${nextLesson.lesson_id}`)}
               variant="primary"
+              className="w-full sm:w-auto"
             >
               Lezione successiva
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (
-            <Button onClick={() => navigate(`/courses/${courseId}`)} variant="primary">
+            <Button onClick={() => navigate(`/courses/${courseId}`)} variant="primary" className="w-full sm:w-auto">
               <CheckCircle className="w-4 h-4 mr-2" />
               Torna al corso
             </Button>

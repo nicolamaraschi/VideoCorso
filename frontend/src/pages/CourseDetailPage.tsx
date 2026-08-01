@@ -46,7 +46,7 @@ export const CourseDetailPage: React.FC = () => {
         <span>Torna ai corsi</span>
       </button>
 
-      <section className="bg-white rounded-lg border border-gray-200 p-8">
+      <section className="bg-white rounded-lg border border-gray-200 p-4 sm:p-8">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
           <div className="flex-1 max-w-4xl">
             {course.cover_image_url && (
@@ -62,7 +62,7 @@ export const CourseDetailPage: React.FC = () => {
             <p className="text-gray-600 mt-3">{course.description}</p>
           </div>
 
-          <div className="min-w-[220px] rounded-xl bg-gray-50 p-5 border border-gray-200">
+          <div className="w-full min-w-0 rounded-xl border border-gray-200 bg-gray-50 p-5 lg:w-auto lg:min-w-[220px]">
             <p className="text-sm uppercase tracking-wide text-gray-500 mb-2">Accesso</p>
             <p className="text-2xl font-bold text-gray-900 mb-4">
               {course.has_access ? 'Sbloccato' : `€ ${Number(course.price).toFixed(2)}`}

@@ -210,7 +210,7 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* Video in Azione Section */}
-      <section className="py-20 bg-white">
+      <section id="anteprima" className="py-20 bg-white">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900">Il Microblading in Azione</h2>

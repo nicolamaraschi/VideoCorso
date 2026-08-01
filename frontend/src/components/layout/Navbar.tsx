@@ -57,7 +57,13 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
           <div className="flex items-center">
             {/* Mobile Menu Button */}
             <div className="xl:hidden flex-shrink-0 mr-2">
-              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 -ml-2 rounded-lg hover:bg-gray-100">
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="min-h-11 min-w-11 p-2 -ml-2 rounded-lg hover:bg-gray-100"
+                aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
+                aria-expanded={mobileMenuOpen}
+              >
                 {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
             </div>
@@ -71,7 +77,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
                 className="h-10 w-auto rounded-full object-cover flex-shrink-0"
               />
               
-              <div className="block flex-1 md:flex-none text-center md:text-left pr-10 md:pr-0">
+              <div className="block min-w-0 flex-1 md:flex-none text-center md:text-left pr-2 md:pr-0">
                 <span className="text-base md:text-lg font-bold text-primary-600 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
                   Chiara Morocutti Academy
                 </span>
