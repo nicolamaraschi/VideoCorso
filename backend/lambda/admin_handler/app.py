@@ -14,18 +14,13 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 # ---------------------------------------------------------------------------
-# Shared access-control module (Lambda Layer in AWS; fallback for unit tests)
+# Shared access-control module. It is mandatory: a missing Layer must fail
+# closed instead of restoring the historical needs_review policy.
 # ---------------------------------------------------------------------------
-try:
-    from shared.purchase_access import (  # type: ignore[import]
-        purchase_grants_access,
-        sync_purchase_access,
-        normalize_purchase_defaults as _shared_normalize_purchase_defaults,
-        purchase_status_from_stripe,
-    )
-    _USING_SHARED_LAYER = True
-except ImportError:
-    _USING_SHARED_LAYER = False
+from shared.purchase_access import (  # type: ignore[import]
+    purchase_grants_access as _shared_purchase_grants_access,
+    sync_purchase_access as _shared_sync_purchase_access,
+)
 
 
 LEGACY_COURSE_ID = 'legacy-default-course'
@@ -92,19 +87,45 @@ def delete_s3_object_safely(bucket: Optional[str], key: Optional[str]) -> None:
         print(f'Unable to delete S3 object {key}: {exc}')
 
 
-def get_optimized_video_key(video_s3_key: Any) -> Optional[str]:
+def is_external_video_url(value: Any) -> bool:
+    return isinstance(value, str) and value.startswith(('http://', 'https://'))
+
+
+def extract_asset_version(video_s3_key: Any, lesson_id: str) -> Optional[str]:
+    """Return the immutable asset version only for the owning lesson key."""
     if not video_s3_key or is_external_video_url(video_s3_key):
         return None
-    source_name = str(video_s3_key).rsplit('/', 1)[-1]
+    parts = str(video_s3_key).strip('/').split('/')
+    if len(parts) != 4 or parts[0] != 'videos' or parts[1] != lesson_id:
+        return None
+    if not parts[2] or not parts[3].startswith('source.'):
+        return None
+    return parts[2]
+
+
+def get_optimized_video_keys(video_s3_key: Any) -> list[str]:
+    if not video_s3_key or is_external_video_url(video_s3_key):
+        return []
+    key = str(video_s3_key).strip('/')
+    parts = key.split('/')
+    # New assets are immutable/versioned: videos/<lesson>/<version>/source.ext.
+    # Keeping the legacy branch makes cleanup safe for existing uploads.
+    if len(parts) >= 4 and parts[0] == 'videos' and parts[-1].startswith('source.'):
+        prefix = '/'.join(parts[1:-1])
+        return [f'streaming/{prefix}/source_{quality}.mp4'
+                for quality in ('720p', '480p', '360p', '1080p')]
+    source_name = key.rsplit('/', 1)[-1]
     source_stem = source_name.rsplit('.', 1)[0]
     if not source_stem:
-        return None
-    return f'streaming/{source_stem}/{source_stem}_1080p.mp4'
+        return []
+    return [f'streaming/{source_stem}/{source_stem}_{quality}.mp4'
+            for quality in ('720p', '480p', '360p', '1080p')]
 
 
 def delete_lesson_assets(lesson: dict[str, Any]) -> None:
     delete_s3_object_safely(VIDEO_BUCKET, lesson.get('video_s3_key'))
-    delete_s3_object_safely(VIDEO_BUCKET, get_optimized_video_key(lesson.get('video_s3_key')))
+    for optimized_key in get_optimized_video_keys(lesson.get('video_s3_key')):
+        delete_s3_object_safely(VIDEO_BUCKET, optimized_key)
     delete_s3_object_safely(
         THUMBNAIL_BUCKET,
         get_owned_s3_key(lesson.get('thumbnail_url'), THUMBNAIL_BUCKET),
@@ -489,67 +510,46 @@ def normalize_purchase(purchase: dict[str, Any]) -> dict[str, Any]:
     normalized['created_at'] = normalized.get('created_at') or normalized.get('purchase_date') or now_iso()
     normalized['updated_at'] = normalized.get('updated_at') or normalized['created_at']
     normalized['is_stripe_test_purchase'] = str(normalized.get('stripe_session_id') or '').startswith('cs_test_')
+    normalized['version'] = int(normalized.get('version', 0) or 0)
     return normalized
+
+
+def update_purchase_with_version(purchase_id: str, expected_version: int, fields: dict[str, Any]) -> dict[str, Any]:
+    """Narrow compare-and-swap update for admin-owned purchase fields."""
+    names = {'#version': 'version', '#updated_at': 'updated_at'}
+    values: dict[str, Any] = {
+        ':expected_version': int(expected_version), ':zero': 0, ':one': 1,
+        ':updated_at': now_iso(),
+    }
+    assignments = ['#version = if_not_exists(#version, :zero) + :one', '#updated_at = :updated_at']
+    for index, (field, value) in enumerate(fields.items()):
+        name = f'#field{index}'
+        value_name = f':field{index}'
+        names[name] = field
+        values[value_name] = value
+        assignments.append(f'{name} = {value_name}')
+    try:
+        response = TABLES['PURCHASES'].update_item(
+            Key={'purchase_id': purchase_id}, UpdateExpression='SET ' + ', '.join(assignments),
+            ConditionExpression=(
+                'attribute_exists(purchase_id) AND '
+                '((attribute_not_exists(#version) AND :expected_version = :zero) OR #version = :expected_version)'
+            ),
+            ExpressionAttributeNames=names, ExpressionAttributeValues=values, ReturnValues='ALL_NEW',
+        )
+        return response.get('Attributes') or {}
+    except ClientError as exc:
+        if exc.response.get('Error', {}).get('Code') == 'ConditionalCheckFailedException':
+            raise ValueError('Purchase was changed by another administrator; reload and retry') from exc
+        raise
 
 
 def purchase_grants_access(purchase: dict[str, Any]) -> bool:
-    if _USING_SHARED_LAYER:
-        from shared.purchase_access import purchase_grants_access as _pga  # type: ignore[import]
-        return _pga(purchase)
-    # Fallback: original admin_handler logic (with normalize_purchase)
-    normalized = normalize_purchase(purchase)
-    return (
-        (normalized['local_status'] in {'paid', 'needs_review'} or normalized['manual_access_override'])
-        and normalized['access_unlocked']
-        and not normalized['access_revoked']
-        and normalized['refunded_amount'] <= 0
-    )
+    return _shared_purchase_grants_access(purchase)
 
 
 def sync_purchase_access(purchase: dict[str, Any], mode: str = 'sync') -> dict[str, Any]:
-    if _USING_SHARED_LAYER:
-        from shared.purchase_access import sync_purchase_access as _spa  # type: ignore[import]
-        return _spa(purchase, mode)
-    # Fallback: original logic below
-    normalized = normalize_purchase(purchase)
-    if mode == 'force_unlock':
-        if normalized['local_status'] in {'refunded', 'disputed'} or normalized['refunded_amount'] > 0:
-            raise ValueError('Non è possibile concedere accesso manuale a un ordine rimborsato o contestato')
-        normalized['access_unlocked'] = True
-        normalized['access_revoked'] = False
-        normalized['manual_access_override'] = True
-        normalized['access_revoked_at'] = None
-        normalized['access_revocation_reason'] = ''
-        normalized['updated_at'] = now_iso()
-        return normalized
-
-    if mode == 'revoke':
-        normalized['access_unlocked'] = False
-        normalized['access_revoked'] = True
-        normalized['manual_access_override'] = False
-        normalized['access_revoked_at'] = now_iso()
-        normalized['access_revocation_reason'] = normalized.get('access_revocation_reason') or 'manual_revoke'
-        normalized['updated_at'] = now_iso()
-        return normalized
-
-    if normalized['local_status'] == 'paid' and normalized['refunded_amount'] <= 0 and not normalized['access_revoked']:
-        normalized['access_unlocked'] = True
-        normalized['access_revoked'] = False
-        normalized['manual_access_override'] = False
-        normalized['access_revoked_at'] = None
-        normalized['access_revocation_reason'] = ''
-    elif normalized['manual_access_override'] and normalized['local_status'] not in {'refunded', 'disputed'} and normalized['refunded_amount'] <= 0 and not normalized['access_revoked']:
-        normalized['access_unlocked'] = True
-    elif normalized['local_status'] in {'refunded', 'disputed'}:
-        normalized['access_unlocked'] = False
-        normalized['access_revoked'] = True
-        normalized['access_revoked_at'] = normalized.get('access_revoked_at') or now_iso()
-        normalized['access_revocation_reason'] = normalized.get('access_revocation_reason') or ('refund_total' if normalized['local_status'] == 'refunded' else 'payment_disputed')
-        normalized['manual_access_override'] = False
-    elif normalized['local_status'] in {'failed', 'cancelled'}:
-        normalized['access_unlocked'] = False
-    normalized['updated_at'] = now_iso()
-    return normalized
+    return _shared_sync_purchase_access(purchase, mode=mode)
 
 
 def get_coupon(coupon_ref: Optional[str]):
@@ -988,6 +988,8 @@ def create_lesson(body):
         'video_s3_key': body.get('video_s3_key', ''),
         'thumbnail_url': body.get('thumbnail_url', ''),
         'is_free_preview': normalize_bool(body.get('is_free_preview', False)),
+        'asset_version': body.get('asset_version') or None,
+        'transcode_job_id': None,
         'created_at': now_iso(),
     }
     TABLES['LESSONS'].put_item(Item=item)
@@ -1001,19 +1003,42 @@ def update_lesson(lesson_id, body):
 
     fields = []
     values = {}
+    expression_names = {}
+    replacing_video = body.get('video_s3_key') and body.get('video_s3_key') != lesson.get('video_s3_key')
     for key, value in body.items():
-        if key == 'lesson_id':
+        if key in {'lesson_id', 'asset_version', 'transcode_job_id'} or (key == 'video_s3_key' and replacing_video):
             continue
-        fields.append(f'{key} = :{key}')
+        expression_names[f'#{key}'] = key
+        fields.append(f'#{key} = :{key}')
         values[f':{key}'] = value
+    if replacing_video:
+        asset_version = extract_asset_version(body['video_s3_key'], lesson_id)
+        if not asset_version:
+            return create_response(400, {'error': 'Replacement video must use videos/<lesson_id>/<asset_version>/source.ext'})
+        if asset_version:
+            expression_names['#asset_version'] = 'pending_asset_version'
+            expression_names['#video_s3_key'] = 'pending_video_s3_key'
+            expression_names['#transcode_job_id'] = 'transcode_job_id'
+            expression_names['#transcode_status'] = 'transcode_status'
+            values[':asset_version'] = asset_version
+            values[':video_s3_key'] = body['video_s3_key']
+            values[':transcode_job_id'] = None
+            values[':transcode_status'] = 'PENDING_UPLOAD'
+            fields.extend([
+                '#asset_version = :asset_version', '#video_s3_key = :video_s3_key', '#transcode_job_id = :transcode_job_id',
+                '#transcode_status = :transcode_status',
+            ])
+    if not fields:
+        return create_response(400, {'error': 'No editable lesson fields supplied'})
     updated = TABLES['LESSONS'].update_item(
         Key={'lesson_id': lesson_id},
         UpdateExpression=f"SET {', '.join(fields)}",
+        ExpressionAttributeNames=expression_names,
         ExpressionAttributeValues=values,
         ReturnValues='ALL_NEW',
     )
-    if body.get('video_s3_key') and body.get('video_s3_key') != lesson.get('video_s3_key'):
-        delete_s3_object_safely(VIDEO_BUCKET, lesson.get('video_s3_key'))
+    # The old active asset remains available until MediaConvert atomically
+    # promotes the pending version on COMPLETE.
     if body.get('thumbnail_url') and body.get('thumbnail_url') != lesson.get('thumbnail_url'):
         delete_s3_object_safely(
             THUMBNAIL_BUCKET,
@@ -1069,12 +1094,27 @@ def get_presigned_upload_url(body):
     file_type = body.get('file_type')
     if not file_name or not file_type:
         return create_response(400, {'error': 'file_name and file_type are required'})
-    allowed_video_types = {'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-quicktime'}
+    allowed_video_types = {'video/mp4', 'video/quicktime', 'video/x-quicktime'}
     if file_type not in allowed_video_types:
         return create_response(400, {'error': 'Formato video non supportato'})
 
     safe_name = os.path.basename(str(file_name)).replace(' ', '-')
-    s3_key = f"videos/{uuid.uuid4()}-{safe_name}"
+    lesson_id = str(body.get('lesson_id') or '').strip()
+    if lesson_id:
+        lesson = TABLES['LESSONS'].get_item(Key={'lesson_id': lesson_id}).get('Item')
+        if not lesson:
+            return create_response(404, {'error': 'Lesson not found'})
+        extension = os.path.splitext(safe_name)[1].lower() or '.mp4'
+        asset_version = uuid.uuid4().hex
+        s3_key = f"videos/{lesson_id}/{asset_version}/source{extension}"
+        TABLES['LESSONS'].update_item(Key={'lesson_id':lesson_id},
+            UpdateExpression='SET pending_asset_version=:version, pending_video_s3_key=:key, pending_transcode_status=:status REMOVE transcode_job_id',
+            ExpressionAttributeValues={':version':asset_version, ':key':s3_key, ':status':'PENDING_UPLOAD'})
+    else:
+        # Backward compatible for the create-lesson form.  Existing callers
+        # remain supported, while edits use the immutable versioned layout.
+        asset_version = None
+        s3_key = f"videos/{uuid.uuid4()}-{safe_name}"
     url = s3_client.generate_presigned_url(
         'put_object',
         Params={'Bucket': VIDEO_BUCKET, 'Key': s3_key, 'ContentType': file_type},
@@ -1083,7 +1123,8 @@ def get_presigned_upload_url(body):
     return create_response(200, {
         'upload_url': url,
         'video_s3_key': s3_key,
-        'expires_at': now_iso(),
+        'asset_version': asset_version,
+        'expires_at': (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat().replace('+00:00', 'Z'),
     })
 
 
@@ -1587,9 +1628,15 @@ def force_unlock_purchase(purchase_id):
         normalized = sync_purchase_access(purchase, mode='force_unlock')
     except ValueError as exc:
         return create_response(400, {'error': str(exc)})
-    TABLES['PURCHASES'].put_item(Item=normalized)
+    updated = update_purchase_with_version(purchase_id, normalized.get('version', 0), {
+        'manual_access_override': normalized['manual_access_override'],
+        'access_revoked': normalized['access_revoked'],
+        'access_revoked_at': normalized.get('access_revoked_at'),
+        'access_revocation_reason': normalized.get('access_revocation_reason', ''),
+        'access_unlocked': normalized['access_unlocked'],
+    })
     record_audit_log('grant_manual_access', 'purchase', purchase_id)
-    return create_response(200, {'success': True, 'data': normalized})
+    return create_response(200, {'success': True, 'data': normalize_purchase(updated)})
 
 
 def revoke_purchase_access(purchase_id):
@@ -1597,9 +1644,15 @@ def revoke_purchase_access(purchase_id):
     if not purchase:
         return create_response(404, {'error': 'Purchase not found'})
     normalized = sync_purchase_access(purchase, mode='revoke')
-    TABLES['PURCHASES'].put_item(Item=normalized)
+    updated = update_purchase_with_version(purchase_id, normalized.get('version', 0), {
+        'manual_access_override': normalized['manual_access_override'],
+        'access_revoked': normalized['access_revoked'],
+        'access_revoked_at': normalized.get('access_revoked_at'),
+        'access_revocation_reason': normalized.get('access_revocation_reason', ''),
+        'access_unlocked': normalized['access_unlocked'],
+    })
     record_audit_log('revoke_access', 'purchase', purchase_id)
-    return create_response(200, {'success': True, 'data': normalized})
+    return create_response(200, {'success': True, 'data': normalize_purchase(updated)})
 
 
 def mark_purchase_verified(purchase_id):
@@ -1608,10 +1661,11 @@ def mark_purchase_verified(purchase_id):
         return create_response(404, {'error': 'Purchase not found'})
     normalized = normalize_purchase(purchase)
     normalized['verified_by_admin'] = True
-    normalized['updated_at'] = now_iso()
-    TABLES['PURCHASES'].put_item(Item=normalized)
+    updated = update_purchase_with_version(purchase_id, normalized.get('version', 0), {
+        'verified_by_admin': True,
+    })
     record_audit_log('verify_purchase', 'purchase', purchase_id)
-    return create_response(200, {'success': True, 'data': normalized})
+    return create_response(200, {'success': True, 'data': normalize_purchase(updated)})
 
 
 def is_valid_email(email: str) -> bool:
@@ -2262,6 +2316,8 @@ def lambda_handler(event, context):
             return generate_thumbnail(body)
 
         return create_response(404, {'error': f'Route not implemented: {http_method} {path}'})
+    except ValueError as exc:
+        return create_response(409, {'error': str(exc), 'code': 'stale_version'})
     except Exception as exc:
         print(f'admin handler error: {exc}')
         return create_response(500, {'error': str(exc)})

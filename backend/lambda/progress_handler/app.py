@@ -1,32 +1,16 @@
 import json
 import os
-import uuid
+import hashlib
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Optional
 
 import boto3
 from boto3.dynamodb.conditions import Key
+from botocore.exceptions import ClientError
 
 # ---------------------------------------------------------------------------
-# Shared access-control module (Lambda Layer in AWS; fallback for unit tests)
-# ---------------------------------------------------------------------------
-try:
-    from shared.purchase_access import purchase_grants_access  # type: ignore[import]
-except ImportError:
-    def purchase_grants_access(purchase: "dict[str, Any]") -> bool:  # type: ignore[misc]
-        """Inline fallback without fail-closed fix. Remove once layer is deployed."""
-        from decimal import Decimal as D
-        local_status = str(purchase.get('local_status') or purchase.get('status') or '')
-        _nb = lambda v: v if isinstance(v, bool) else str(v).lower() in {'true','1','yes','on'}
-        access_unlocked = _nb(purchase.get('access_unlocked', local_status in {'paid','active'}))
-        access_revoked  = _nb(purchase.get('access_revoked', False))
-        refunded_amount = D(str(purchase.get('refunded_amount', 0) or 0))
-        manual_override = _nb(purchase.get('manual_access_override', False))
-        return ((local_status in {'paid','needs_review'} or manual_override)
-                and access_unlocked and not access_revoked
-                and refunded_amount <= 0
-                and local_status not in {'refunded','disputed'})
+from shared.purchase_access import purchase_grants_access
 
 
 LEGACY_COURSE_ID = 'legacy-default-course'
@@ -56,6 +40,27 @@ def create_response(status_code: int, body: Any):
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+
+
+def progress_id_for(user_id: str, lesson_id: str) -> str:
+    return hashlib.sha256(f'{user_id}:{lesson_id}'.encode('utf-8')).hexdigest()
+
+
+def build_monotonic_progress_update(current: dict[str, Any], watched_seconds: Any,
+                                    total_seconds: Any, completed: bool) -> dict[str, Any]:
+    current_watched = Decimal(str(current.get('watched_seconds', 0) or 0))
+    next_watched = max(current_watched, Decimal(str(watched_seconds or 0)))
+    current_completed = normalize_bool(current.get('completed', False))
+    return {
+        'watched_seconds': next_watched,
+        'total_seconds': max(Decimal(str(current.get('total_seconds', 0) or 0)), Decimal(str(total_seconds or 0))),
+        'completed': current_completed or completed,
+    }
+
+
+def progress_version(current: dict[str, Any]) -> int:
+    """Return the optimistic-lock version, treating legacy rows as version 0."""
+    return int(current.get('version', 0) or 0)
 
 
 def get_user_id(event) -> Optional[str]:
@@ -321,8 +326,6 @@ def get_user_progress(user_id: str, admin_status: bool = False):
 def update_progress(user_id: str, body: dict[str, Any], admin_status: bool = False):
     lesson_id = body.get('lesson_id')
     watched_seconds = body.get('watched_seconds')
-    total_seconds = body.get('total_seconds', 0)
-    completed = normalize_bool(body.get('completed', False))
 
     if not lesson_id or watched_seconds is None:
         return create_response(400, {'error': 'lesson_id and watched_seconds are required'})
@@ -339,50 +342,121 @@ def update_progress(user_id: str, body: dict[str, Any], admin_status: bool = Fal
     if not lesson.get('is_free_preview') and not can_access_course(user_id, course_id, admin_status):
         return create_response(403, {'error': 'Course access required'})
 
+    # Completion is server-derived from the lesson metadata.  The player may
+    # report position but never authorise completed=True by itself.
+    lesson_duration = Decimal(str(lesson.get('duration_seconds', 0) or 0))
+    watched_value = Decimal(str(watched_seconds or 0))
+    total_seconds = lesson_duration
+    completed = bool(lesson_duration > 0 and watched_value / lesson_duration >= Decimal('0.90'))
+
     progress_percent = 0
     if total_seconds > 0:
         progress_percent = min(int((watched_seconds / total_seconds) * 100), 100)
     if completed:
         progress_percent = 100
 
-    existing = find_progress_item(user_id, lesson_id)
-    if existing and existing.get('completed'):
-        completed = True
-        progress_percent = 100
-
-    now = now_iso()
-    payload = {
-        ':ws': Decimal(str(watched_seconds)),
-        ':ts': Decimal(str(total_seconds)),
-        ':pp': Decimal(str(progress_percent)),
-        ':c': completed,
-        ':lw': now,
-    }
-
-    if existing:
-        updated = progress_table.update_item(
-            Key={'progress_id': existing['progress_id']},
-            UpdateExpression=(
-                'SET watched_seconds = :ws, total_seconds = :ts, '
-                'progress_percent = :pp, completed = :c, last_watched = :lw'
-            ),
-            ExpressionAttributeValues=payload,
-            ReturnValues='ALL_NEW',
+    progress_id = progress_id_for(user_id, lesson_id)
+    existing = progress_table.get_item(Key={'progress_id': progress_id}, ConsistentRead=True).get('Item')
+    legacy_items = []
+    if not existing:
+        legacy_items = [item for item in get_progress_items(user_id)
+                        if item.get('lesson_id') == lesson_id and item.get('progress_id') != progress_id]
+        if legacy_items:
+            existing = {}
+            for legacy in legacy_items:
+                existing = build_monotonic_progress_update(
+                    existing, legacy.get('watched_seconds', 0), legacy.get('total_seconds', 0),
+                    normalize_bool(legacy.get('completed', False)),
+                )
+    existing = existing or {}
+    # Every write is a read/merge/conditional-write cycle.  This is deliberate:
+    # DynamoDB expressions have no max() primitive, while this preserves both
+    # monotone watched_seconds and a concurrent completed=True transition.
+    for _attempt in range(4):
+        if _attempt:
+            existing = progress_table.get_item(
+                Key={'progress_id': progress_id}, ConsistentRead=True,
+            ).get('Item') or {}
+        update = build_monotonic_progress_update(existing, watched_seconds, total_seconds, completed)
+        if update['completed']:
+            progress_percent = 100
+        else:
+            progress_percent = (
+                min(int((update['watched_seconds'] / update['total_seconds']) * 100), 100)
+                if update['total_seconds'] > 0 else 0
+            )
+        now = now_iso()
+        expected_version = progress_version(existing)
+        payload = {
+            ':ws': update['watched_seconds'], ':ts': update['total_seconds'],
+            ':pp': Decimal(str(progress_percent)), ':c': update['completed'], ':lw': now,
+            ':uid': user_id, ':lesson': lesson_id, ':expected_version': expected_version,
+            ':zero': 0, ':one': 1,
+        }
+        expression = (
+            'SET user_id = if_not_exists(user_id, :uid), lesson_id = if_not_exists(lesson_id, :lesson), '
+            'watched_seconds = :ws, total_seconds = :ts, progress_percent = :pp, '
+            'completed = :c, last_watched = :lw, version = if_not_exists(version, :zero) + :one'
         )
-        return create_response(200, {'success': True, 'data': updated.get('Attributes')})
+        if update['completed']:
+            expression += ', completed_at = if_not_exists(completed_at, :lw)'
+        try:
+            updated = progress_table.update_item(
+                Key={'progress_id': progress_id}, UpdateExpression=expression,
+                # Legacy rows have no version and are accepted only as version 0.
+                ConditionExpression='(attribute_not_exists(version) AND :expected_version = :zero) OR version = :expected_version',
+                ExpressionAttributeValues=payload, ReturnValues='ALL_NEW',
+            )
+            # Write the deterministic row first, then remove only legacy rows
+            # observed for this user+lesson. A failed delete leaves harmless
+            # duplicates which are merged on the next update, never data loss.
+            for legacy in legacy_items:
+                progress_table.delete_item(Key={'progress_id': legacy['progress_id']})
+            return create_response(200, {'success': True, 'data': updated.get('Attributes')})
+        except ClientError as exc:
+            if exc.response.get('Error', {}).get('Code') != 'ConditionalCheckFailedException':
+                raise
 
-    item = {
-        'progress_id': str(uuid.uuid4()),
-        'user_id': user_id,
-        'lesson_id': lesson_id,
-        'watched_seconds': Decimal(str(watched_seconds)),
-        'total_seconds': Decimal(str(total_seconds)),
-        'progress_percent': Decimal(str(progress_percent)),
-        'completed': completed,
-        'last_watched': now,
-    }
-    progress_table.put_item(Item=item)
-    return create_response(201, {'success': True, 'data': item})
+    # Do not turn a temporarily contended write into a regression or a false
+    # success.  The client can retry safely with the same monotone payload.
+    return create_response(409, {'error': 'Progress update conflicted; retry safely'})
+
+
+def reset_progress(user_id: str, body: dict[str, Any], admin_status: bool = False):
+    """The sole endpoint allowed to clear a progress record."""
+    lesson_id = body.get('lesson_id')
+    if not lesson_id:
+        return create_response(400, {'error': 'lesson_id is required'})
+    lesson = get_lesson(lesson_id)
+    if not lesson:
+        return create_response(404, {'error': 'Lesson not found'})
+    chapter = get_chapter(lesson.get('chapter_id'))
+    if not chapter:
+        return create_response(404, {'error': 'Chapter not found'})
+    if not lesson.get('is_free_preview') and not can_access_course(user_id, chapter.get('course_id'), admin_status):
+        return create_response(403, {'error': 'Course access required'})
+    progress_id = progress_id_for(user_id, lesson_id)
+    existing = progress_table.get_item(Key={'progress_id': progress_id}, ConsistentRead=True).get('Item')
+    if not existing:
+        return create_response(404, {'error': 'Progress not found'})
+    now = now_iso()
+    updated = progress_table.update_item(
+        Key={'progress_id': progress_id},
+        UpdateExpression=(
+            'SET user_id = if_not_exists(user_id, :uid), lesson_id = if_not_exists(lesson_id, :lesson), '
+            'watched_seconds = :zero, progress_percent = :zero, '
+            'completed = :false, last_watched = :now, version = if_not_exists(version, :zero) + :one '
+            'REMOVE completed_at'
+        ),
+        ExpressionAttributeValues={
+            ':uid': user_id, ':lesson': lesson_id, ':zero': 0, ':false': False,
+            ':now': now, ':one': 1,
+            ':expected_version': progress_version(existing),
+        },
+        ConditionExpression='(attribute_not_exists(version) AND :expected_version = :zero) OR version = :expected_version',
+        ReturnValues='ALL_NEW',
+    )
+    return create_response(200, {'success': True, 'data': updated.get('Attributes')})
 
 
 def get_lesson_progress(user_id: str, lesson_id: str, admin_status: bool = False):
@@ -488,6 +562,9 @@ def lambda_handler(event, context):
         body['completed'] = True
         body['watched_seconds'] = body.get('watched_seconds', body.get('total_seconds', 0))
         return update_progress(user_id, body, admin_status)
+
+    if path == '/progress/reset' and http_method == 'POST':
+        return reset_progress(user_id, json.loads(event.get('body') or '{}'), admin_status)
 
     if path == '/user/subscription' and http_method == 'GET':
         return get_subscription(user_id, admin_status)

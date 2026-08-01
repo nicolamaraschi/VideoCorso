@@ -59,6 +59,18 @@ def _setup_stubs():
     )
     sys.modules["boto3"] = boto3
     sys.modules["boto3.dynamodb"] = types.ModuleType("boto3.dynamodb")
+    dynamodb_types = types.ModuleType("boto3.dynamodb.types")
+    class TypeSerializer:
+        def serialize(self, value):
+            if value is None: return {"NULL": True}
+            if isinstance(value, bool): return {"BOOL": value}
+            if isinstance(value, Decimal): return {"N": str(value)}
+            if isinstance(value, str): return {"S": value}
+            if isinstance(value, (int, float)): return {"N": str(value)}
+            if isinstance(value, dict): return {"M": {k: self.serialize(v) for k, v in value.items()}}
+            raise TypeError(value)
+    dynamodb_types.TypeSerializer = TypeSerializer
+    sys.modules["boto3.dynamodb.types"] = dynamodb_types
     cond = types.ModuleType("boto3.dynamodb.conditions")
     cond.Key = lambda k: types.SimpleNamespace(eq=lambda v: None)
     sys.modules["boto3.dynamodb.conditions"] = cond
@@ -139,7 +151,7 @@ class TestCouponValidation:
         coupon = make_coupon(is_active=False)
         valid, reason = _ph.coupon_is_valid_for_checkout(coupon, make_course(), None)
         assert valid is False
-        assert "active" in reason.lower()
+        assert reason == "coupon_disabled"
 
     def test_expired_coupon_rejected(self):
         past = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat().replace("+00:00", "Z")
@@ -158,7 +170,7 @@ class TestCouponValidation:
         coupon = make_coupon(max_redemptions=5, current_redemptions=5)
         valid, reason = _ph.coupon_is_valid_for_checkout(coupon, make_course(), None)
         assert valid is False
-        assert "limit" in reason.lower() or "redemption" in reason.lower()
+        assert reason == "coupon_exhausted"
 
     def test_max_redemptions_not_reached(self):
         coupon = make_coupon(max_redemptions=5, current_redemptions=4)

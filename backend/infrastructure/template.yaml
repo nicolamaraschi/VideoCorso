@@ -13,6 +13,10 @@ Parameters:
   AllowedCheckoutOrigins:
     Type: String
     Description: Application origin permitted for Stripe redirects and browser API calls (for example https://academy.example.it)
+  ResendTestRecipients:
+    Type: String
+    Default: ""
+    Description: Comma-separated pre-live test recipients; empty disables Resend delivery.
 
 Globals:
   Function:
@@ -28,6 +32,9 @@ Globals:
         PURCHASES_TABLE: !Ref PurchasesTable
         COUPONS_TABLE: !Ref CouponsTable
         WEBHOOK_EVENTS_TABLE: !Ref WebhookEventsTable
+        CHECKOUT_REQUESTS_TABLE: !Ref CheckoutRequestsTable
+        COUPON_RESERVATIONS_TABLE: !Ref CouponReservationsTable
+        PROVISIONING_OUTBOX_TABLE: !Ref ProvisioningOutboxTable
         AUDIT_LOGS_TABLE: !Ref AuditLogsTable
         PROGRESS_TABLE: !Ref ProgressTable
         USERS_TABLE: !Ref UsersTable
@@ -38,6 +45,7 @@ Globals:
         STRIPE_SECRET_KEY_PARAMETER: !Sub "/videocorso/${Environment}/stripe/secret-key"
         STRIPE_WEBHOOK_SECRET_PARAMETER: !Sub "/videocorso/${Environment}/stripe/webhook-secret"
         RESEND_API_KEY_PARAMETER: !Sub "/videocorso/${Environment}/resend/api-key"
+        RESEND_TEST_RECIPIENTS: !Ref ResendTestRecipients
         ALLOWED_CHECKOUT_ORIGINS: !Ref AllowedCheckoutOrigins
         # FIX: Aggiunta variabile d'ambiente globale per Cognito
         COGNITO_USER_POOL_ID: !Ref UserPool
@@ -173,12 +181,93 @@ Resources:
         PointInTimeRecoveryEnabled: true
       SSESpecification:
         SSEEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: ttl_expires_at
+        Enabled: true
       AttributeDefinitions:
         - AttributeName: event_id
           AttributeType: S
       KeySchema:
         - AttributeName: event_id
           KeyType: HASH
+
+  CheckoutRequestsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "${Environment}-videocorso-checkout-requests"
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: ttl_expires_at
+        Enabled: true
+      AttributeDefinitions:
+        - AttributeName: checkout_request_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: checkout_request_id
+          KeyType: HASH
+
+  ProvisioningOutboxTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "${Environment}-videocorso-provisioning-outbox"
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+      TimeToLiveSpecification:
+        AttributeName: ttl_expires_at
+        Enabled: true
+      AttributeDefinitions:
+        - AttributeName: outbox_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: outbox_id
+          KeyType: HASH
+
+  CouponReservationsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "${Environment}-videocorso-coupon-reservations"
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: ttl_expires_at
+        Enabled: true
+      AttributeDefinitions:
+        - AttributeName: reservation_id
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: expires_at_epoch
+          AttributeType: N
+      KeySchema:
+        - AttributeName: reservation_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: StatusExpiryIndex
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: expires_at_epoch
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
 
   ProgressTable:
     Type: AWS::DynamoDB::Table
@@ -255,6 +344,8 @@ Resources:
 
   VideoBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       BucketName: !Sub "${Environment}-videocorso-content"
       NotificationConfiguration:
@@ -279,6 +370,8 @@ Resources:
 
   ThumbnailBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       BucketName: !Sub "${Environment}-videocorso-thumbnails"
       CorsConfiguration:
@@ -312,6 +405,8 @@ Resources:
 
   UserPool:
     Type: AWS::Cognito::UserPool
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       UserPoolName: !Sub "${Environment}-videocorso-users"
       AdminCreateUserConfig:
@@ -370,6 +465,8 @@ Resources:
 
   ApiGateway:
     Type: AWS::Serverless::Api
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       Name: !Sub "${Environment}-videocorso-api"
       StageName: !Ref Environment
@@ -417,9 +514,25 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref WebhookEventsTable
         - DynamoDBCrudPolicy:
+            TableName: !Ref CheckoutRequestsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CouponReservationsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ProvisioningOutboxTable
+        - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
         - Version: "2012-10-17"
           Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:TransactWriteItems
+              Resource:
+                - !GetAtt PurchasesTable.Arn
+                - !GetAtt CouponsTable.Arn
+                - !GetAtt WebhookEventsTable.Arn
+                - !GetAtt CheckoutRequestsTable.Arn
+                - !GetAtt CouponReservationsTable.Arn
+                - !GetAtt ProvisioningOutboxTable.Arn
             - Effect: Allow
               Action:
                 - cognito-idp:AdminCreateUser
@@ -591,15 +704,19 @@ Resources:
       Environment:
         Variables:
           MEDIACONVERT_ROLE_ARN: !GetAtt MediaConvertRole.Arn
+          LESSONS_TABLE: !Ref LessonsTable
       Policies:
-        - S3ReadPolicy:
+        - S3CrudPolicy:
             BucketName: !Ref VideoBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref LessonsTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
               Action:
                 - mediaconvert:DescribeEndpoints
                 - mediaconvert:CreateJob
+                - mediaconvert:CancelJob
               Resource: "*"
             - Effect: Allow
               Action: iam:PassRole
@@ -625,6 +742,11 @@ Resources:
       Targets:
         - Arn: !GetAtt VideoTranscodeHandler.Arn
           Id: VideoTranscodeHandler
+          DeadLetterConfig:
+            Arn: !GetAtt VideoTranscodeEventDlq.Arn
+          RetryPolicy:
+            MaximumEventAgeInSeconds: 86400
+            MaximumRetryAttempts: 3
 
   AllowEventBridgeInvokeVideoTranscode:
     Type: AWS::Lambda::Permission
@@ -633,6 +755,188 @@ Resources:
       FunctionName: !Ref VideoTranscodeHandler
       Principal: events.amazonaws.com
       SourceArn: !GetAtt VideoUploadTranscodeRule.Arn
+
+  ProvisioningOutboxHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${Environment}-videocorso-provisioning-outbox"
+      CodeUri: ../lambda/provisioning_outbox_handler/
+      Handler: app.lambda_handler
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt ProvisioningOutboxDlq.QueueName
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ProvisioningOutboxTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PurchasesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminGetUser
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminAddUserToGroup
+              Resource: !GetAtt UserPool.Arn
+      Events:
+        ProvisioningOutboxStream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt ProvisioningOutboxTable.StreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 1
+            MaximumRetryAttempts: 3
+            MaximumRecordAgeInSeconds: 86400
+            DestinationConfig:
+              OnFailure:
+                Type: SQS
+                Destination: !GetAtt ProvisioningOutboxDlq.Arn
+
+  ProvisioningOutboxDlq:
+    Type: AWS::SQS::Queue
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      QueueName: !Sub "${Environment}-videocorso-provisioning-outbox-dlq"
+      MessageRetentionPeriod: 1209600
+
+  CouponReservationRecoveryHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${Environment}-videocorso-coupon-reservation-recovery"
+      CodeUri: ../lambda/coupon_reservation_recovery_handler/
+      Handler: app.lambda_handler
+      Timeout: 30
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref CouponReservationsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CouponsTable
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action: dynamodb:TransactWriteItems
+              Resource:
+                - !GetAtt CouponReservationsTable.Arn
+                - !GetAtt CouponsTable.Arn
+
+  CouponReservationRecoverySchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: rate(5 minutes)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt CouponReservationRecoveryHandler.Arn
+          Id: CouponReservationRecovery
+          RetryPolicy:
+            MaximumEventAgeInSeconds: 3600
+            MaximumRetryAttempts: 3
+
+  AllowEventBridgeInvokeCouponReservationRecovery:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref CouponReservationRecoveryHandler
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt CouponReservationRecoverySchedule.Arn
+
+  VideoTranscodeEventDlq:
+    Type: AWS::SQS::Queue
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      QueueName: !Sub "${Environment}-videocorso-transcode-event-dlq"
+      MessageRetentionPeriod: 1209600
+
+  VideoTranscodeEventDlqPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref VideoTranscodeEventDlq
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt VideoTranscodeEventDlq.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt VideoUploadTranscodeRule.Arn
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt VideoTranscodeEventDlq.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt MediaConvertCompletionRule.Arn
+
+  MediaConvertCompletionRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Verifica la versione attiva quando un job MediaConvert termina
+      EventPattern:
+        source:
+          - aws.mediaconvert
+        detail-type:
+          - MediaConvert Job State Change
+        detail:
+          status:
+            - COMPLETE
+            - ERROR
+            - CANCELED
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt VideoTranscodeHandler.Arn
+          Id: VideoTranscodeCompletion
+          DeadLetterConfig:
+            Arn: !GetAtt VideoTranscodeEventDlq.Arn
+          RetryPolicy:
+            MaximumEventAgeInSeconds: 86400
+            MaximumRetryAttempts: 3
+
+  AllowMediaConvertCompletionInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref VideoTranscodeHandler
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt MediaConvertCompletionRule.Arn
+
+  ProvisioningOutboxDlqAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Provisioning outbox records requiring manual recovery
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt ProvisioningOutboxDlq.QueueName
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  VideoTranscodeEventDlqAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Video transcode EventBridge deliveries requiring manual recovery
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt VideoTranscodeEventDlq.QueueName
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
 
   ProgressHandler:
     Type: AWS::Serverless::Function
@@ -679,6 +983,12 @@ Resources:
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /progress/complete
+            Method: POST
+        ResetLessonProgress:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /progress/reset
             Method: POST
         GetSubscription:
           Type: Api
@@ -1023,6 +1333,8 @@ Resources:
 
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       DistributionConfig:
         Enabled: true
