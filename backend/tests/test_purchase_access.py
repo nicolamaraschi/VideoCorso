@@ -349,6 +349,24 @@ class TestAdminOperationGuards:
         assert call["ExpressionAttributeValues"][":status"] == "hidden"
         assert call["ExpressionAttributeValues"][":is_active"] is False
 
+    @pytest.mark.parametrize("course,expected_error", [
+        ({"title": "Course", "status": "published", "price": -1, "public_slug": "course"}, "price cannot be negative"),
+        ({"title": "Course", "status": "published", "price": 10, "discounted_price": 11, "public_slug": "course"}, "discounted_price must be between zero and the full price"),
+        ({"title": "Course", "status": "unknown", "price": 10, "public_slug": "course"}, "status is invalid"),
+        ({"title": "Course", "status": "published", "price": 10, "public_slug": "Corso Maiuscolo"}, "public_slug"),
+    ])
+    def test_invalid_catalog_data_is_rejected_before_it_can_reach_checkout(self, course, expected_error):
+        assert expected_error in _admin.validate_course_payload(course)
+
+    def test_public_course_slug_must_be_unique(self, monkeypatch):
+        monkeypatch.setattr(_admin, "list_all_items", lambda _table: [{"course_id": "other", "public_slug": "masterclass"}])
+        error = _admin.validate_course_payload({"title": "Course", "status": "published", "price": 10, "public_slug": "masterclass"}, "course-1")
+        assert error == "Esiste già un corso con questo URL pubblico"
+
+    def test_malformed_course_price_returns_a_validation_error_instead_of_a_server_error(self):
+        response = _admin.create_course({"title": "Course", "status": "published", "price": "not-a-price", "public_slug": "course"})
+        assert response["statusCode"] == 400
+
     def test_chapter_and_lesson_updates_reject_empty_or_unsafe_payloads(self, monkeypatch):
         chapter_table = _AdminMemoryTable({"chapter_id": "chapter-1", "course_id": "course-1"})
         lesson_table = _AdminMemoryTable({"lesson_id": "lesson-1", "chapter_id": "chapter-1"})

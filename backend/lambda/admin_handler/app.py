@@ -779,23 +779,57 @@ def sync_cognito_user(username: str, full_name=None, subscription_status=None, s
     )
 
 
+def validate_course_payload(course: dict[str, Any], current_course_id: Optional[str] = None) -> Optional[str]:
+    """Keep catalog data coherent before it can be displayed or sold."""
+    if not str(course.get('title') or '').strip():
+        return 'title is required'
+    status = str(course.get('status') or 'draft')
+    if status not in {'draft', 'published', 'hidden', 'archived'}:
+        return 'status is invalid'
+    try:
+        price = Decimal(str(course.get('price', 0)))
+    except Exception:
+        return 'price must be numeric'
+    if price < 0:
+        return 'price cannot be negative'
+    discounted_price = course.get('discounted_price')
+    if discounted_price not in (None, ''):
+        try:
+            discounted = Decimal(str(discounted_price))
+        except Exception:
+            return 'discounted_price must be numeric'
+        if discounted < 0 or discounted > price:
+            return 'discounted_price must be between zero and the full price'
+    try:
+        if int(course.get('display_order', 999)) < 0:
+            return 'display_order cannot be negative'
+    except (TypeError, ValueError):
+        return 'display_order must be an integer'
+    slug = str(course.get('public_slug') or '').strip()
+    if not slug or not all(char.isalnum() or char == '-' for char in slug):
+        return 'public_slug can contain only lowercase letters, numbers and hyphens'
+    if slug != slug.lower():
+        return 'public_slug must be lowercase'
+    for existing in list_all_items(TABLES['COURSES']):
+        if existing.get('course_id') != current_course_id and str(existing.get('public_slug') or '') == slug:
+            return 'Esiste già un corso con questo URL pubblico'
+    return None
+
+
 def create_course(body):
     title = (body.get('title') or '').strip()
     description = body.get('description', '')
     subtitle = body.get('subtitle', '')
     short_description = body.get('short_description') or description
     long_description = body.get('long_description') or description
-    price = Decimal(str(body.get('price', '0')))
+    price = body.get('price', '0')
     discounted_price = body.get('discounted_price')
     status = body.get('status') or ('published' if normalize_bool(body.get('is_active', True)) else 'hidden')
     is_purchasable = normalize_bool(body.get('is_purchasable', True))
     public_slug = (body.get('public_slug') or title.lower().strip().replace(' ', '-').replace('/', '-')).strip('-')
     badge = body.get('badge') or ''
     cover_image_url = body.get('cover_image_url', '')
-    display_order = int(body.get('display_order', 999))
-
-    if not title:
-        return create_response(400, {'error': 'title is required'})
+    display_order = body.get('display_order', 999)
 
     item = {
         'course_id': str(uuid.uuid4()),
@@ -805,7 +839,7 @@ def create_course(body):
         'short_description': short_description,
         'long_description': long_description,
         'price': price,
-        'discounted_price': Decimal(str(discounted_price)) if discounted_price not in (None, '') else None,
+        'discounted_price': discounted_price,
         'cover_image_url': cover_image_url,
         'status': status,
         'is_purchasable': is_purchasable,
@@ -816,6 +850,12 @@ def create_course(body):
         'created_at': now_iso(),
         'updated_at': now_iso(),
     }
+    validation_error = validate_course_payload(item)
+    if validation_error:
+        return create_response(400, {'error': validation_error})
+    item['price'] = Decimal(str(price))
+    item['discounted_price'] = Decimal(str(discounted_price)) if discounted_price not in (None, '') else None
+    item['display_order'] = int(display_order)
     TABLES['COURSES'].put_item(Item=item)
     return create_response(201, {'success': True, 'data': normalize_course(item)})
 
@@ -824,6 +864,13 @@ def update_course(course_id, body):
     course = get_course(course_id)
     if not course:
         return create_response(404, {'error': 'Course not found'})
+
+    prospective = {**course, **body}
+    if 'is_active' in body and 'status' not in body:
+        prospective['status'] = 'published' if normalize_bool(body['is_active']) else 'hidden'
+    validation_error = validate_course_payload(prospective, current_course_id=course_id)
+    if validation_error:
+        return create_response(400, {'error': validation_error})
 
     expression_parts = []
     expression_values = {}
