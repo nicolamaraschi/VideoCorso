@@ -253,6 +253,39 @@ class TestAdminPurchaseGrantsAccess:
         assert result is False, "needs_review without manual_override must be denied after fix"
 
 
+class TestAdminCustomerView:
+    """The admin's support view must describe the customer's real app access."""
+
+    def test_paid_purchase_with_ready_account_is_visible_to_customer(self):
+        view = _admin.build_purchase_customer_view(
+            make_purchase(local_status="paid", access_unlocked=True),
+            {"user_id": "student-1", "email": "student@example.test"},
+        )
+        assert view == {
+            "account_ready": True,
+            "course_access_active": True,
+            "course_access_reason": "active",
+            "student_id": "student-1",
+        }
+
+    def test_paid_purchase_waits_for_account_provisioning_before_claiming_visibility(self):
+        view = _admin.build_purchase_customer_view(
+            make_purchase(local_status="paid", access_unlocked=True), {},
+        )
+        assert view["account_ready"] is False
+        assert view["course_access_active"] is False
+        assert view["course_access_reason"] == "account_provisioning"
+
+    def test_failed_purchase_is_not_presented_as_customer_access(self):
+        view = _admin.build_purchase_customer_view(
+            make_purchase(local_status="failed", access_unlocked=False),
+            {"user_id": "student-1"},
+        )
+        assert view["account_ready"] is True
+        assert view["course_access_active"] is False
+        assert view["course_access_reason"] == "payment_or_access_not_active"
+
+
 class TestAccessControlConsistency:
     """All handlers must agree on the same purchase record."""
 

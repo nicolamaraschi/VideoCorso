@@ -1445,6 +1445,27 @@ def get_purchases():
     return create_response(200, {'items': items})
 
 
+def build_purchase_customer_view(purchase: dict[str, Any], user_item: dict[str, Any]) -> dict[str, Any]:
+    """Describe what the paying customer can actually see right now.
+
+    This deliberately reports the app-side access gate rather than mirroring a
+    Stripe label.  It gives support one authoritative answer when a customer
+    says "I paid, but I cannot see the course".
+    """
+    account_ready = bool(user_item)
+    has_course_access = account_ready and purchase_grants_access(purchase)
+    return {
+        'account_ready': account_ready,
+        'course_access_active': has_course_access,
+        'course_access_reason': (
+            'active' if has_course_access else
+            'account_provisioning' if not account_ready and purchase.get('local_status') == 'paid' else
+            'payment_or_access_not_active'
+        ),
+        'student_id': user_item.get('user_id') if account_ready else None,
+    }
+
+
 def get_purchase_detail(purchase_id):
     purchase = TABLES['PURCHASES'].get_item(Key={'purchase_id': purchase_id}).get('Item')
     if not purchase:
@@ -1472,6 +1493,7 @@ def get_purchase_detail(purchase_id):
             'user_name': user_item.get('full_name', ''),
             'course_title': normalized.get('course_title') or (course.get('title', '') if course else 'Corso eliminato'),
         },
+        'customer_view': build_purchase_customer_view(normalized, user_item),
         'timeline': [entry for entry in timeline if entry.get('at')],
     })
 

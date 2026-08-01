@@ -148,6 +148,12 @@ export interface AdminAccount {
 
 export interface PurchaseDetail {
   purchase: PurchaseRecord;
+  customer_view?: {
+    account_ready: boolean;
+    course_access_active: boolean;
+    course_access_reason: 'active' | 'account_provisioning' | 'payment_or_access_not_active';
+    student_id?: string | null;
+  };
   timeline: Array<{
     label: string;
     at: string;

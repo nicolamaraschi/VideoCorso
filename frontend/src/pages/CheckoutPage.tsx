@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Award, CheckCircle, Shield, Video } from 'lucide-react';
+import { AlertCircle, Award, CheckCircle, Clock3, RefreshCw, Shield, Video } from 'lucide-react';
 import { useAuthContext } from '../components/auth/useAuthContext';
 import { paymentService } from '../services/paymentService';
 import { courseService } from '../services/courseService';
 import { Loading } from '../components/common/Loading';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { Button } from '../components/common/Button';
-import type { CourseListItem } from '../types';
+import type { CourseListItem, PaymentVerification } from '../types';
 import { getErrorMessage } from '../utils/errors';
 
 export const CheckoutPage: React.FC = () => {
@@ -24,9 +24,14 @@ export const CheckoutPage: React.FC = () => {
   const [couponQuote, setCouponQuote] = useState<{ final_total: number; is_free_access: boolean } | null>(null);
   const [couponMessage, setCouponMessage] = useState<string | null>(null);
   const [checkingCoupon, setCheckingCoupon] = useState(false);
+  const [paymentVerification, setPaymentVerification] = useState<PaymentVerification | null>(null);
+  const [checkingPayment, setCheckingPayment] = useState(false);
+  const [paymentVerificationError, setPaymentVerificationError] = useState<string | null>(null);
   const checkoutRequestId = useRef('');
 
   const courseId = searchParams.get('courseId');
+  const paymentReturn = searchParams.get('payment');
+  const returnedSessionId = searchParams.get('session_id');
 
   const loadCourse = useCallback(async () => {
     try {
@@ -42,7 +47,9 @@ export const CheckoutPage: React.FC = () => {
 
       const selectedRef = selectedCourse?.public_slug || selectedCourse?.course_id;
       if (selectedCourse && selectedRef !== courseId) {
-        setSearchParams({ courseId: selectedRef }, { replace: true });
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.set('courseId', selectedRef);
+        setSearchParams(nextParams, { replace: true });
       }
 
       if (!selectedCourse) {
@@ -53,11 +60,38 @@ export const CheckoutPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [courseId, setSearchParams]);
+  }, [courseId, searchParams, setSearchParams]);
 
   useEffect(() => {
     void loadCourse();
   }, [loadCourse]);
+
+  const verifyReturnedPayment = useCallback(async () => {
+    if (paymentReturn !== 'success') return;
+    if (!returnedSessionId) {
+      setPaymentVerification(null);
+      setPaymentVerificationError('Manca l’identificativo del pagamento: non possiamo confermare l’esito in sicurezza. Non effettuare un secondo pagamento; contatta l’assistenza.');
+      return;
+    }
+    try {
+      setCheckingPayment(true);
+      setPaymentVerificationError(null);
+      const response = await paymentService.verifyPayment(returnedSessionId);
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Non è stato possibile verificare il pagamento.');
+      }
+      setPaymentVerification(response.data);
+    } catch (err) {
+      setPaymentVerification(null);
+      setPaymentVerificationError(getErrorMessage(err, 'Non è stato possibile verificare il pagamento.'));
+    } finally {
+      setCheckingPayment(false);
+    }
+  }, [paymentReturn, returnedSessionId]);
+
+  useEffect(() => {
+    void verifyReturnedPayment();
+  }, [verifyReturnedPayment]);
 
   const handleCheckout = async () => {
     if (!course) {
@@ -80,14 +114,14 @@ export const CheckoutPage: React.FC = () => {
       const checkoutResponse = await paymentService.createCheckoutSession({
         checkout_request_id: checkoutRequestId.current || (checkoutRequestId.current = crypto.randomUUID()),
         course_id: course.course_id,
-        success_url: `${window.location.origin}/login?payment=success`,
+        success_url: `${window.location.origin}/checkout?courseId=${course.public_slug || course.course_id}&payment=success&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${window.location.origin}/checkout?courseId=${course.public_slug || course.course_id}&payment=cancelled`,
         email: checkoutEmail,
         coupon_code: couponCode.trim() || undefined,
       });
 
       if (checkoutResponse.is_free_access) {
-        navigate(`/courses/${course.public_slug || course.course_id}?payment=success&purchaseId=${checkoutResponse.purchase_id || ''}`);
+        navigate('/login?payment=free');
         return;
       }
 
@@ -154,6 +188,67 @@ export const CheckoutPage: React.FC = () => {
     );
   }
 
+  const clearPaymentReturn = () => {
+    setPaymentVerification(null);
+    setPaymentVerificationError(null);
+    setSearchParams({ courseId: course.public_slug || course.course_id });
+  };
+
+  // A Stripe return is a terminal state of this checkout attempt.  Keeping a
+  // payment button on this screen would invite duplicate charges while a
+  // webhook/account provisioning is still being reconciled.
+  if (paymentReturn === 'success') {
+    const title = paymentVerification?.course_title || course.title;
+    const isPaid = paymentVerification?.payment_state === 'paid';
+    const accessIsActive = paymentVerification?.access_state === 'active';
+    const isProcessing = isPaid && paymentVerification?.access_state === 'processing';
+    const isExpired = paymentVerification?.payment_state === 'expired';
+
+    return (
+      <div className="min-h-screen bg-primary-50/30 py-12 px-4 sm:px-6 lg:px-8">
+        <section className="max-w-2xl mx-auto bg-white rounded-2xl shadow-soft p-8 border border-primary-100 text-center">
+          {checkingPayment && <Loading text="Stiamo verificando il pagamento con Stripe..." />}
+          {!checkingPayment && paymentVerificationError && (
+            <>
+              <AlertCircle className="w-12 h-12 mx-auto text-amber-600" />
+              <h1 className="mt-4 text-2xl font-serif font-bold text-gray-900">Stiamo verificando il pagamento</h1>
+              <p className="mt-3 text-gray-600">Non effettuare un secondo pagamento: non siamo ancora riusciti a leggere l’esito sicuro da Stripe. Aggiorna lo stato o contatta l’assistenza indicando l’email usata per l’acquisto.</p>
+              <Button className="mt-6" variant="secondary" onClick={() => void verifyReturnedPayment()}>
+                <RefreshCw className="w-4 h-4 mr-2" /> Aggiorna stato
+              </Button>
+            </>
+          )}
+          {!checkingPayment && !paymentVerificationError && paymentVerification && isPaid && (
+            <>
+              {accessIsActive ? <CheckCircle className="w-12 h-12 mx-auto text-emerald-600" /> : <Clock3 className="w-12 h-12 mx-auto text-amber-600" />}
+              <h1 className="mt-4 text-2xl font-serif font-bold text-gray-900">Pagamento confermato</h1>
+              <p className="mt-3 text-gray-600">Il pagamento per <strong>{title}</strong> è stato confermato da Stripe.</p>
+              {accessIsActive ? (
+                <p className="mt-2 text-emerald-700">L’accesso al corso è attivo. Accedi con l’email usata per l’acquisto.</p>
+              ) : isProcessing ? (
+                <p className="mt-2 text-amber-800">Stiamo attivando il tuo account e l’accesso al corso. Riceverai le credenziali via email: non devi pagare di nuovo.</p>
+              ) : (
+                <p className="mt-2 text-amber-800">Il pagamento è confermato ma l’accesso richiede una verifica. Non effettuare un secondo pagamento; contatta l’assistenza.</p>
+              )}
+              <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
+                <Button variant="primary" onClick={() => navigate('/login')}>Vai al login</Button>
+                {isProcessing && <Button variant="secondary" onClick={() => void verifyReturnedPayment()}><RefreshCw className="w-4 h-4 mr-2" /> Aggiorna accesso</Button>}
+              </div>
+            </>
+          )}
+          {!checkingPayment && !paymentVerificationError && paymentVerification && !isPaid && (
+            <>
+              <AlertCircle className="w-12 h-12 mx-auto text-amber-600" />
+              <h1 className="mt-4 text-2xl font-serif font-bold text-gray-900">{isExpired ? 'Pagamento annullato' : 'Pagamento non ancora completato'}</h1>
+              <p className="mt-3 text-gray-600">Stripe non segnala un pagamento completato per <strong>{title}</strong>. Nessun accesso è stato attivato.</p>
+              <Button className="mt-6" variant="primary" onClick={clearPaymentReturn}>Torna al pagamento</Button>
+            </>
+          )}
+        </section>
+      </div>
+    );
+  }
+
   const benefits = [
     { icon: Video, text: 'Accesso lifetime al corso selezionato' },
     { icon: Award, text: 'Contenuti premium disponibili subito dopo il pagamento' },
@@ -163,6 +258,11 @@ export const CheckoutPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-primary-50/30 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
+        {paymentReturn === 'cancelled' && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-900">
+            Il pagamento è stato annullato: Stripe non ha confermato alcun acquisto. Puoi riprovare quando vuoi.
+          </div>
+        )}
         <section className="bg-white rounded-2xl shadow-soft p-8 border border-primary-100">
           <div className="flex items-start justify-between gap-6 mb-8">
             <div>

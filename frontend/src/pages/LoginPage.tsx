@@ -9,7 +9,7 @@ export const LoginPage: React.FC = () => {
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
-    if (searchParams.get('payment') === 'success') {
+    if (searchParams.get('payment') === 'success' || searchParams.get('payment') === 'free') {
       setShowSuccess(true);
       // Clean up the URL
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -39,11 +39,11 @@ export const LoginPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-medium text-green-900 mb-1">
-                    Grazie per il tuo acquisto! 🎉
+                    Accesso in attivazione 🎉
                   </h3>
                   <p className="text-green-800 text-sm leading-relaxed">
-                    Ti abbiamo appena inviato un'email con una <strong>password temporanea</strong> per accedere. 
-                    Al tuo primo accesso ti verrà chiesto di scegliere la tua password definitiva.
+                    Il tuo accesso è stato registrato. Ti invieremo un’email con una <strong>password temporanea</strong> non appena l’account sarà pronto.
+                    Al primo accesso ti verrà chiesto di scegliere la password definitiva.
                     <br/><br/>
                     <span className="text-green-700 text-xs italic">
                       (Se non la trovi, controlla anche nella casella Spam)

@@ -36,6 +36,8 @@ def install_stubs():
         get_parameter=lambda **_kw: {"Parameter": {"Value": "stub"}}
     )
     dynamodb = types.ModuleType("boto3.dynamodb")
+    conditions_module = types.ModuleType("boto3.dynamodb.conditions")
+    conditions_module.Key = lambda key: types.SimpleNamespace(eq=lambda value: (key, value))
     types_module = types.ModuleType("boto3.dynamodb.types")
 
     class TypeSerializer:
@@ -51,6 +53,7 @@ def install_stubs():
     types_module.TypeSerializer = TypeSerializer
     sys.modules["boto3"] = boto3
     sys.modules["boto3.dynamodb"] = dynamodb
+    sys.modules["boto3.dynamodb.conditions"] = conditions_module
     sys.modules["boto3.dynamodb.types"] = types_module
     stripe = types.ModuleType("stripe")
     stripe.error = types.SimpleNamespace(SignatureVerificationError=Exception)
@@ -68,6 +71,17 @@ spec.loader.exec_module(payment)
 class Table:
     def __init__(self, name): self.name = name
     def get_item(self, **_kwargs): return {}
+
+
+class StripeSessionTable(Table):
+    def __init__(self, items):
+        super().__init__("purchases")
+        self.items = items
+        self.queries = []
+
+    def query(self, **kwargs):
+        self.queries.append(kwargs)
+        return {"Items": self.items}
 
 
 class Client:
@@ -181,6 +195,59 @@ def test_free_coupon_purchase_and_provisioning_outbox_share_one_transaction(conf
     configured_payment.redeem_free_coupon_atomically(free_purchase, coupon, outbox)
     items = configured_payment.dynamodb_client.calls[0]
     assert [next(iter(item)) for item in items] == ["Update", "Put", "Put"]
+
+
+def _stripe_checkout_session(payment_status="paid", status="complete"):
+    return {
+        "id": "cs_test_customer_return",
+        "payment_status": payment_status,
+        "status": status,
+        "metadata": {"course_id": "course-1", "course_title": "Course"},
+    }
+
+
+def test_payment_verification_confirms_payment_but_waits_for_local_activation(configured_payment, monkeypatch):
+    """A paid Stripe return must not falsely promise a course before the webhook projection exists."""
+    configured_payment.purchases_table = StripeSessionTable([])
+    configured_payment.stripe.checkout = types.SimpleNamespace(
+        Session=types.SimpleNamespace(retrieve=lambda *_args, **_kwargs: _stripe_checkout_session())
+    )
+    monkeypatch.setattr(configured_payment, "configure_stripe", lambda: None)
+
+    response = configured_payment.verify_payment("cs_test_customer_return")
+    payload = __import__("json").loads(response["body"])["data"]
+
+    assert response["statusCode"] == 200
+    assert payload["payment_state"] == "paid"
+    assert payload["access_state"] == "processing"
+    assert configured_payment.purchases_table.queries[0]["IndexName"] == "StripeSessionIndex"
+
+
+def test_payment_verification_only_declares_active_when_the_access_gate_grants(configured_payment, monkeypatch):
+    configured_payment.purchases_table = StripeSessionTable([{
+        "purchase_id": "pi_1", "local_status": "paid", "access_unlocked": True,
+        "access_revoked": False, "manual_access_override": False, "refunded_amount": Decimal("0"),
+    }])
+    configured_payment.stripe.checkout = types.SimpleNamespace(
+        Session=types.SimpleNamespace(retrieve=lambda *_args, **_kwargs: _stripe_checkout_session())
+    )
+    monkeypatch.setattr(configured_payment, "configure_stripe", lambda: None)
+
+    payload = __import__("json").loads(configured_payment.verify_payment("cs_test_customer_return")["body"])["data"]
+    assert payload["payment_state"] == "paid"
+    assert payload["access_state"] == "active"
+
+
+def test_payment_verification_never_calls_an_unpaid_session_successful(configured_payment, monkeypatch):
+    configured_payment.purchases_table = StripeSessionTable([])
+    configured_payment.stripe.checkout = types.SimpleNamespace(
+        Session=types.SimpleNamespace(retrieve=lambda *_args, **_kwargs: _stripe_checkout_session("unpaid", "open"))
+    )
+    monkeypatch.setattr(configured_payment, "configure_stripe", lambda: None)
+
+    payload = __import__("json").loads(configured_payment.verify_payment("cs_test_customer_return")["body"])["data"]
+    assert payload["payment_state"] == "pending"
+    assert payload["access_state"] == "not_available"
     assert items[2]["Put"]["TableName"] == "outbox"
 
 

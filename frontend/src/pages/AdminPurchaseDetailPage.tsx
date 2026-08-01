@@ -175,7 +175,7 @@ export const AdminPurchaseDetailPage: React.FC = () => {
     );
   }
 
-  const { purchase, timeline } = detail;
+  const { purchase, timeline, customer_view: customerView } = detail;
   const localStatus = purchase.local_status || purchase.status;
   const amount = Number(purchase.amount_gross ?? purchase.amount ?? 0);
   const currency = (purchase.currency || 'EUR').toUpperCase();
@@ -257,6 +257,26 @@ export const AdminPurchaseDetailPage: React.FC = () => {
             <Button variant="primary" loading={actionLoading === 'verify'} onClick={() => void runAction('verify')}>Conferma controllo dati</Button>
           </div>
         ) : <p className="mt-3 text-sm font-medium text-emerald-800">Controllo amministrativo completato.</p>}
+      </section>
+
+      <section className="rounded-lg border border-primary-200 bg-primary-50 p-5">
+        <h2 className="font-semibold text-gray-900">Vista della cliente</h2>
+        <p className="mt-1 text-sm text-gray-700">Questo è lo stato che determina cosa la cliente trova entrando con la sua email, non solo lo stato del pagamento su Stripe.</p>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-lg bg-white p-4">
+            <p className="text-sm text-gray-500">Account</p>
+            <p className="mt-1 font-semibold text-gray-900">{customerView?.account_ready ? 'Pronto per l’accesso' : 'In attivazione'}</p>
+          </div>
+          <div className="rounded-lg bg-white p-4">
+            <p className="text-sm text-gray-500">Corso nel suo catalogo</p>
+            <p className="mt-1 font-semibold text-gray-900">{customerView?.course_access_active ? 'Visibile e sbloccato' : customerView?.course_access_reason === 'account_provisioning' ? 'In attesa di attivazione account' : 'Non visibile / non sbloccato'}</p>
+          </div>
+        </div>
+        {customerView?.student_id && (
+          <Link to={`/admin/students/${customerView.student_id}`} className="mt-4 inline-block text-sm font-medium text-primary-700 hover:text-primary-800">
+            Apri il profilo della cliente e verifica i corsi visibili
+          </Link>
+        )}
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
