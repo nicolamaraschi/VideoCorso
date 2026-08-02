@@ -478,7 +478,24 @@ class TestAdminOperationGuards:
         purchase = json.loads(response["body"], parse_float=str)["purchase"]
         assert response["statusCode"] == 200
         assert purchase["manual_access_override"] is True
-        assert purchase["stripe_session_id"] is None
+        assert "stripe_session_id" not in purchase
+        assert "stripe_session_id" not in purchases.puts[0]["Item"]
+
+    def test_resync_omits_missing_stripe_session_from_the_gsi_key(self, monkeypatch):
+        purchases = _AdminMemoryTable({
+            **make_purchase("paid", True),
+            "purchase_id": "coupon-purchase",
+            "stripe_session_id": None,
+        })
+        monkeypatch.setitem(_admin.TABLES, "PURCHASES", purchases)
+        monkeypatch.setattr(_admin, "fetch_stripe_purchase_state", lambda _purchase: {})
+        monkeypatch.setattr(_admin, "sync_purchase_access", lambda item: item)
+        monkeypatch.setattr(_admin, "record_audit_log", lambda *_args, **_kwargs: None)
+
+        response = _admin.resync_purchase("coupon-purchase")
+
+        assert response["statusCode"] == 200
+        assert "stripe_session_id" not in purchases.puts[0]["Item"]
 
 
 class TestAccessControlConsistency:
