@@ -415,6 +415,8 @@ class TestAdminOperationGuards:
 
         assert _admin.update_chapter("chapter-1", {"course_id": "other-course"})["statusCode"] == 400
         assert _admin.update_lesson("lesson-1", {"chapter_id": "other-chapter"})["statusCode"] == 400
+        assert _admin.update_chapter("chapter-1", {"title": "   "})["statusCode"] == 400
+        assert _admin.update_lesson("lesson-1", {"title": "   "})["statusCode"] == 400
 
     def test_reorder_rejects_cross_course_or_duplicate_items(self, monkeypatch):
         class Chapters:

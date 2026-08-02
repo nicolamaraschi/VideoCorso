@@ -172,6 +172,7 @@ export const AdminCoursePage: React.FC = () => {
       await reload();
     } catch (err) {
       showError('Capitolo non creato', getErrorMessage(err, 'Il capitolo non è stato aggiunto.'));
+      throw err;
     } finally {
       setSaving(false);
     }
@@ -185,6 +186,7 @@ export const AdminCoursePage: React.FC = () => {
       await reload();
     } catch (err) {
       showError('Capitolo non aggiornato', getErrorMessage(err, 'Le modifiche al capitolo non sono state salvate.'));
+      throw err;
     } finally {
       setSaving(false);
     }
@@ -224,6 +226,7 @@ export const AdminCoursePage: React.FC = () => {
       await reload();
     } catch (err) {
       showError('Lezione non creata', getErrorMessage(err, 'La lezione non è stata aggiunta.'));
+      throw err;
     } finally {
       setSaving(false);
     }
@@ -237,6 +240,7 @@ export const AdminCoursePage: React.FC = () => {
       await reload();
     } catch (err) {
       showError('Lezione non aggiornata', getErrorMessage(err, 'Le modifiche alla lezione non sono state salvate.'));
+      throw err;
     } finally {
       setSaving(false);
     }
