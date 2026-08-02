@@ -8,6 +8,7 @@ import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 import { getErrorMessage } from '../utils/errors';
+import { useAdminOperationBanner } from '../components/common/AdminOperationBanner';
 
 const statusStyles: Record<string, string> = {
   paid: 'bg-emerald-100 text-emerald-700',
@@ -33,6 +34,7 @@ const localStatusLabels: Record<string, string> = {
 const readableStatus = (status?: string | null) => paymentStatusLabels[status || ''] || status || 'Non disponibile';
 
 export const AdminPurchaseDetailPage: React.FC = () => {
+  const { showSuccess, showError } = useAdminOperationBanner();
   const { purchaseId } = useParams<{ purchaseId: string }>();
   const navigate = useNavigate();
   const [detail, setDetail] = useState<PurchaseDetail | null>(null);
@@ -99,12 +101,21 @@ export const AdminPurchaseDetailPage: React.FC = () => {
       }
       if (action === 'delete-test') {
         await adminService.deleteStripeTestPurchase(purchaseId);
+        showSuccess('Ordine di test eliminato', 'L’ordine Stripe di test e il relativo accesso sono stati rimossi.');
         navigate('/admin/purchases');
         return;
       }
+      const successMessages = {
+        resync: ['Acquisto riallineato', 'I dati locali sono stati aggiornati con Stripe. Verifica ora stato e accesso mostrati nella scheda.'],
+        unlock: ['Accesso concesso', 'L’accesso manuale al corso è stato attivato per questo acquisto.'],
+        revoke: ['Accesso revocato', 'Lo studente non può più accedere al corso da questo acquisto.'],
+        verify: ['Acquisto verificato', 'L’acquisto è stato segnato come verificato manualmente.'],
+      } as const;
+      const [title, message] = successMessages[action];
+      showSuccess(title, message);
       await loadDetail();
     } catch (err) {
-      alert(getErrorMessage(err, 'Azione sull’acquisto non riuscita'));
+      showError('Azione sull’acquisto non riuscita', getErrorMessage(err, 'Nessuna modifica è stata applicata all’acquisto.'));
     } finally {
       setActionLoading(null);
     }
@@ -129,10 +140,10 @@ export const AdminPurchaseDetailPage: React.FC = () => {
         reason: correctionReason,
       });
       setIsCorrectEmailOpen(false);
+      showSuccess('Email acquisto corretta', response.message || 'L’email dell’acquisto e dell’account collegato è stata aggiornata.');
       await loadDetail();
-      alert(response.message || 'Email dell’acquisto corretta.');
     } catch (err) {
-      alert(getErrorMessage(err, 'Impossibile correggere l’email dell’acquisto'));
+      showError('Email acquisto non corretta', getErrorMessage(err, 'L’email dell’acquisto è rimasta invariata.'));
     } finally {
       setActionLoading(null);
     }
@@ -154,10 +165,10 @@ export const AdminPurchaseDetailPage: React.FC = () => {
         reason: refundReason,
       });
       setIsRefundOpen(false);
+      showSuccess('Rimborso emesso', 'Lo stato dell’ordine e l’accesso al corso sono stati aggiornati.');
       await loadDetail();
-      alert('Rimborso emesso. Lo stato dell’ordine e l’accesso al corso sono stati aggiornati.');
     } catch (err) {
-      alert(getErrorMessage(err, 'Impossibile emettere il rimborso'));
+      showError('Rimborso non emesso', getErrorMessage(err, 'L’ordine e l’accesso sono rimasti invariati.'));
     } finally {
       setActionLoading(null);
     }

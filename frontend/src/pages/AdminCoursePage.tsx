@@ -9,6 +9,7 @@ import { ErrorMessage } from '../components/common/ErrorMessage';
 import { Button } from '../components/common/Button';
 import type { AdminCourseRequest, Chapter, Course, Lesson } from '../types';
 import { getErrorMessage } from '../utils/errors';
+import { useAdminOperationBanner } from '../components/common/AdminOperationBanner';
 
 type LessonEditorPayload = Omit<Pick<Lesson, 'title' | 'description' | 'duration_seconds' | 'video_s3_key' | 'thumbnail_url'>, 'thumbnail_url'> & {
   thumbnail_url?: string;
@@ -33,6 +34,7 @@ const emptyCourseForm: AdminCourseRequest = {
 };
 
 export const AdminCoursePage: React.FC = () => {
+  const { showSuccess, showError } = useAdminOperationBanner();
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   const [saving, setSaving] = useState(false);
@@ -100,9 +102,10 @@ export const AdminCoursePage: React.FC = () => {
         ...courseForm,
         is_active: courseForm.status === 'published',
       });
+      showSuccess('Corso aggiornato', `Le impostazioni di “${courseForm.title}” sono state salvate.`);
       await Promise.all([loadCourses(), reload()]);
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to save course settings'));
+      showError('Corso non aggiornato', getErrorMessage(err, 'Le impostazioni del corso non sono state salvate.'));
     } finally {
       setSaving(false);
     }
@@ -110,7 +113,7 @@ export const AdminCoursePage: React.FC = () => {
 
   const handleCreateCourse = async () => {
     if (!courseForm.title.trim()) {
-      alert('Title is required');
+      showError('Corso non creato', 'Inserisci un titolo prima di creare il corso.');
       return;
     }
 
@@ -121,14 +124,14 @@ export const AdminCoursePage: React.FC = () => {
         is_active: courseForm.status === 'published',
       });
       const created = response.data;
+      showSuccess('Corso creato', `Il corso “${courseForm.title}” è stato creato. Ora puoi aggiungere capitoli e lezioni.`);
       await loadCourses();
       if (created?.course_id) {
         setSelectedCourseId(created.course_id);
         setIsCreating(false);
-        alert('Corso creato con successo! Ora puoi aggiungere capitoli e lezioni.');
       }
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to create course'));
+      showError('Corso non creato', getErrorMessage(err, 'Il corso non è stato creato.'));
     } finally {
       setSaving(false);
     }
@@ -141,11 +144,12 @@ export const AdminCoursePage: React.FC = () => {
     try {
       setSaving(true);
       await adminService.deleteCourse(selectedCourseId);
+      showSuccess('Corso archiviato', 'Il corso non è più acquistabile. Le iscrizioni e gli acquisti già esistenti restano invariati.');
       setSelectedCourseId('');
       setIsCreating(false);
       await loadCourses();
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to delete course'));
+      showError('Corso non archiviato', getErrorMessage(err, 'Il corso è rimasto invariato.'));
     } finally {
       setSaving(false);
     }
@@ -164,7 +168,10 @@ export const AdminCoursePage: React.FC = () => {
         image_url: data.image_url,
         order_number: courseStructure.chapters.length + 1,
       });
+      showSuccess('Capitolo creato', `Il capitolo “${data.title}” è stato aggiunto al corso.`);
       await reload();
+    } catch (err) {
+      showError('Capitolo non creato', getErrorMessage(err, 'Il capitolo non è stato aggiunto.'));
     } finally {
       setSaving(false);
     }
@@ -174,7 +181,10 @@ export const AdminCoursePage: React.FC = () => {
     try {
       setSaving(true);
       await adminService.updateChapter(chapterId, data);
+      showSuccess('Capitolo aggiornato', 'Le modifiche al capitolo sono state salvate.');
       await reload();
+    } catch (err) {
+      showError('Capitolo non aggiornato', getErrorMessage(err, 'Le modifiche al capitolo non sono state salvate.'));
     } finally {
       setSaving(false);
     }
@@ -184,7 +194,10 @@ export const AdminCoursePage: React.FC = () => {
     try {
       setSaving(true);
       await adminService.deleteChapter(chapterId);
+      showSuccess('Capitolo eliminato', 'Il capitolo e le lezioni contenute sono stati rimossi dal corso.');
       await reload();
+    } catch (err) {
+      showError('Capitolo non eliminato', getErrorMessage(err, 'Il capitolo è rimasto invariato.'));
     } finally {
       setSaving(false);
     }
@@ -207,7 +220,10 @@ export const AdminCoursePage: React.FC = () => {
         thumbnail_url: data.thumbnail_url,
         is_free_preview: data.is_free_preview,
       });
+      showSuccess('Lezione creata', `La lezione “${data.title}” è stata aggiunta al capitolo.`);
       await reload();
+    } catch (err) {
+      showError('Lezione non creata', getErrorMessage(err, 'La lezione non è stata aggiunta.'));
     } finally {
       setSaving(false);
     }
@@ -217,7 +233,10 @@ export const AdminCoursePage: React.FC = () => {
     try {
       setSaving(true);
       await adminService.updateLesson(lessonId, data);
+      showSuccess('Lezione aggiornata', 'Le modifiche alla lezione, compreso il video eventualmente associato, sono state salvate.');
       await reload();
+    } catch (err) {
+      showError('Lezione non aggiornata', getErrorMessage(err, 'Le modifiche alla lezione non sono state salvate.'));
     } finally {
       setSaving(false);
     }
@@ -227,7 +246,10 @@ export const AdminCoursePage: React.FC = () => {
     try {
       setSaving(true);
       await adminService.deleteLesson(lessonId);
+      showSuccess('Lezione eliminata', 'La lezione è stata rimossa dal capitolo.');
       await reload();
+    } catch (err) {
+      showError('Lezione non eliminata', getErrorMessage(err, 'La lezione è rimasta invariata.'));
     } finally {
       setSaving(false);
     }
@@ -237,7 +259,10 @@ export const AdminCoursePage: React.FC = () => {
     try {
       setSaving(true);
       await adminService.reorderChapters({ items });
+      showSuccess('Ordine capitoli aggiornato', 'La nuova posizione dei capitoli è stata salvata.');
       await reload();
+    } catch (err) {
+      showError('Ordine capitoli non aggiornato', getErrorMessage(err, 'L’ordine precedente dei capitoli è rimasto invariato.'));
     } finally {
       setSaving(false);
     }
@@ -247,7 +272,10 @@ export const AdminCoursePage: React.FC = () => {
     try {
       setSaving(true);
       await adminService.reorderLessons({ items });
+      showSuccess('Ordine lezioni aggiornato', 'La nuova posizione delle lezioni è stata salvata.');
       await reload();
+    } catch (err) {
+      showError('Ordine lezioni non aggiornato', getErrorMessage(err, 'L’ordine precedente delle lezioni è rimasto invariato.'));
     } finally {
       setSaving(false);
     }

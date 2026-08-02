@@ -8,6 +8,7 @@ import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
 import { formatDateTime } from '../utils/formatters';
 import { getErrorMessage } from '../utils/errors';
+import { useAdminOperationBanner } from '../components/common/AdminOperationBanner';
 
 const emptyCouponForm: CouponRequest = {
   code: '',
@@ -34,6 +35,7 @@ const toDatetimeInput = (value?: string | null): string => {
 };
 
 export const AdminCouponsPage: React.FC = () => {
+  const { showSuccess, showError } = useAdminOperationBanner();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,7 +108,7 @@ export const AdminCouponsPage: React.FC = () => {
 
   const handleSaveCoupon = async () => {
     if (!couponForm.code.trim()) {
-      alert('Il codice coupon è obbligatorio.');
+      showError('Coupon non salvato', 'Il codice coupon è obbligatorio.');
       return;
     }
 
@@ -120,13 +122,15 @@ export const AdminCouponsPage: React.FC = () => {
 
       if (editingCoupon) {
         await adminService.updateCoupon(editingCoupon.coupon_id, payload);
+        showSuccess('Coupon aggiornato', `Le regole del coupon ${payload.code} sono state salvate.`);
       } else {
         await adminService.createCoupon(payload);
+        showSuccess('Coupon creato', `Il coupon ${payload.code} è stato creato.`);
       }
       setShowModal(false);
       await loadData();
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to save coupon'));
+      showError('Coupon non salvato', getErrorMessage(err, 'Le modifiche al coupon non sono state salvate.'));
     } finally {
       setSaving(false);
     }
@@ -138,15 +142,16 @@ export const AdminCouponsPage: React.FC = () => {
     }
     try {
       await adminService.deleteCoupon(coupon.coupon_id);
+      showSuccess('Coupon eliminato', `Il coupon ${coupon.code} non può più essere usato.`);
       await loadData();
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to delete coupon'));
+      showError('Coupon non eliminato', getErrorMessage(err, 'Il coupon è rimasto attivo.'));
     }
   };
 
   const handleTestCoupon = async () => {
     if (!testForm.code.trim()) {
-      alert('Inserisci un coupon da testare.');
+      showError('Test coupon non avviato', 'Inserisci un codice coupon da verificare.');
       return;
     }
 
@@ -158,8 +163,9 @@ export const AdminCouponsPage: React.FC = () => {
         email: testForm.email || undefined,
       });
       setTestResult(result);
+      showSuccess('Coupon verificato', result.valid ? 'Il coupon è valido per i dati inseriti.' : (result.reason || 'Il coupon non è valido per i dati inseriti.'));
     } catch (err) {
-      alert(getErrorMessage(err, 'Coupon test failed'));
+      showError('Coupon non verificato', getErrorMessage(err, 'Il test del coupon non è riuscito.'));
     } finally {
       setTesting(false);
     }

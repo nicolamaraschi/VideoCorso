@@ -4,6 +4,7 @@ import { Button } from '../common/Button';
 import { adminService } from '../../services/adminService';
 import { validateVideoFile } from '../../utils/validators';
 import { getErrorMessage } from '../../utils/errors';
+import { useAdminOperationBanner } from '../common/AdminOperationBanner';
 
 interface VideoUploaderProps {
   lessonId?: string;
@@ -15,6 +16,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
   lessonId,
   onUploadComplete,
 }) => {
+  const { showSuccess, showError } = useAdminOperationBanner();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -99,6 +101,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
           setProgress(100);
           setUploading(false);
           onUploadComplete(uploadData.video_s3_key, duration);
+          showSuccess('Video caricato', 'Il file è stato caricato. Salva ora la lezione per associare definitivamente il video.');
 
           setTimeout(() => {
             setFile(null);
@@ -106,13 +109,17 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
             setProgress(0);
           }, 2000);
         } else {
-          setError('Upload fallito. Riprova.');
+          const message = 'Upload fallito. Riprova.';
+          setError(message);
+          showError('Video non caricato', message);
           setUploading(false);
         }
       });
 
       xhr.addEventListener('error', () => {
-        setError('Upload fallito. Controlla la connessione e riprova.');
+        const message = 'Upload fallito. Controlla la connessione e riprova.';
+        setError(message);
+        showError('Video non caricato', message);
         setUploading(false);
       });
 
@@ -120,7 +127,9 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
       xhr.setRequestHeader('Content-Type', selectedFile.type);
       xhr.send(selectedFile);
     } catch (err) {
-      setError(getErrorMessage(err, 'Caricamento video fallito'));
+      const message = getErrorMessage(err, 'Caricamento video fallito');
+      setError(message);
+      showError('Video non caricato', message);
       setProgress(0);
       setUploading(false);
     }
