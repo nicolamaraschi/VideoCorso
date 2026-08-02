@@ -351,6 +351,33 @@ class TestAdminOperationGuards:
 
         assert response["statusCode"] == 200
 
+    def test_already_refunded_purchase_is_reconciled_before_returning_conflict(self, monkeypatch):
+        purchase = {
+            **make_purchase(local_status="paid", access_unlocked=True, refunded_amount=0),
+            "purchase_id": "purchase-1",
+            "amount": Decimal("10.00"),
+            "stripe_payment_intent_id": "pi_1",
+        }
+        table = _AdminMemoryTable(purchase)
+        monkeypatch.setitem(_admin.TABLES, "PURCHASES", table)
+        monkeypatch.setattr(_admin, "stripe", types.SimpleNamespace(
+            PaymentIntent=types.SimpleNamespace(retrieve=lambda *_args, **_kwargs: {
+                "latest_charge": {"id": "ch_1", "amount": 1000, "amount_refunded": 1000},
+                "charges": {"data": []},
+            }),
+        ))
+        monkeypatch.setattr(_admin, "fetch_stripe_purchase_state", lambda _purchase: {
+            "local_status": "refunded", "refunded_amount": Decimal("10.00"), "refund_status": "refunded",
+        })
+        monkeypatch.setattr(_admin, "sync_purchase_access", lambda item: item)
+        monkeypatch.setattr(_admin, "record_audit_log", lambda *_args, **_kwargs: None)
+
+        response = _admin.refund_purchase("purchase-1", {"amount": "10.00"})
+
+        assert response["statusCode"] == 409
+        assert json.loads(response["body"])["already_refunded"] is True
+        assert table.puts[0]["Item"]["local_status"] == "refunded"
+
     def test_hiding_a_published_course_also_clears_is_active(self, monkeypatch):
         table = _AdminMemoryTable({"course_id": "course-1", "status": "published", "is_active": True})
         monkeypatch.setitem(_admin.TABLES, "COURSES", table)
