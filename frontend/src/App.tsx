@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
@@ -21,6 +21,21 @@ import { AdminAccountsPage } from './pages/AdminAccountsPage';
 import { AdminPurchaseDetailPage } from './pages/AdminPurchaseDetailPage';
 import { AdminCouponsPage } from './pages/AdminCouponsPage';
 
+const ScrollToPageStart = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    // Le pagine pubbliche scorrono nella finestra, quelle autenticate nel
+    // contenitore centrale accanto alla sidebar: riportiamo entrambi all'inizio.
+    // L'hash non è una dipendenza intenzionalmente, così i link della landing
+    // continuano a scorrere alla sezione richiesta.
+    window.scrollTo(0, 0);
+    document.querySelector<HTMLElement>('[data-app-scroll]')?.scrollTo({ top: 0, left: 0 });
+  }, [pathname]);
+
+  return null;
+};
+
 function App() {
   const { isAuthenticated, isAdmin, loading } = useAuthContext();
   const location = useLocation();
@@ -37,6 +52,7 @@ function App() {
     // finiscano per sovrapporsi a navbar/footer su pagine lunghe.
     return (
       <div className="h-[100dvh] flex flex-col overflow-hidden">
+        <ScrollToPageStart />
         <Navbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
         <div className="flex flex-1 w-full max-w-full min-h-0">
@@ -49,7 +65,7 @@ function App() {
           )}
           <Sidebar isAdmin={isAdmin} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
-          <main className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain relative">
+          <main data-app-scroll className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain relative">
             <Routes>
               <Route
                 path="/dashboard"
@@ -156,6 +172,7 @@ function App() {
   // Pagine pubbliche: layout normale con footer marketing, la pagina scrolla per intero.
   return (
     <div className="flex flex-col min-h-screen relative">
+      <ScrollToPageStart />
       <Navbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
       <div className="flex flex-1 w-full max-w-full">
