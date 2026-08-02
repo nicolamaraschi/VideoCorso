@@ -514,6 +514,18 @@ def normalize_purchase(purchase: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+def put_purchase(purchase: dict[str, Any]) -> dict[str, Any]:
+    """Persist a purchase without invalid null values for sparse GSI keys."""
+    stored = dict(purchase)
+    # DynamoDB GSIs accept an omitted key for records outside the index, but
+    # reject NULL/empty values for a key declared as String. Manual and coupon
+    # purchases legitimately have no Stripe Checkout session.
+    if not stored.get('stripe_session_id'):
+        stored.pop('stripe_session_id', None)
+    TABLES['PURCHASES'].put_item(Item=stored)
+    return stored
+
+
 def update_purchase_with_version(purchase_id: str, expected_version: int, fields: dict[str, Any]) -> dict[str, Any]:
     """Narrow compare-and-swap update for admin-owned purchase fields."""
     names = {'#version': 'version', '#updated_at': 'updated_at'}
@@ -1376,11 +1388,10 @@ def grant_course_to_student(student_id, body):
         'webhook_status': 'not_required',
         'purchase_date': now_iso(),
         'manual_grant': True,
-        # This was never a Stripe checkout; omitting the session key also
-        # keeps manual grants out of the Stripe-session reconciliation index.
-        'stripe_session_id': None,
+        # This was never a Stripe checkout, so it must not enter the
+        # Stripe-session reconciliation index.
     }
-    TABLES['PURCHASES'].put_item(Item=purchase_item)
+    purchase_item = put_purchase(purchase_item)
     record_audit_log('grant_course', 'student', student_id, {'course_id': course_id, 'purchase_id': purchase_id})
     return create_response(200, {'success': True, 'purchase': purchase_item})
 
@@ -1730,7 +1741,7 @@ def refund_purchase(purchase_id: str, body: dict[str, Any]):
         # immediately stops offering a refund that cannot be issued.
         normalized.update(fetch_stripe_purchase_state(normalized))
         normalized = sync_purchase_access(normalized)
-        TABLES['PURCHASES'].put_item(Item=normalized)
+        normalized = put_purchase(normalized)
         record_audit_log('resync_refunded_purchase', 'purchase', purchase_id, {
             'refunded_amount': normalized.get('refunded_amount'),
         })
@@ -1762,7 +1773,7 @@ def refund_purchase(purchase_id: str, body: dict[str, Any]):
     normalized['refunded_by_admin'] = current_admin_email or 'admin'
     normalized['refund_id'] = refund.get('id')
     normalized = sync_purchase_access(normalized)
-    TABLES['PURCHASES'].put_item(Item=normalized)
+    normalized = put_purchase(normalized)
     record_audit_log('refund_purchase', 'purchase', purchase_id, {
         'refund_id': refund.get('id'), 'amount': refund_args.get('amount', remaining_cents) / 100,
         'note': normalized['refund_note'],
@@ -1777,7 +1788,7 @@ def resync_purchase(purchase_id):
     normalized = normalize_purchase(purchase)
     normalized.update(fetch_stripe_purchase_state(normalized))
     normalized = sync_purchase_access(normalized)
-    TABLES['PURCHASES'].put_item(Item=normalized)
+    normalized = put_purchase(normalized)
     record_audit_log('resync_purchase', 'purchase', purchase_id)
     return create_response(200, {'success': True, 'data': normalized})
 
@@ -1892,7 +1903,7 @@ def correct_purchase_email(purchase_id: str, body: dict[str, Any], admin_email: 
         'email_corrected_by': correction['corrected_by'],
         'updated_at': correction['corrected_at'],
     })
-    TABLES['PURCHASES'].put_item(Item=normalized)
+    normalized = put_purchase(normalized)
     record_audit_log('correct_purchase_email', 'purchase', purchase_id, {'from_email': previous_email, 'to_email': new_email})
     return create_response(200, {
         'success': True,
