@@ -412,23 +412,23 @@ export const LandingPage: React.FC = () => {
                        </div>
                     )}
                   </div>
-                  <div className="p-8 flex flex-col flex-1">
+                  <div className="flex flex-1 flex-col p-5 sm:p-8">
                     <h3 className="text-2xl font-serif font-semibold text-gray-900 mb-3">{course.title}</h3>
                     <p className="text-gray-600 mb-8 flex-1 leading-relaxed">
                       {course.short_description || course.description || "Nessuna descrizione disponibile."}
                     </p>
-                    <div className="flex items-end justify-between mt-auto pt-6 border-t border-primary-50">
-                      <div>
+                    <div className="mt-auto flex flex-col items-start gap-3 border-t border-primary-50 pt-6 sm:flex-row sm:items-end sm:justify-between">
+                      <div className="shrink-0 whitespace-nowrap">
                         {course.discounted_price && Number(course.discounted_price) < Number(course.price) && (
                           <span className="block text-sm text-gray-400 line-through mb-1">€ {Number(course.price).toFixed(2)}</span>
                         )}
-                        <span className="text-3xl font-bold text-gray-900 font-serif">
+                        <span className="whitespace-nowrap text-3xl font-bold text-gray-900 font-serif">
                           € {Number(course.discounted_price ?? course.price).toFixed(2)}
                         </span>
                       </div>
                       <Link 
                         to={`/checkout?courseId=${course.public_slug || course.course_id}`} 
-                        className="px-6 py-3 bg-primary-600 text-white text-sm font-medium rounded-xl hover:bg-primary-700 transition shadow-md hover:shadow-lg"
+                        className="inline-flex min-h-11 w-full items-center justify-center whitespace-nowrap rounded-xl bg-primary-600 px-6 py-3 text-sm font-medium text-white shadow-md transition hover:bg-primary-700 hover:shadow-lg sm:w-auto"
                       >
                         Acquista Ora
                       </Link>
