@@ -338,6 +338,19 @@ class TestAdminOperationGuards:
         response = _admin.lambda_handler({"path": path, "httpMethod": method, "body": "{}"}, None)
         assert response["statusCode"] == 403
 
+    def test_reorder_lessons_route_is_not_interpreted_as_a_course_update(self, monkeypatch):
+        monkeypatch.setattr(_admin, "is_admin", lambda _event: True)
+        monkeypatch.setattr(_admin, "reorder_lessons", lambda body: _admin.create_response(200, {"items": body["items"]}))
+        monkeypatch.setattr(_admin, "update_course", lambda *_args: pytest.fail("reorder route must not call update_course"))
+
+        response = _admin.lambda_handler({
+            "path": "/admin/course/reorder-lessons",
+            "httpMethod": "PUT",
+            "body": json.dumps({"items": [{"id": "lesson-1", "order_number": 1}]}),
+        }, None)
+
+        assert response["statusCode"] == 200
+
     def test_hiding_a_published_course_also_clears_is_active(self, monkeypatch):
         table = _AdminMemoryTable({"course_id": "course-1", "status": "published", "is_active": True})
         monkeypatch.setitem(_admin.TABLES, "COURSES", table)

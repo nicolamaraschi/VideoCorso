@@ -2394,6 +2394,14 @@ def lambda_handler(event, context):
             return get_courses()
         if path == '/admin/course' and http_method == 'POST':
             return create_course(body)
+        # These static routes must be checked before the generic
+        # /admin/course/{courseId} route below. Otherwise API Gateway sends no
+        # courseId for "reorder-lessons" and it is incorrectly treated as a
+        # course update, yielding the misleading "Course not found" response.
+        if path == '/admin/course/reorder-chapters' and http_method == 'PUT':
+            return reorder_chapters(body)
+        if path == '/admin/course/reorder-lessons' and http_method == 'PUT':
+            return reorder_lessons(body)
         if (
             path.startswith('/admin/course/')
             and not path.startswith('/admin/course/chapter/')
@@ -2432,11 +2440,6 @@ def lambda_handler(event, context):
             return update_lesson(path_parameters.get('lessonId'), body)
         if path.startswith('/admin/course/lesson/') and http_method == 'DELETE':
             return delete_lesson(path_parameters.get('lessonId'))
-
-        if path == '/admin/course/reorder-chapters' and http_method == 'PUT':
-            return reorder_chapters(body)
-        if path == '/admin/course/reorder-lessons' and http_method == 'PUT':
-            return reorder_lessons(body)
 
         if path == '/admin/student/create' and http_method == 'POST':
             return create_manual_student(body)
