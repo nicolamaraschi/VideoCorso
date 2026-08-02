@@ -256,7 +256,7 @@ export const AdminCouponsPage: React.FC = () => {
                 <div><dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Corsi</dt><dd className="mt-1 text-gray-800">{coupon.course_scope.length > 0 ? `${coupon.course_scope.length} corsi` : 'Tutti i corsi'}</dd></div>
                 <div><dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Utilizzi</dt><dd className="mt-1 text-gray-800">{coupon.current_redemptions}/{coupon.max_redemptions ?? '∞'}</dd></div>
               </dl>
-              {coupon.expires_at && <p className="mt-3 text-sm text-amber-700">Scade {formatDateTime(coupon.expires_at)}</p>}
+              <p className={`mt-3 text-sm ${coupon.expires_at ? 'text-amber-700' : 'text-gray-600'}`}>{coupon.expires_at ? `Scade ${formatDateTime(coupon.expires_at)}` : 'Nessuna scadenza: resta valido finché attivo.'}</p>
               <div className="mt-4 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
                 <button type="button" onClick={() => openEditModal(coupon)} className="min-h-11 rounded-lg text-sm font-medium text-primary-700 hover:bg-primary-50">Modifica</button>
                 <button type="button" onClick={() => handleDeleteCoupon(coupon)} className="min-h-11 rounded-lg text-sm font-medium text-red-700 hover:bg-red-50">Elimina</button>
@@ -313,6 +313,11 @@ export const AdminCouponsPage: React.FC = () => {
                       {coupon.expires_at && (
                         <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700">
                           Scade {formatDateTime(coupon.expires_at)}
+                        </span>
+                      )}
+                      {!coupon.expires_at && (
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
+                          Senza scadenza
                         </span>
                       )}
                     </div>
@@ -373,7 +378,7 @@ export const AdminCouponsPage: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Utilizzi massimi</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Utilizzi massimi <span className="font-normal text-gray-500">(facoltativo)</span></label>
               <input
                 type="number"
                 min="0"
@@ -384,28 +389,42 @@ export const AdminCouponsPage: React.FC = () => {
                 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
+              <p className="mt-1 text-xs text-gray-500">Se vuoto, non c’è limite al numero di utilizzi.</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Inizio validita</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Inizio validità <span className="font-normal text-gray-500">(facoltativo)</span></label>
               <input
                 type="datetime-local"
                 value={toDatetimeInput(couponForm.starts_at)}
                 onChange={(event) => setCouponForm((prev) => ({ ...prev, starts_at: event.target.value || null }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
+              <p className="mt-1 text-xs text-gray-500">{couponForm.starts_at ? 'Il coupon non sarà utilizzabile prima di questa data.' : 'Nessuna data impostata: il coupon è valido subito quando è attivo.'}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Scadenza</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Scadenza <span className="font-normal text-gray-500">(facoltativa)</span></label>
               <input
                 type="datetime-local"
                 value={toDatetimeInput(couponForm.expires_at)}
                 onChange={(event) => setCouponForm((prev) => ({ ...prev, expires_at: event.target.value || null }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
+              <p className={`mt-1 text-xs ${couponForm.expires_at ? 'text-gray-500' : 'font-medium text-primary-700'}`}>{couponForm.expires_at ? 'Dopo questa data il coupon non sarà più utilizzabile.' : 'Nessuna scadenza: resta valido finché è attivo e ha utilizzi disponibili.'}</p>
             </div>
+          </div>
+
+          <div className="rounded-lg border border-primary-100 bg-primary-50 px-4 py-3 text-sm text-primary-900">
+            <p className="font-semibold">Riepilogo validità</p>
+            <p className="mt-1">
+              {couponForm.starts_at ? `Inizia il ${formatDateTime(couponForm.starts_at)}.` : 'Utilizzabile subito se attivo.'}
+              {' '}
+              {couponForm.expires_at ? `Scade il ${formatDateTime(couponForm.expires_at)}.` : 'Non ha una scadenza temporale.'}
+              {' '}
+              {couponForm.max_redemptions === null ? 'Gli utilizzi non hanno un limite numerico.' : `Massimo ${couponForm.max_redemptions} utilizzi complessivi.`}
+            </p>
           </div>
 
           <div>
@@ -440,6 +459,7 @@ export const AdminCouponsPage: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               placeholder="Una email per riga"
             />
+            <p className="mt-1 text-xs text-gray-500">Se vuoto, qualsiasi cliente può usare il coupon rispettando le altre regole.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
