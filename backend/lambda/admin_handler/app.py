@@ -1725,7 +1725,20 @@ def refund_purchase(purchase_id: str, body: dict[str, Any]):
 
     remaining_cents = charge_amount - refunded_cents
     if remaining_cents <= 0:
-        return create_response(400, {'error': 'Questo pagamento è già stato rimborsato interamente'})
+        # Stripe is the source of truth for refunds. If the local purchase is
+        # stale, reconcile it before reporting the conflict so the admin UI
+        # immediately stops offering a refund that cannot be issued.
+        normalized.update(fetch_stripe_purchase_state(normalized))
+        normalized = sync_purchase_access(normalized)
+        TABLES['PURCHASES'].put_item(Item=normalized)
+        record_audit_log('resync_refunded_purchase', 'purchase', purchase_id, {
+            'refunded_amount': normalized.get('refunded_amount'),
+        })
+        return create_response(409, {
+            'error': 'Questo pagamento è già stato rimborsato interamente',
+            'already_refunded': True,
+            'data': normalized,
+        })
 
     requested_amount = body.get('amount')
     refund_args: dict[str, Any] = {

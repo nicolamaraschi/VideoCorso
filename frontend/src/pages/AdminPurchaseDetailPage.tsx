@@ -168,7 +168,14 @@ export const AdminPurchaseDetailPage: React.FC = () => {
       showSuccess('Rimborso emesso', 'Lo stato dell’ordine e l’accesso al corso sono stati aggiornati.');
       await loadDetail();
     } catch (err) {
-      showError('Rimborso non emesso', getErrorMessage(err, 'L’ordine e l’accesso sono rimasti invariati.'));
+      const message = getErrorMessage(err, 'L’ordine e l’accesso sono rimasti invariati.');
+      if (message.includes('già stato rimborsato interamente')) {
+        setIsRefundOpen(false);
+        await loadDetail();
+        showError('Pagamento già rimborsato', 'Stripe conferma che il rimborso totale è già stato emesso. La scheda è stata aggiornata e non puoi rimborsare di nuovo questo ordine.');
+      } else {
+        showError('Rimborso non emesso', message);
+      }
     } finally {
       setActionLoading(null);
     }
