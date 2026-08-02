@@ -526,6 +526,18 @@ def put_purchase(purchase: dict[str, Any]) -> dict[str, Any]:
     return stored
 
 
+def remove_legacy_null_stripe_session_id(purchase: dict[str, Any]) -> dict[str, Any]:
+    """Repair legacy purchases created before StripeSessionIndex was sparse."""
+    if purchase.get('stripe_session_id') is None and 'stripe_session_id' in purchase:
+        TABLES['PURCHASES'].update_item(
+            Key={'purchase_id': purchase['purchase_id']},
+            UpdateExpression='REMOVE stripe_session_id',
+        )
+        purchase = dict(purchase)
+        purchase.pop('stripe_session_id', None)
+    return purchase
+
+
 def update_purchase_with_version(purchase_id: str, expected_version: int, fields: dict[str, Any]) -> dict[str, Any]:
     """Narrow compare-and-swap update for admin-owned purchase fields."""
     names = {'#version': 'version', '#updated_at': 'updated_at'}
@@ -1785,6 +1797,7 @@ def resync_purchase(purchase_id):
     purchase = TABLES['PURCHASES'].get_item(Key={'purchase_id': purchase_id}).get('Item')
     if not purchase:
         return create_response(404, {'error': 'Purchase not found'})
+    purchase = remove_legacy_null_stripe_session_id(purchase)
     normalized = normalize_purchase(purchase)
     normalized.update(fetch_stripe_purchase_state(normalized))
     normalized = sync_purchase_access(normalized)

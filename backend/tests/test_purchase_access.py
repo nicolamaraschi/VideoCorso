@@ -496,6 +496,7 @@ class TestAdminOperationGuards:
 
         assert response["statusCode"] == 200
         assert "stripe_session_id" not in purchases.puts[0]["Item"]
+        assert purchases.update_calls[0]["UpdateExpression"] == "REMOVE stripe_session_id"
 
 
 class TestAccessControlConsistency:
