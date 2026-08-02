@@ -8,8 +8,10 @@ import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
 import { formatDate } from '../utils/formatters';
 import { getErrorMessage } from '../utils/errors';
+import { useAdminOperationBanner } from '../components/common/AdminOperationBanner';
 
 export const AdminAccountsPage: React.FC = () => {
+  const { showSuccess, showError } = useAdminOperationBanner();
   const [accounts, setAccounts] = useState<AdminAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,18 +40,19 @@ export const AdminAccountsPage: React.FC = () => {
 
   const handleCreate = async () => {
     if (!createForm.email || !createForm.full_name) {
-      alert('Email e nome sono obbligatori.');
+      showError('Account admin non creato', 'Email e nome sono obbligatori.');
       return;
     }
 
     try {
       setSaving(true);
       await adminService.createAdminAccount(createForm);
+      showSuccess('Account admin creato', `L’invito per ${createForm.email} è stato inviato.`);
       setShowCreateModal(false);
       setCreateForm({ email: '', full_name: '' });
       await loadAccounts();
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to create admin account'));
+      showError('Account admin non creato', getErrorMessage(err, 'L’account admin non è stato creato.'));
     } finally {
       setSaving(false);
     }
@@ -71,10 +74,11 @@ export const AdminAccountsPage: React.FC = () => {
     try {
       setSaving(true);
       await adminService.updateAdminAccount(editingAccount.username, editForm);
+      showSuccess('Account admin aggiornato', `Le modifiche per ${editingAccount.email} sono state salvate.`);
       setEditingAccount(null);
       await loadAccounts();
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to update admin account'));
+      showError('Account admin non aggiornato', getErrorMessage(err, 'Le modifiche non sono state salvate.'));
     } finally {
       setSaving(false);
     }
@@ -87,18 +91,19 @@ export const AdminAccountsPage: React.FC = () => {
 
     try {
       await adminService.deleteAdminAccount(account.username);
+      showSuccess('Account admin eliminato', `L’account ${account.email} è stato eliminato.`);
       await loadAccounts();
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to delete admin account'));
+      showError('Account admin non eliminato', getErrorMessage(err, 'L’account admin è rimasto invariato.'));
     }
   };
 
   const handleResendInvite = async (account: AdminAccount) => {
     try {
       await adminService.resendAdminInvite(account.username);
-      alert('Invito admin reinviato con una nuova password temporanea.');
+      showSuccess('Invito reinviato', `Una nuova password temporanea è stata inviata a ${account.email}.`);
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to resend admin invite'));
+      showError('Invito non reinviato', getErrorMessage(err, 'L’invito non è stato reinviato.'));
     }
   };
 

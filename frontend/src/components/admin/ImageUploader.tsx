@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle, FileImage, Upload, X } from 'lucide-react';
 import { Button } from '../common/Button';
 import { adminService } from '../../services/adminService';
 import { getErrorMessage } from '../../utils/errors';
+import { useAdminOperationBanner } from '../common/AdminOperationBanner';
 
 interface ImageUploaderProps {
   folder: string;
@@ -15,6 +16,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   label = 'Immagine',
   onUploadComplete,
 }) => {
+  const { showSuccess, showError } = useAdminOperationBanner();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -32,13 +34,16 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       });
       await adminService.uploadImageToS3(uploadData.upload_url, selectedFile);
       onUploadComplete(uploadData.image_url);
+      showSuccess('Immagine caricata', 'Il file è stato caricato. Salva ora il corso, il capitolo o la lezione per associare definitivamente l’immagine.');
       setSuccess(true);
       setFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     } catch (err) {
-      setError(getErrorMessage(err, 'Upload immagine fallito'));
+      const message = getErrorMessage(err, 'Upload immagine fallito');
+      setError(message);
+      showError('Immagine non caricata', message);
     } finally {
       setUploading(false);
     }

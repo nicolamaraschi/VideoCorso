@@ -9,8 +9,10 @@ import { ErrorMessage } from '../components/common/ErrorMessage';
 import { Button } from '../components/common/Button';
 import { formatDate } from '../utils/formatters';
 import { getErrorMessage } from '../utils/errors';
+import { useAdminOperationBanner } from '../components/common/AdminOperationBanner';
 
 export const AdminStudentDetailPage: React.FC = () => {
+  const { showSuccess, showError } = useAdminOperationBanner();
   const { studentId } = useParams<{ studentId: string }>();
   const [detail, setDetail] = useState<StudentDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,9 +51,9 @@ export const AdminStudentDetailPage: React.FC = () => {
     try {
       setSendingPassword(true);
       await adminService.resetPassword(studentId);
-      alert('Nuova password temporanea inviata via email.');
+      showSuccess('Password reimpostata', 'La nuova password temporanea è stata inviata via email allo studente.');
     } catch (err) {
-      alert(getErrorMessage(err, 'Impossibile inviare la nuova password'));
+      showError('Password non reimpostata', getErrorMessage(err, 'La password precedente resta valida.'));
     } finally {
       setSendingPassword(false);
     }
@@ -65,8 +67,8 @@ export const AdminStudentDetailPage: React.FC = () => {
       if (courses.length > 0) {
         setSelectedCourseId(courses[0].course_id);
       }
-    } catch {
-      alert("Failed to load courses");
+    } catch (err) {
+      showError('Corsi non caricati', getErrorMessage(err, 'Non è possibile scegliere un corso da assegnare.'));
     }
   };
 
@@ -75,10 +77,12 @@ export const AdminStudentDetailPage: React.FC = () => {
     try {
       setGranting(true);
       await adminService.grantCourse(studentId, selectedCourseId);
+      const courseTitle = availableCourses.find((course) => course.course_id === selectedCourseId)?.title || 'Il corso selezionato';
+      showSuccess('Accesso assegnato', `${courseTitle} è ora disponibile nell’account dello studente.`);
       setShowGrantModal(false);
       await loadDetail();
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to grant course'));
+      showError('Accesso non assegnato', getErrorMessage(err, 'Lo studente non ha ricevuto il nuovo accesso.'));
     } finally {
       setGranting(false);
     }
