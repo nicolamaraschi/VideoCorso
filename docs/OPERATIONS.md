@@ -4,9 +4,11 @@ Questo documento riguarda lo stack di produzione `corso-video-chiara` in `us-eas
 
 ## Identità AWS e regola di sicurezza
 
-Usare **sempre** il profilo AWS `personale`, account `170884089098` (`videocorso-admin`). Non usare mai il profilo AWS predefinito.
+Usare **sempre** il profilo AWS `personale`, account `170884089098` (`videocorso-admin`) e la region `us-east-1`. Non usare mai il profilo AWS predefinito.
+In ambienti macOS dove `aws` non si trova in `/usr/bin` o nel `$PATH` predefinito, invocare il binario in `/usr/local/aws-cli/aws` oppure aggiungere il percorso al `$PATH`:
 
 ```bash
+export PATH=$PATH:/usr/local/aws-cli
 aws --profile personale sts get-caller-identity
 ```
 
@@ -20,6 +22,67 @@ Se l'account restituito non è `170884089098`, fermarsi: non fare deploy, modifi
 | `development` | Verifica prima del merge | https://development.d26u0xz2smmxfz.amplifyapp.com |
 
 Entrambi i rami Amplify sono attivi. Attualmente il frontend `development` usa ancora l'API di produzione: trattarlo come un ambiente UI di verifica, non come sandbox dati. La messa in produzione ordinaria segue `development` → Pull Request → `main`.
+
+## Gestione Utenti Admin e AWS Cognito
+
+Gli utenti amministratore e studenti sono gestiti tramite AWS Cognito nella region `us-east-1` con due User Pool distinti:
+- **Produzione (`prod`)**: `us-east-1_YMVsKScIc` (`prod-videocorso-users`)
+- **Sviluppo (`dev`)**: `us-east-1_qyiQNBTlW` (`dev-videocorso-users`)
+
+### Attenzione al blocco `FORCE_CHANGE_PASSWORD`
+Quando un utente viene creato da API/amministrazione senza password definitiva, Cognito lo inserisce nello stato `FORCE_CHANGE_PASSWORD`, bloccando il login diretto tramite password. Per abilitare l'accesso immediato e impostare lo stato su `CONFIRMED`, è necessario assegnare una password permanente (`--permanent`).
+
+### Comandi CLI da terminale (usando `/usr/local/aws-cli/aws` con `--profile personale --region us-east-1`)
+
+1. **Verificare stato e dettagli di un utente:**
+   ```bash
+   /usr/local/aws-cli/aws --profile personale --region us-east-1 cognito-idp admin-get-user \
+     --user-pool-id us-east-1_YMVsKScIc \
+     --username nicola.maraschi@gmail.com
+   ```
+
+2. **Impostare una password definitiva (`CONFIRMED`) senza richiesta di cambio:**
+   ```bash
+   /usr/local/aws-cli/aws --profile personale --region us-east-1 cognito-idp admin-set-user-password \
+     --user-pool-id us-east-1_YMVsKScIc \
+     --username nicola.maraschi@gmail.com \
+     --password "NuovaPassword123!" \
+     --permanent
+   ```
+
+3. **Aggiungere l'utente al gruppo `admin`:**
+   ```bash
+   /usr/local/aws-cli/aws --profile personale --region us-east-1 cognito-idp admin-add-user-to-group \
+     --user-pool-id us-east-1_YMVsKScIc \
+     --username nicola.maraschi@gmail.com \
+     --group-name admin
+   ```
+
+4. **Creazione nuovo utente admin (inclusa auto-conferma email):**
+   ```bash
+   /usr/local/aws-cli/aws --profile personale --region us-east-1 cognito-idp admin-create-user \
+     --user-pool-id us-east-1_YMVsKScIc \
+     --username nicola.maraschi@gmail.com \
+     --user-attributes Name=email,Value=nicola.maraschi@gmail.com Name=email_verified,Value=true \
+     --message-action SUPPRESS
+   ```
+
+### Gestione via script Python / `boto3`
+Per operazioni automatizzate o di debug su Cognito, utilizzare sempre una sessione con profilo `personale`:
+```python
+import boto3
+
+session = boto3.Session(profile_name='personale', region_name='us-east-1')
+client = session.client('cognito-idp')
+
+# Impostazione password permanente (sblocca da FORCE_CHANGE_PASSWORD a CONFIRMED)
+client.admin_set_user_password(
+    UserPoolId='us-east-1_YMVsKScIc',
+    Username='nicola.maraschi@gmail.com',
+    Password='NuovaPassword123!',
+    Permanent=True
+)
+```
 
 ## Segreti
 
