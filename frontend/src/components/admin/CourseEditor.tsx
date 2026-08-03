@@ -125,6 +125,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       await onCreateChapter(chapterForm);
       setShowChapterModal(false);
       setChapterForm({ title: '', description: '', image_url: '' });
+    } catch {
+      // Il banner globale descrive l'errore; il modal resta aperto per correggere i dati.
     } finally {
       setIsSubmitting(false);
     }
@@ -148,6 +150,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       setShowChapterModal(false);
       setEditingChapter(null);
       setChapterForm({ title: '', description: '', image_url: '' });
+    } catch {
+      // Il banner globale descrive l'errore; il modal resta aperto per correggere i dati.
     } finally {
       setIsSubmitting(false);
     }
@@ -191,6 +195,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       setShowLessonModal(false);
       setEditingLesson(null);
       setSelectedChapterId(null);
+    } catch {
+      // Il banner globale descrive l'errore; il modal resta aperto per correggere i dati.
     } finally {
       setIsSubmitting(false);
     }
@@ -485,7 +491,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             onClick={editingChapter ? handleUpdateChapter : handleCreateChapter}
             variant="primary"
             fullWidth
-            disabled={isSubmitting || !chapterForm.title}
+            disabled={isSubmitting || !chapterForm.title.trim()}
           >
             <Save className="w-4 h-4 mr-2" />
             {isSubmitting ? 'Saving...' : (editingChapter ? 'Update Chapter' : 'Create Chapter')}
@@ -636,7 +642,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             onClick={handleSaveLesson}
             variant="primary"
             fullWidth
-            disabled={!lessonForm.title || (!editingLesson && !lessonForm.video_s3_key) || isSubmitting}
+            disabled={!lessonForm.title.trim() || (!editingLesson && !lessonForm.video_s3_key) || isSubmitting}
           >
             <Save className="w-4 h-4 mr-2" />
             {isSubmitting ? 'Saving...' : (editingLesson ? 'Update Lesson' : 'Create Lesson')}

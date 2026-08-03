@@ -338,6 +338,46 @@ class TestAdminOperationGuards:
         response = _admin.lambda_handler({"path": path, "httpMethod": method, "body": "{}"}, None)
         assert response["statusCode"] == 403
 
+    def test_reorder_lessons_route_is_not_interpreted_as_a_course_update(self, monkeypatch):
+        monkeypatch.setattr(_admin, "is_admin", lambda _event: True)
+        monkeypatch.setattr(_admin, "reorder_lessons", lambda body: _admin.create_response(200, {"items": body["items"]}))
+        monkeypatch.setattr(_admin, "update_course", lambda *_args: pytest.fail("reorder route must not call update_course"))
+
+        response = _admin.lambda_handler({
+            "path": "/admin/course/reorder-lessons",
+            "httpMethod": "PUT",
+            "body": json.dumps({"items": [{"id": "lesson-1", "order_number": 1}]}),
+        }, None)
+
+        assert response["statusCode"] == 200
+
+    def test_already_refunded_purchase_is_reconciled_before_returning_conflict(self, monkeypatch):
+        purchase = {
+            **make_purchase(local_status="paid", access_unlocked=True, refunded_amount=0),
+            "purchase_id": "purchase-1",
+            "amount": Decimal("10.00"),
+            "stripe_payment_intent_id": "pi_1",
+        }
+        table = _AdminMemoryTable(purchase)
+        monkeypatch.setitem(_admin.TABLES, "PURCHASES", table)
+        monkeypatch.setattr(_admin, "stripe", types.SimpleNamespace(
+            PaymentIntent=types.SimpleNamespace(retrieve=lambda *_args, **_kwargs: {
+                "latest_charge": {"id": "ch_1", "amount": 1000, "amount_refunded": 1000},
+                "charges": {"data": []},
+            }),
+        ))
+        monkeypatch.setattr(_admin, "fetch_stripe_purchase_state", lambda _purchase: {
+            "local_status": "refunded", "refunded_amount": Decimal("10.00"), "refund_status": "refunded",
+        })
+        monkeypatch.setattr(_admin, "sync_purchase_access", lambda item: item)
+        monkeypatch.setattr(_admin, "record_audit_log", lambda *_args, **_kwargs: None)
+
+        response = _admin.refund_purchase("purchase-1", {"amount": "10.00"})
+
+        assert response["statusCode"] == 409
+        assert json.loads(response["body"])["already_refunded"] is True
+        assert table.puts[0]["Item"]["local_status"] == "refunded"
+
     def test_hiding_a_published_course_also_clears_is_active(self, monkeypatch):
         table = _AdminMemoryTable({"course_id": "course-1", "status": "published", "is_active": True})
         monkeypatch.setitem(_admin.TABLES, "COURSES", table)
@@ -375,6 +415,8 @@ class TestAdminOperationGuards:
 
         assert _admin.update_chapter("chapter-1", {"course_id": "other-course"})["statusCode"] == 400
         assert _admin.update_lesson("lesson-1", {"chapter_id": "other-chapter"})["statusCode"] == 400
+        assert _admin.update_chapter("chapter-1", {"title": "   "})["statusCode"] == 400
+        assert _admin.update_lesson("lesson-1", {"title": "   "})["statusCode"] == 400
 
     def test_reorder_rejects_cross_course_or_duplicate_items(self, monkeypatch):
         class Chapters:
@@ -438,7 +480,25 @@ class TestAdminOperationGuards:
         purchase = json.loads(response["body"], parse_float=str)["purchase"]
         assert response["statusCode"] == 200
         assert purchase["manual_access_override"] is True
-        assert purchase["stripe_session_id"] is None
+        assert "stripe_session_id" not in purchase
+        assert "stripe_session_id" not in purchases.puts[0]["Item"]
+
+    def test_resync_omits_missing_stripe_session_from_the_gsi_key(self, monkeypatch):
+        purchases = _AdminMemoryTable({
+            **make_purchase("paid", True),
+            "purchase_id": "coupon-purchase",
+            "stripe_session_id": None,
+        })
+        monkeypatch.setitem(_admin.TABLES, "PURCHASES", purchases)
+        monkeypatch.setattr(_admin, "fetch_stripe_purchase_state", lambda _purchase: {})
+        monkeypatch.setattr(_admin, "sync_purchase_access", lambda item: item)
+        monkeypatch.setattr(_admin, "record_audit_log", lambda *_args, **_kwargs: None)
+
+        response = _admin.resync_purchase("coupon-purchase")
+
+        assert response["statusCode"] == 200
+        assert "stripe_session_id" not in purchases.puts[0]["Item"]
+        assert purchases.update_calls[0]["UpdateExpression"] == "REMOVE stripe_session_id"
 
 
 class TestAccessControlConsistency:

@@ -20,6 +20,7 @@ import { AdminPurchasesPage } from './pages/AdminPurchasesPage';
 import { AdminAccountsPage } from './pages/AdminAccountsPage';
 import { AdminPurchaseDetailPage } from './pages/AdminPurchaseDetailPage';
 import { AdminCouponsPage } from './pages/AdminCouponsPage';
+import { AdminOperationBannerProvider } from './components/common/AdminOperationBanner';
 
 const ScrollToPageStart = () => {
   const { pathname } = useLocation();
@@ -51,6 +52,7 @@ function App() {
     // Questo evita che elementi fixed/sticky (sidebar, barre di azione)
     // finiscano per sovrapporsi a navbar/footer su pagine lunghe.
     return (
+      <AdminOperationBannerProvider>
       <div className="h-[100dvh] flex flex-col overflow-hidden">
         <ScrollToPageStart />
         <Navbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
@@ -166,6 +168,7 @@ function App() {
           </main>
         </div>
       </div>
+      </AdminOperationBannerProvider>
     );
   }
 

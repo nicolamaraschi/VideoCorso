@@ -8,8 +8,10 @@ import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
 import { Plus, Save } from 'lucide-react';
 import { getErrorMessage } from '../utils/errors';
+import { useAdminOperationBanner } from '../components/common/AdminOperationBanner';
 
 export const AdminStudentsPage: React.FC = () => {
+  const { showSuccess, showError } = useAdminOperationBanner();
   const [students, setStudents] = useState<StudentListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,26 +43,28 @@ export const AdminStudentsPage: React.FC = () => {
   ): Promise<void> => {
     try {
       await adminService.updateStudent(studentId, data);
+      showSuccess('Studente aggiornato', 'Le modifiche all’accesso dello studente sono state salvate.');
       await loadStudents();
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to update student'));
+      showError('Studente non aggiornato', getErrorMessage(err, 'Le modifiche allo studente non sono state salvate.'));
     }
   };
 
   const handleCreateStudent = async () => {
     if (!newStudentForm.email || !newStudentForm.full_name) {
-      alert('Email and Full Name are required.');
+      showError('Studente non creato', 'Email e nome completo sono obbligatori.');
       return;
     }
     
     try {
       setIsSaving(true);
       await adminService.createStudent(newStudentForm);
+      showSuccess('Studente creato', `L’account di ${newStudentForm.email} è stato creato e l’invito è stato inviato.`);
       setShowCreateModal(false);
       setNewStudentForm({ email: '', full_name: '' });
       await loadStudents(); // Ricarica la lista
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to create student'));
+      showError('Studente non creato', getErrorMessage(err, 'L’account studente non è stato creato.'));
     } finally {
       setIsSaving(false);
     }
@@ -70,9 +74,9 @@ export const AdminStudentsPage: React.FC = () => {
     if (!window.confirm('Inviare una nuova password temporanea a questo studente? La password attuale non funzionerà più.')) return;
     try {
       await adminService.resetPassword(studentId);
-      alert('Nuova password temporanea inviata via email.');
+      showSuccess('Password reimpostata', 'La nuova password temporanea è stata inviata via email allo studente.');
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to reset password'));
+      showError('Password non reimpostata', getErrorMessage(err, 'La password precedente resta valida.'));
     }
   };
 
@@ -80,9 +84,10 @@ export const AdminStudentsPage: React.FC = () => {
     if (!window.confirm('Sei sicuro di voler eliminare definitivamente questo studente? Questa azione non può essere annullata.')) return;
     try {
       await adminService.deleteStudent(studentId);
+      showSuccess('Studente eliminato', 'L’account studente è stato eliminato.');
       await loadStudents();
     } catch (err) {
-      alert(getErrorMessage(err, 'Failed to delete student'));
+      showError('Studente non eliminato', getErrorMessage(err, 'L’account studente è rimasto invariato.'));
     }
   };
 

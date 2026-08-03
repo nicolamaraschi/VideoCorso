@@ -514,6 +514,30 @@ def normalize_purchase(purchase: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+def put_purchase(purchase: dict[str, Any]) -> dict[str, Any]:
+    """Persist a purchase without invalid null values for sparse GSI keys."""
+    stored = dict(purchase)
+    # DynamoDB GSIs accept an omitted key for records outside the index, but
+    # reject NULL/empty values for a key declared as String. Manual and coupon
+    # purchases legitimately have no Stripe Checkout session.
+    if not stored.get('stripe_session_id'):
+        stored.pop('stripe_session_id', None)
+    TABLES['PURCHASES'].put_item(Item=stored)
+    return stored
+
+
+def remove_legacy_null_stripe_session_id(purchase: dict[str, Any]) -> dict[str, Any]:
+    """Repair legacy purchases created before StripeSessionIndex was sparse."""
+    if purchase.get('stripe_session_id') is None and 'stripe_session_id' in purchase:
+        TABLES['PURCHASES'].update_item(
+            Key={'purchase_id': purchase['purchase_id']},
+            UpdateExpression='REMOVE stripe_session_id',
+        )
+        purchase = dict(purchase)
+        purchase.pop('stripe_session_id', None)
+    return purchase
+
+
 def update_purchase_with_version(purchase_id: str, expected_version: int, fields: dict[str, Any]) -> dict[str, Any]:
     """Narrow compare-and-swap update for admin-owned purchase fields."""
     names = {'#version': 'version', '#updated_at': 'updated_at'}
@@ -951,6 +975,8 @@ def create_chapter(body):
     course_id = body.get('course_id')
     if not get_course(course_id):
         return create_response(404, {'error': 'Course not found'})
+    if not str(body.get('title') or '').strip():
+        return create_response(400, {'error': 'Chapter title is required'})
 
     existing = get_course_chapters(course_id)
     item = {
@@ -970,6 +996,8 @@ def update_chapter(chapter_id, body):
     chapter = TABLES['CHAPTERS'].get_item(Key={'chapter_id': chapter_id}).get('Item')
     if not chapter:
         return create_response(404, {'error': 'Chapter not found'})
+    if 'title' in body and not str(body.get('title') or '').strip():
+        return create_response(400, {'error': 'Chapter title is required'})
 
     fields = []
     values = {}
@@ -1028,6 +1056,13 @@ def create_lesson(body):
     chapter = TABLES['CHAPTERS'].get_item(Key={'chapter_id': chapter_id}).get('Item')
     if not chapter:
         return create_response(404, {'error': 'Chapter not found'})
+    if not str(body.get('title') or '').strip():
+        return create_response(400, {'error': 'Lesson title is required'})
+    try:
+        if int(body.get('duration_seconds', 0) or 0) < 0:
+            return create_response(400, {'error': 'Lesson duration cannot be negative'})
+    except (TypeError, ValueError):
+        return create_response(400, {'error': 'Lesson duration must be numeric'})
 
     existing = get_chapter_lessons(chapter_id)
     item = {
@@ -1052,6 +1087,14 @@ def update_lesson(lesson_id, body):
     lesson = TABLES['LESSONS'].get_item(Key={'lesson_id': lesson_id}).get('Item')
     if not lesson:
         return create_response(404, {'error': 'Lesson not found'})
+    if 'title' in body and not str(body.get('title') or '').strip():
+        return create_response(400, {'error': 'Lesson title is required'})
+    if 'duration_seconds' in body:
+        try:
+            if int(body.get('duration_seconds') or 0) < 0:
+                return create_response(400, {'error': 'Lesson duration cannot be negative'})
+        except (TypeError, ValueError):
+            return create_response(400, {'error': 'Lesson duration must be numeric'})
 
     fields = []
     values = {}
@@ -1376,11 +1419,10 @@ def grant_course_to_student(student_id, body):
         'webhook_status': 'not_required',
         'purchase_date': now_iso(),
         'manual_grant': True,
-        # This was never a Stripe checkout; omitting the session key also
-        # keeps manual grants out of the Stripe-session reconciliation index.
-        'stripe_session_id': None,
+        # This was never a Stripe checkout, so it must not enter the
+        # Stripe-session reconciliation index.
     }
-    TABLES['PURCHASES'].put_item(Item=purchase_item)
+    purchase_item = put_purchase(purchase_item)
     record_audit_log('grant_course', 'student', student_id, {'course_id': course_id, 'purchase_id': purchase_id})
     return create_response(200, {'success': True, 'purchase': purchase_item})
 
@@ -1725,7 +1767,20 @@ def refund_purchase(purchase_id: str, body: dict[str, Any]):
 
     remaining_cents = charge_amount - refunded_cents
     if remaining_cents <= 0:
-        return create_response(400, {'error': 'Questo pagamento è già stato rimborsato interamente'})
+        # Stripe is the source of truth for refunds. If the local purchase is
+        # stale, reconcile it before reporting the conflict so the admin UI
+        # immediately stops offering a refund that cannot be issued.
+        normalized.update(fetch_stripe_purchase_state(normalized))
+        normalized = sync_purchase_access(normalized)
+        normalized = put_purchase(normalized)
+        record_audit_log('resync_refunded_purchase', 'purchase', purchase_id, {
+            'refunded_amount': normalized.get('refunded_amount'),
+        })
+        return create_response(409, {
+            'error': 'Questo pagamento è già stato rimborsato interamente',
+            'already_refunded': True,
+            'data': normalized,
+        })
 
     requested_amount = body.get('amount')
     refund_args: dict[str, Any] = {
@@ -1749,7 +1804,7 @@ def refund_purchase(purchase_id: str, body: dict[str, Any]):
     normalized['refunded_by_admin'] = current_admin_email or 'admin'
     normalized['refund_id'] = refund.get('id')
     normalized = sync_purchase_access(normalized)
-    TABLES['PURCHASES'].put_item(Item=normalized)
+    normalized = put_purchase(normalized)
     record_audit_log('refund_purchase', 'purchase', purchase_id, {
         'refund_id': refund.get('id'), 'amount': refund_args.get('amount', remaining_cents) / 100,
         'note': normalized['refund_note'],
@@ -1761,10 +1816,11 @@ def resync_purchase(purchase_id):
     purchase = TABLES['PURCHASES'].get_item(Key={'purchase_id': purchase_id}).get('Item')
     if not purchase:
         return create_response(404, {'error': 'Purchase not found'})
+    purchase = remove_legacy_null_stripe_session_id(purchase)
     normalized = normalize_purchase(purchase)
     normalized.update(fetch_stripe_purchase_state(normalized))
     normalized = sync_purchase_access(normalized)
-    TABLES['PURCHASES'].put_item(Item=normalized)
+    normalized = put_purchase(normalized)
     record_audit_log('resync_purchase', 'purchase', purchase_id)
     return create_response(200, {'success': True, 'data': normalized})
 
@@ -1879,7 +1935,7 @@ def correct_purchase_email(purchase_id: str, body: dict[str, Any], admin_email: 
         'email_corrected_by': correction['corrected_by'],
         'updated_at': correction['corrected_at'],
     })
-    TABLES['PURCHASES'].put_item(Item=normalized)
+    normalized = put_purchase(normalized)
     record_audit_log('correct_purchase_email', 'purchase', purchase_id, {'from_email': previous_email, 'to_email': new_email})
     return create_response(200, {
         'success': True,
@@ -2394,6 +2450,14 @@ def lambda_handler(event, context):
             return get_courses()
         if path == '/admin/course' and http_method == 'POST':
             return create_course(body)
+        # These static routes must be checked before the generic
+        # /admin/course/{courseId} route below. Otherwise API Gateway sends no
+        # courseId for "reorder-lessons" and it is incorrectly treated as a
+        # course update, yielding the misleading "Course not found" response.
+        if path == '/admin/course/reorder-chapters' and http_method == 'PUT':
+            return reorder_chapters(body)
+        if path == '/admin/course/reorder-lessons' and http_method == 'PUT':
+            return reorder_lessons(body)
         if (
             path.startswith('/admin/course/')
             and not path.startswith('/admin/course/chapter/')
@@ -2432,11 +2496,6 @@ def lambda_handler(event, context):
             return update_lesson(path_parameters.get('lessonId'), body)
         if path.startswith('/admin/course/lesson/') and http_method == 'DELETE':
             return delete_lesson(path_parameters.get('lessonId'))
-
-        if path == '/admin/course/reorder-chapters' and http_method == 'PUT':
-            return reorder_chapters(body)
-        if path == '/admin/course/reorder-lessons' and http_method == 'PUT':
-            return reorder_lessons(body)
 
         if path == '/admin/student/create' and http_method == 'POST':
             return create_manual_student(body)
