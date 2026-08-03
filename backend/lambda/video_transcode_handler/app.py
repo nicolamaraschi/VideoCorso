@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import hashlib
 from urllib.parse import unquote_plus
@@ -50,6 +52,62 @@ RENDITIONS = [
 ]
 
 
+def get_renditions_for_orientation(is_portrait: bool) -> list[dict]:
+    if is_portrait:
+        return [
+            {
+                'name_modifier': '_720p',
+                'width': 720,
+                'height': 1280,
+                'qvbr_quality_level': 7,
+                'max_bitrate': 2000000,
+                'audio_bitrate': 96000,
+            },
+            {
+                'name_modifier': '_480p',
+                'width': 480,
+                'height': 854,
+                'qvbr_quality_level': 6,
+                'max_bitrate': 1000000,
+                'audio_bitrate': 80000,
+            },
+            {
+                'name_modifier': '_360p',
+                'width': 360,
+                'height': 640,
+                'qvbr_quality_level': 5,
+                'max_bitrate': 650000,
+                'audio_bitrate': 64000,
+            },
+        ]
+    return RENDITIONS
+
+
+def detect_video_portrait(bucket: str, key: str) -> bool:
+    """Detect whether an MP4/MOV in S3 is portrait (either via tkhd rotation or dimensions)."""
+    try:
+        s3 = boto3.client('s3')
+        response = s3.get_object(Bucket=bucket, Key=key, Range='bytes=0-2097151')
+        data = response['Body'].read()
+        idx = 0
+        while idx < len(data) - 56:
+            if data[idx:idx + 4] == b'tkhd':
+                box_start = idx - 4
+                version = data[idx + 4]
+                matrix_start = box_start + (60 if version == 1 else 48)
+                if matrix_start + 16 <= len(data):
+                    a = int.from_bytes(data[matrix_start:matrix_start + 4], 'big', signed=True)
+                    b = int.from_bytes(data[matrix_start + 4:matrix_start + 8], 'big', signed=True)
+                    c = int.from_bytes(data[matrix_start + 8:matrix_start + 12], 'big', signed=True)
+                    d = int.from_bytes(data[matrix_start + 12:matrix_start + 16], 'big', signed=True)
+                    if (a == 0 and b > 0 and c < 0 and d == 0) or (a == 0 and b < 0 and c > 0 and d == 0):
+                        return True
+            idx += 1
+    except Exception as exc:
+        print(f"Could not inspect orientation for {key}: {exc}")
+    return False
+
+
 def build_output(rendition: dict) -> dict:
     return {
         'NameModifier': rendition['name_modifier'],
@@ -90,7 +148,8 @@ def build_output(rendition: dict) -> dict:
     }
 
 
-def build_job_settings(source_uri: str, destination_uri: str) -> dict:
+def build_job_settings(source_uri: str, destination_uri: str, is_portrait: bool = False) -> dict:
+    renditions = get_renditions_for_orientation(is_portrait)
     return {
         'TimecodeConfig': {'Source': 'ZEROBASED'},
         'OutputGroups': [{
@@ -99,7 +158,7 @@ def build_job_settings(source_uri: str, destination_uri: str) -> dict:
                 'Type': 'FILE_GROUP_SETTINGS',
                 'FileGroupSettings': {'Destination': destination_uri},
             },
-            'Outputs': [build_output(rendition) for rendition in RENDITIONS],
+            'Outputs': [build_output(rendition) for rendition in renditions],
         }],
         'Inputs': [{
             'FileInput': source_uri,
@@ -219,9 +278,10 @@ def lambda_handler(event, context):
         else:
             # Legacy uploads continue to work while they are gradually replaced.
             destination = f's3://{bucket}/streaming/{source_stem}/'
+        is_portrait = detect_video_portrait(bucket, source_key)
         response = client.create_job(
             Role=role,
-            Settings=build_job_settings(f's3://{bucket}/{source_key}', destination),
+            Settings=build_job_settings(f's3://{bucket}/{source_key}', destination, is_portrait),
             UserMetadata={
                 'source_key': source_key,
                 'lesson_id': lesson_id or '',

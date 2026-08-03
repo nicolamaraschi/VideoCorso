@@ -975,6 +975,8 @@ def create_chapter(body):
     course_id = body.get('course_id')
     if not get_course(course_id):
         return create_response(404, {'error': 'Course not found'})
+    if not str(body.get('title') or '').strip():
+        return create_response(400, {'error': 'Chapter title is required'})
 
     existing = get_course_chapters(course_id)
     item = {
@@ -994,6 +996,8 @@ def update_chapter(chapter_id, body):
     chapter = TABLES['CHAPTERS'].get_item(Key={'chapter_id': chapter_id}).get('Item')
     if not chapter:
         return create_response(404, {'error': 'Chapter not found'})
+    if 'title' in body and not str(body.get('title') or '').strip():
+        return create_response(400, {'error': 'Chapter title is required'})
 
     fields = []
     values = {}
@@ -1052,6 +1056,13 @@ def create_lesson(body):
     chapter = TABLES['CHAPTERS'].get_item(Key={'chapter_id': chapter_id}).get('Item')
     if not chapter:
         return create_response(404, {'error': 'Chapter not found'})
+    if not str(body.get('title') or '').strip():
+        return create_response(400, {'error': 'Lesson title is required'})
+    try:
+        if int(body.get('duration_seconds', 0) or 0) < 0:
+            return create_response(400, {'error': 'Lesson duration cannot be negative'})
+    except (TypeError, ValueError):
+        return create_response(400, {'error': 'Lesson duration must be numeric'})
 
     existing = get_chapter_lessons(chapter_id)
     item = {
@@ -1076,6 +1087,14 @@ def update_lesson(lesson_id, body):
     lesson = TABLES['LESSONS'].get_item(Key={'lesson_id': lesson_id}).get('Item')
     if not lesson:
         return create_response(404, {'error': 'Lesson not found'})
+    if 'title' in body and not str(body.get('title') or '').strip():
+        return create_response(400, {'error': 'Lesson title is required'})
+    if 'duration_seconds' in body:
+        try:
+            if int(body.get('duration_seconds') or 0) < 0:
+                return create_response(400, {'error': 'Lesson duration cannot be negative'})
+        except (TypeError, ValueError):
+            return create_response(400, {'error': 'Lesson duration must be numeric'})
 
     fields = []
     values = {}

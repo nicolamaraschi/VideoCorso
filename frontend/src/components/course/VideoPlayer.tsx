@@ -15,6 +15,15 @@ import { formatDuration } from '../../utils/formatters';
 import { useVideoProgress } from '../../hooks/useVideoProgress';
 import type { VideoQuality } from '../../types';
 
+interface WebKitVideoElement extends HTMLVideoElement {
+  webkitEnterFullscreen?: () => void;
+  webkitRequestFullscreen?: () => void;
+}
+
+interface WebKitPlayerWrapper {
+  getInternalPlayer?: () => WebKitVideoElement | null;
+}
+
 const QUALITY_LABELS: Record<VideoQuality, string> = {
   high: 'Alta (720p)',
   medium: 'Media (480p)',
@@ -172,12 +181,32 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const toggleFullscreen = useCallback(() => {
-    if (!containerRef.current) return;
-
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen();
-    } else {
+    if (document.fullscreenElement) {
       document.exitFullscreen();
+      return;
+    }
+
+    const container = containerRef.current;
+    if (container && 'requestFullscreen' in container && typeof container.requestFullscreen === 'function') {
+      container.requestFullscreen();
+      return;
+    }
+
+    // Fallback nativo per iOS Safari (iPhone / iPad) dove l'API Fullscreen è supportata solo sul tag <video>
+    const playerWrapper = playerRef.current as unknown as WebKitPlayerWrapper | WebKitVideoElement | null;
+    const videoEl =
+      playerWrapper && 'getInternalPlayer' in playerWrapper && typeof playerWrapper.getInternalPlayer === 'function'
+        ? playerWrapper.getInternalPlayer()
+        : (playerWrapper as WebKitVideoElement | null);
+
+    if (videoEl) {
+      if (typeof videoEl.webkitEnterFullscreen === 'function') {
+        videoEl.webkitEnterFullscreen();
+        return;
+      }
+      if (typeof videoEl.webkitRequestFullscreen === 'function') {
+        videoEl.webkitRequestFullscreen();
+      }
     }
   }, []);
 
@@ -293,7 +322,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     <div
       ref={containerRef}
       className={`relative bg-black rounded-lg overflow-hidden group video-player mx-auto ${
-        isPortrait ? 'max-w-[480px]' : 'w-full'
+        isPortrait ? 'max-w-[480px] max-h-[78vh] w-auto' : 'w-full max-h-[82vh]'
       }`}
       style={{ aspectRatio: String(displayAspectRatio) }}
       onTouchStart={revealControls}
@@ -347,7 +376,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       <div 
         className="absolute inset-0 z-10" 
         onClick={(e) => {
-          if (e.target === e.currentTarget) togglePlay();
+          if (e.target === e.currentTarget) {
+            if (!showControls && isPlaying) {
+              revealControls();
+            } else {
+              togglePlay();
+            }
+          }
         }}
       >
         <div

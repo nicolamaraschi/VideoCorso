@@ -13,7 +13,14 @@ def load_video_handler():
     boto3 = types.ModuleType('boto3')
     boto3.client = lambda *_args, **_kwargs: types.SimpleNamespace()
     boto3.resource = lambda *_args, **_kwargs: types.SimpleNamespace(Table=lambda *_a: None)
+    dynamodb_mod = types.ModuleType('boto3.dynamodb')
+    conditions_mod = types.ModuleType('boto3.dynamodb.conditions')
+    conditions_mod.Key = lambda *_args, **_kwargs: None
+    dynamodb_mod.conditions = conditions_mod
+    boto3.dynamodb = dynamodb_mod
     sys.modules['boto3'] = boto3
+    sys.modules['boto3.dynamodb'] = dynamodb_mod
+    sys.modules['boto3.dynamodb.conditions'] = conditions_mod
     exceptions = types.ModuleType('botocore.exceptions')
     exceptions.ClientError = Exception
     sys.modules['botocore'] = types.ModuleType('botocore')

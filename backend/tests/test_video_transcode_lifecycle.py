@@ -69,3 +69,15 @@ def test_completion_of_active_version_is_conditionally_published(monkeypatch):
         "userMetadata": {"lesson_id": "lesson-1", "asset_version": "version-current"},
     }, "video-bucket")
     assert table.updates[0]["ConditionExpression"] == "pending_asset_version = :version AND transcode_job_id = :job_id"
+
+
+def test_build_job_settings_respects_portrait_orientation():
+    transcoder = load_transcoder()
+    landscape_job = transcoder.build_job_settings("s3://bucket/source.mp4", "s3://bucket/out", is_portrait=False)
+    portrait_job = transcoder.build_job_settings("s3://bucket/source.mp4", "s3://bucket/out", is_portrait=True)
+
+    land_720 = landscape_job['OutputGroups'][0]['Outputs'][0]['VideoDescription']
+    port_720 = portrait_job['OutputGroups'][0]['Outputs'][0]['VideoDescription']
+
+    assert land_720['Width'] == 1280 and land_720['Height'] == 720
+    assert port_720['Width'] == 720 and port_720['Height'] == 1280
