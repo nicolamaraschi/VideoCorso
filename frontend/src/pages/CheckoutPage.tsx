@@ -10,6 +10,11 @@ import { Button } from '../components/common/Button';
 import type { CourseListItem, PaymentVerification } from '../types';
 import { getErrorMessage } from '../utils/errors';
 
+// This identifier is persisted with the order.  Update it only when the
+// published terms/policy change, so a dispute can always be tied to the text
+// accepted at the time of purchase.
+const TERMS_VERSION = '2026-08-10';
+
 export const CheckoutPage: React.FC = () => {
   const { user } = useAuthContext();
   const navigate = useNavigate();
@@ -27,6 +32,8 @@ export const CheckoutPage: React.FC = () => {
   const [paymentVerification, setPaymentVerification] = useState<PaymentVerification | null>(null);
   const [checkingPayment, setCheckingPayment] = useState(false);
   const [paymentVerificationError, setPaymentVerificationError] = useState<string | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [digitalContentConsent, setDigitalContentConsent] = useState(false);
   const checkoutRequestId = useRef('');
 
   const courseId = searchParams.get('courseId');
@@ -107,6 +114,10 @@ export const CheckoutPage: React.FC = () => {
       setCouponMessage('Applica il coupon per verificare lo sconto prima di procedere.');
       return;
     }
+    if (!termsAccepted || !digitalContentConsent) {
+      setError('Per procedere devi accettare le condizioni di vendita e confermare l’accesso immediato al contenuto digitale.');
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -118,6 +129,9 @@ export const CheckoutPage: React.FC = () => {
         cancel_url: `${window.location.origin}/checkout?courseId=${course.public_slug || course.course_id}&payment=cancelled`,
         email: checkoutEmail,
         coupon_code: couponCode.trim() || undefined,
+        terms_accepted: termsAccepted,
+        digital_content_consent: digitalContentConsent,
+        terms_version: TERMS_VERSION,
       });
 
       if (checkoutResponse.is_free_access) {
@@ -436,6 +450,30 @@ export const CheckoutPage: React.FC = () => {
                   ? 'Accedi Gratis' 
                   : `Paga € ${checkoutTotal.toFixed(2)}`}
               </Button>
+              <div className="mt-5 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-left text-sm text-gray-700">
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(event) => setTermsAccepted(event.target.checked)}
+                    className="mt-1 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span>
+                    Ho letto e accetto i termini di vendita e la politica rimborsi (versione {TERMS_VERSION}).
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={digitalContentConsent}
+                    onChange={(event) => setDigitalContentConsent(event.target.checked)}
+                    className="mt-1 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span>
+                    Chiedo l’accesso immediato al contenuto digitale e riconosco le conseguenze sul diritto di recesso previste dalla legge.
+                  </span>
+                </label>
+              </div>
               <div className="flex items-center justify-center gap-2 mt-4 text-sm text-gray-500">
                 <Shield className="w-4 h-4" />
                 <span>Pagamento sicuro gestito da Stripe</span>

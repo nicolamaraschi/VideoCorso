@@ -1,6 +1,8 @@
 import json
 import os
 import time
+import uuid
+import hashlib
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Optional
@@ -181,7 +183,63 @@ def can_access_course(user_id: str, course_id: str) -> bool:
     return False
 
 
-def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requested_quality: Optional[str] = None):
+def find_access_purchase(user_id: str, course_id: str) -> Optional[dict[str, Any]]:
+    """Return the entitlement used for a video request, if it is a purchase."""
+    if user_has_global_access(get_user_item(user_id)):
+        return None
+    for purchase in get_user_purchases(user_id):
+        if normalize_purchase_course_id(purchase) == course_id and purchase_grants_access(purchase):
+            return purchase
+    return None
+
+
+def request_value_hash(value: Any) -> Optional[str]:
+    """Store a non-raw network/browser fingerprint for dispute evidence."""
+    if value in (None, ''):
+        return None
+    return hashlib.sha256(str(value).strip().encode('utf-8')).hexdigest()
+
+
+def record_video_access_issued(event: dict[str, Any], user_id: str, course_id: str,
+                               lesson_id: str, purchase: Optional[dict[str, Any]]) -> None:
+    """Append an evidence record when an authorised video URL is issued.
+
+    Logging failure never prevents a legitimate student from viewing a lesson.
+    Raw IP address and User-Agent are deliberately not stored.
+    """
+    if not video_access_logs_table:
+        return
+    try:
+        request_context = event.get('requestContext') or {}
+        identity = request_context.get('identity') or {}
+        headers = {str(key).lower(): value for key, value in (event.get('headers') or {}).items()}
+        source_ip = identity.get('sourceIp') or headers.get('x-forwarded-for')
+        now = datetime.utcnow()
+        item = {
+            'access_id': str(uuid.uuid4()),
+            'user_id': user_id,
+            'course_id': course_id,
+            'lesson_id': lesson_id,
+            'purchase_id': (purchase or {}).get('purchase_id') or 'global_access',
+            'event_type': 'video_url_issued',
+            'issued_at': now.isoformat() + 'Z',
+            # Two years is deliberately longer than the usual card-dispute
+            # window while avoiding an indefinite behavioural log.
+            'ttl_expires_at': int((now + timedelta(days=730)).timestamp()),
+        }
+        source_ip_hash = request_value_hash(source_ip)
+        user_agent_hash = request_value_hash(headers.get('user-agent'))
+        if source_ip_hash:
+            item['source_ip_hash'] = source_ip_hash
+        if user_agent_hash:
+            item['user_agent_hash'] = user_agent_hash
+        video_access_logs_table.put_item(Item=item)
+    except Exception as exc:
+        print(f'video access evidence log failed: {exc}')
+
+
+def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requested_quality: Optional[str] = None,
+                  request_event: Optional[dict[str, Any]] = None):
     lesson_response = lessons_table.get_item(Key={'lesson_id': lesson_id})
     lesson = lesson_response.get('Item')
     if not lesson:
@@ -194,8 +252,11 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requ
 
     course_id = chapter.get('course_id')
     is_free_preview = normalize_bool(lesson.get('is_free_preview', False))
-    if not is_free_preview and not admin_bypass and not can_access_course(user_id, course_id):
-        return create_response(403, {'error': 'Course access required'})
+    access_purchase = None
+    if not is_free_preview and not admin_bypass:
+        access_purchase = find_access_purchase(user_id, course_id)
+        if not access_purchase:
+            return create_response(403, {'error': 'Course access required'})
 
     video_s3_key = lesson.get('video_s3_key')
     if not video_s3_key:
@@ -222,6 +283,8 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requ
         return create_response(500, {'error': 'Failed to generate video URL'})
 
     available_qualities = [suffix for suffix in DEFAULT_QUALITY_ORDER if suffix in available_renditions]
+    if not is_free_preview and not admin_bypass and request_event:
+        record_video_access_issued(request_event, user_id, course_id, lesson_id, access_purchase)
 
     return create_response(200, {
         'video_url': presigned_url,
@@ -240,6 +303,10 @@ chapters_table = dynamodb.Table(os.environ.get('CHAPTERS_TABLE'))
 purchases_table = dynamodb.Table(os.environ.get('PURCHASES_TABLE'))
 users_table = dynamodb.Table(os.environ.get('USERS_TABLE'))
 video_bucket_name = os.environ.get('VIDEO_BUCKET')
+video_access_logs_table = (
+    dynamodb.Table(os.environ['VIDEO_ACCESS_LOGS_TABLE'])
+    if os.environ.get('VIDEO_ACCESS_LOGS_TABLE') else None
+)
 
 
 def lambda_handler(event, context):
@@ -263,6 +330,7 @@ def lambda_handler(event, context):
             path_parameters.get('lesson_id'),
             admin_bypass=admin_bypass,
             requested_quality=query_params.get('quality'),
+            request_event=event,
         )
 
     return create_response(404, {'error': 'Not found'})

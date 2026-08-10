@@ -21,6 +21,9 @@ export interface CreateCheckoutRequest {
   cancel_url: string;
   email?: string;
   coupon_code?: string;
+  terms_accepted: boolean;
+  digital_content_consent: boolean;
+  terms_version: string;
 }
 
 export interface CreateCheckoutResponse {

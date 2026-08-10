@@ -29,6 +29,11 @@ export interface PurchaseRecord {
   stripe_status?: string;
   webhook_status?: string;
   webhook_received_at?: string;
+  terms_accepted?: boolean;
+  terms_version?: string;
+  terms_accepted_at?: string;
+  digital_content_consent?: boolean;
+  digital_content_consent_at?: string;
   access_unlocked?: boolean;
   /** Access granted intentionally by an administrator before Stripe confirms payment. */
   manual_access_override?: boolean;
@@ -157,6 +162,13 @@ export interface PurchaseDetail {
   timeline: Array<{
     label: string;
     at: string;
+  }>;
+  video_access_events?: Array<{
+    access_id: string;
+    lesson_id: string;
+    issued_at: string;
+    source_ip_hash?: string;
+    user_agent_hash?: string;
   }>;
 }
 

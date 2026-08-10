@@ -699,6 +699,20 @@ def get_user_progress_items(user_id: str) -> list[dict[str, Any]]:
     )
 
 
+def get_purchase_video_access_events(purchase_id: str) -> list[dict[str, Any]]:
+    """Return recent append-only video URL issuance evidence for one sale."""
+    table = TABLES.get('VIDEO_ACCESS_LOGS')
+    if not table or not purchase_id:
+        return []
+    response = table.query(
+        IndexName='PurchaseIndex',
+        KeyConditionExpression=Key('purchase_id').eq(purchase_id),
+        ScanIndexForward=False,
+        Limit=50,
+    )
+    return response.get('Items') or []
+
+
 def user_has_global_access(user_item: dict[str, Any]) -> bool:
     return normalize_bool(user_item.get('global_access', False))
 
@@ -1644,6 +1658,7 @@ def get_purchase_detail(purchase_id):
         'label': f"Email corretta: {entry.get('from_email') or '—'} → {entry.get('to_email') or '—'}",
         'at': entry.get('corrected_at'),
     } for entry in normalized.get('email_correction_history') or [])
+    video_access_events = get_purchase_video_access_events(normalized.get('purchase_id', ''))
 
     return create_response(200, {
         'purchase': {
@@ -1654,6 +1669,7 @@ def get_purchase_detail(purchase_id):
         },
         'customer_view': build_purchase_customer_view(normalized, user_item),
         'timeline': [entry for entry in timeline if entry.get('at')],
+        'video_access_events': video_access_events,
     })
 
 
@@ -2403,6 +2419,7 @@ TABLE_NAMES = {
     'COUPONS': os.environ.get('COUPONS_TABLE'),
     'WEBHOOK_EVENTS': os.environ.get('WEBHOOK_EVENTS_TABLE'),
     'AUDIT_LOGS': os.environ.get('AUDIT_LOGS_TABLE'),
+    'VIDEO_ACCESS_LOGS': os.environ.get('VIDEO_ACCESS_LOGS_TABLE'),
 }
 TABLES = {name: dynamodb.Table(table_name) for name, table_name in TABLE_NAMES.items() if table_name}
 

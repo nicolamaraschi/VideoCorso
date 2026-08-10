@@ -62,6 +62,9 @@ _TERMINAL_STRIPE_STATUSES = frozenset({'refunded', 'disputed'})
 
 LEGACY_COURSE_ID = 'legacy-default-course'
 ALLOWED_LOCAL_STATUSES = {'pending', 'paid', 'failed', 'refunded', 'disputed', 'cancelled', 'needs_review'}
+# Bump this only together with the published terms/policy.  The value is
+# stored both locally and in Stripe Checkout metadata as dispute evidence.
+TERMS_VERSION = '2026-08-10'
 
 
 class CouponValidationError(ValueError):
@@ -200,6 +203,28 @@ def normalize_bool(value: Any) -> bool:
     if isinstance(value, str):
         return value.lower() in {'true', '1', 'yes', 'on'}
     return bool(value)
+
+
+def checkout_acceptance(body: dict[str, Any]) -> dict[str, Any]:
+    """Validate and timestamp the explicit acknowledgements required to buy.
+
+    The browser checkbox is only UX; this server-side check prevents callers
+    from creating a Checkout Session without the same recorded evidence.
+    """
+    if not normalize_bool(body.get('terms_accepted')):
+        raise ValueError('Terms acceptance is required')
+    if not normalize_bool(body.get('digital_content_consent')):
+        raise ValueError('Digital content consent is required')
+    if str(body.get('terms_version') or '') != TERMS_VERSION:
+        raise ValueError('Terms version is missing or out of date; refresh the checkout page')
+    accepted_at = now_iso()
+    return {
+        'terms_accepted': True,
+        'terms_version': TERMS_VERSION,
+        'terms_accepted_at': accepted_at,
+        'digital_content_consent': True,
+        'digital_content_consent_at': accepted_at,
+    }
 
 
 def decimal_to_number(value: Any) -> float:
@@ -590,7 +615,8 @@ def redeem_free_coupon_atomically(purchase: dict[str, Any], coupon: dict[str, An
 
 
 def reserve_coupon_for_paid_checkout(checkout_request_id: str, fingerprint: str, coupon: dict[str, Any],
-                                     course: dict[str, Any], email: str, total: Decimal) -> dict[str, Any]:
+                                     course: dict[str, Any], email: str, total: Decimal,
+                                     acceptance: dict[str, Any]) -> dict[str, Any]:
     """Atomically reserve a coupon before the Stripe Checkout Session exists.
 
     A reservation consumes a separate capacity slot, never
@@ -635,6 +661,7 @@ def reserve_coupon_for_paid_checkout(checkout_request_id: str, fingerprint: str,
         'coupon_code': coupon_id, 'coupon_reserved': True, 'reservation_id': reservation_id,
         'amount_gross': Decimal(str(total)), 'status': 'RESERVED', 'created_at': now,
         'ttl_expires_at': ttl_epoch(7),
+        **acceptance,
     }
     reservation = {
         'reservation_id': reservation_id, 'checkout_request_id': checkout_request_id,
@@ -952,8 +979,9 @@ def coupon_purchase_id(coupon_id: str, course_id: str, user_id: str) -> str:
     return f"coupon-{hashlib.sha256(raw).hexdigest()[:32]}"
 
 
-def checkout_fingerprint(user_id: str, course_id: str, coupon_code: Optional[str], amount: Decimal) -> str:
-    raw = f'{user_id}:{course_id}:{coupon_code or ""}:{Decimal(str(amount))}'.encode('utf-8')
+def checkout_fingerprint(user_id: str, course_id: str, coupon_code: Optional[str], amount: Decimal,
+                         terms_version: str = TERMS_VERSION) -> str:
+    raw = f'{user_id}:{course_id}:{coupon_code or ""}:{Decimal(str(amount))}:{terms_version}'.encode('utf-8')
     return hashlib.sha256(raw).hexdigest()
 
 
@@ -1002,7 +1030,7 @@ def build_purchase_item(*, user_id: str, customer_email: str, course: dict[str, 
                         local_status: str, stripe_status: str, stripe_session_id: Optional[str], stripe_payment_intent_id: Optional[str],
                         stripe_charge_id: Optional[str], webhook_status: str, purchase_origin: str, coupon: Optional[dict[str, Any]],
                         refunded_amount: Decimal = Decimal('0'), is_disputed: bool = False, webhook_received_at: Optional[str] = None,
-                        verified_by_admin: bool = False):
+                        verified_by_admin: bool = False, acceptance: Optional[dict[str, Any]] = None):
     coupon_code = coupon.get('code') if coupon else None
     purchase = {
         'purchase_id': stripe_payment_intent_id or stripe_session_id or str(secrets.token_hex(12)),
@@ -1044,6 +1072,13 @@ def build_purchase_item(*, user_id: str, customer_email: str, course: dict[str, 
         'created_at': now_iso(),
         'updated_at': now_iso(),
     }
+    if acceptance:
+        purchase.update({
+            key: acceptance[key]
+            for key in ('terms_accepted', 'terms_version', 'terms_accepted_at',
+                        'digital_content_consent', 'digital_content_consent_at')
+            if key in acceptance
+        })
     return sync_purchase_access(purchase)
 
 
@@ -1321,6 +1356,23 @@ def save_checkout_completion(session: dict[str, Any], event_type: str = 'checkou
         checkout_reservation = coupon_reservations_table.get_item(
             Key={'reservation_id': checkout_request['reservation_id']}, ConsistentRead=True,
         ).get('Item')
+    acceptance = {
+        key: checkout_request[key]
+        for key in ('terms_accepted', 'terms_version', 'terms_accepted_at',
+                    'digital_content_consent', 'digital_content_consent_at')
+        if checkout_request and key in checkout_request
+    }
+    # The Checkout metadata is a second, independent record kept by Stripe.
+    # It is used only as fallback for a request row that has expired.
+    metadata = session.get('metadata') or {}
+    if not acceptance and metadata.get('terms_version') == TERMS_VERSION:
+        acceptance = {
+            'terms_accepted': True,
+            'terms_version': TERMS_VERSION,
+            'terms_accepted_at': metadata.get('terms_accepted_at'),
+            'digital_content_consent': True,
+            'digital_content_consent_at': metadata.get('digital_content_consent_at'),
+        }
     amount_gross = Decimal(str((int(session.get('amount_total') or 0)) / 100))
     payment_intent = None
     if stripe_payment_intent_id:
@@ -1350,6 +1402,7 @@ def save_checkout_completion(session: dict[str, Any], event_type: str = 'checkou
         refunded_amount=refunded_amount,
         is_disputed=is_disputed,
         webhook_received_at=now_iso(),
+        acceptance=acceptance,
     )
     purchase['purchase_id'] = stripe_payment_intent_id
     purchase.update(stripe_stream_timestamps(event_type, event_created))
@@ -1624,7 +1677,8 @@ def validate_coupon_for_checkout(course: dict[str, Any], coupon_code: Optional[s
     return coupon
 
 
-def create_coupon_purchase_without_stripe(course: dict[str, Any], coupon: dict[str, Any], email: Optional[str]):
+def create_coupon_purchase_without_stripe(course: dict[str, Any], coupon: dict[str, Any], email: Optional[str],
+                                          acceptance: dict[str, Any]):
     customer_email = (email or '').strip().lower()
     if not customer_email:
         raise ValueError('Email is required for free coupon access')
@@ -1648,6 +1702,7 @@ def create_coupon_purchase_without_stripe(course: dict[str, Any], coupon: dict[s
         purchase_origin='coupon_100',
         coupon=coupon,
         verified_by_admin=False,
+        acceptance=acceptance,
     )
     purchase['verified_by_admin'] = True
     purchase = sync_purchase_access(purchase)
@@ -1696,6 +1751,7 @@ def create_checkout_session(event):
 
     success_url = validate_checkout_redirect_url(success_url, 'success_url')
     cancel_url = validate_checkout_redirect_url(cancel_url, 'cancel_url')
+    acceptance = checkout_acceptance(body)
 
     course = get_checkout_course(course_ref)
     if not course:
@@ -1724,7 +1780,7 @@ def create_checkout_session(event):
     coupon = validate_coupon_for_checkout(course, coupon_code, email)
     total = compute_discounted_total(course, coupon)
     if total <= 0:
-        purchase = create_coupon_purchase_without_stripe(course, coupon, email)
+        purchase = create_coupon_purchase_without_stripe(course, coupon, email, acceptance)
         return create_response(200, {
             'session_id': purchase['purchase_id'],
             'checkout_url': success_url,
@@ -1734,7 +1790,10 @@ def create_checkout_session(event):
 
     if not checkout_request_id:
         return create_response(400, {'error': 'checkout_request_id is required'})
-    fingerprint = checkout_fingerprint((email or '').strip().lower(), course['course_id'], coupon.get('code') if coupon else None, total)
+    fingerprint = checkout_fingerprint(
+        (email or '').strip().lower(), course['course_id'], coupon.get('code') if coupon else None,
+        total, acceptance['terms_version'],
+    )
     existing_request = checkout_requests_table.get_item(
         Key={'checkout_request_id': checkout_request_id}, ConsistentRead=True,
     ).get('Item')
@@ -1750,7 +1809,7 @@ def create_checkout_session(event):
 
     if coupon:
         existing_request = reserve_coupon_for_paid_checkout(
-            checkout_request_id, fingerprint, coupon, course, (email or '').strip().lower(), total,
+            checkout_request_id, fingerprint, coupon, course, (email or '').strip().lower(), total, acceptance,
         )
         if existing_request.get('stripe_session_id'):
             return create_response(200, {
@@ -1766,6 +1825,7 @@ def create_checkout_session(event):
             'amount_gross': Decimal(str(total)),
             'coupon_code': str(coupon.get('coupon_id') or coupon.get('code')) if coupon else None,
             'coupon_reserved': bool(coupon),
+            **acceptance,
         },
     )
     if claim['state'] == 'SESSION_CREATED':
@@ -1806,6 +1866,18 @@ def create_checkout_session(event):
                 'coupon_code': str(coupon.get('code')) if coupon else '',
                 'base_price': str(get_course_effective_price(course)),
                 'final_price': str(total), 'checkout_request_id': checkout_request_id,
+                'terms_version': acceptance['terms_version'],
+                'terms_accepted_at': acceptance['terms_accepted_at'],
+                'digital_content_consent_at': acceptance['digital_content_consent_at'],
+            },
+            payment_intent_data={
+                'metadata': {
+                    'course_id': course['course_id'],
+                    'checkout_request_id': checkout_request_id,
+                    'terms_version': acceptance['terms_version'],
+                    'terms_accepted_at': acceptance['terms_accepted_at'],
+                    'digital_content_consent_at': acceptance['digital_content_consent_at'],
+                },
             },
             idempotency_key=checkout_request_id,
         )
