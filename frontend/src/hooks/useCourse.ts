@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { courseService } from '../services/courseService';
 import type { CourseProgress, CourseStructure, Lesson } from '../types';
 import { useAuthContext } from '../components/auth/useAuthContext';
@@ -11,24 +11,33 @@ export const useCourse = (courseId?: string) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Guards against race conditions when courseId changes quickly (e.g. rapid
+  // navigation between courses): without this, a slow response for an old
+  // courseId could overwrite state after a newer request already resolved.
+  const requestIdRef = useRef(0);
+
   const loadCourse = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     try {
       setLoading(true);
       setError(null);
 
       const structure = await courseService.getCourseStructure(courseId);
+      if (requestId !== requestIdRef.current) return;
       setCourseStructure(structure);
 
       if (isAuthenticated && structure.course.has_access) {
         const progress = await courseService.getCourseProgress(structure.course.course_id).catch(() => null);
+        if (requestId !== requestIdRef.current) return;
         setCourseProgress(progress);
       } else {
         setCourseProgress(null);
       }
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       setError(getErrorMessage(err, 'Failed to load course'));
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   }, [courseId, isAuthenticated]);
 

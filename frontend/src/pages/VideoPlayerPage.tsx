@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
 import { VideoPlayer } from '../components/course/VideoPlayer';
@@ -39,21 +39,29 @@ export const VideoPlayerPage: React.FC = () => {
   const nextLesson = lessonId ? getNextLesson(lessonId) : null;
   const previousLesson = lessonId ? getPreviousLesson(lessonId) : null;
 
+  // Guards against a race when the user navigates to the next/previous
+  // lesson before the previous lesson's video URL request resolves: without
+  // this, a slow stale response could overwrite the URL for the new lesson.
+  const requestIdRef = useRef(0);
+
   const loadVideoUrl = useCallback(async () => {
     if (!lessonId) {
       return;
     }
 
+    const requestId = ++requestIdRef.current;
     try {
       setLoading(true);
       setError(null);
       const response = await courseService.getVideoUrl(lessonId, quality);
+      if (requestId !== requestIdRef.current) return;
       setVideoUrl(response.video_url);
       setAvailableQualities(response.available_qualities || []);
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       setError(getErrorMessage(err, 'Failed to load video'));
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   }, [lessonId, quality]);
 
