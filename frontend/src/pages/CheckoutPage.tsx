@@ -173,7 +173,7 @@ export const CheckoutPage: React.FC = () => {
 
       window.location.href = checkoutResponse.checkout_url;
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to create checkout session.'));
+      setError(getErrorMessage(err, 'Il servizio di pagamento è momentaneamente non disponibile a causa di un problema tecnico. Ti preghiamo di riprovare più tardi.'));
       setSubmitting(false);
     }
   };
@@ -609,7 +609,7 @@ export const CheckoutPage: React.FC = () => {
             <div className="my-4">
               <ErrorMessage 
                 title="Errore pagamento" 
-                message={error.includes('500') ? 'Il servizio di pagamento è momentaneamente non disponibile a causa di un problema tecnico. Ti preghiamo di riprovare più tardi.' : error} 
+                message={error} 
                 onRetry={handleCheckout} 
               />
             </div>
