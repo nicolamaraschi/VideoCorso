@@ -595,6 +595,13 @@ def remove_legacy_null_stripe_session_id(purchase: dict[str, Any]) -> dict[str, 
     return purchase
 
 
+class PurchaseVersionConflict(ValueError):
+    """Raised only for the optimistic-locking CAS conflict in
+    update_purchase_with_version, so the top-level handler can map it to a
+    409 'stale_version' response without also mapping unrelated ValueErrors
+    (e.g. input validation, business-rule violations) to the same code."""
+
+
 def update_purchase_with_version(purchase_id: str, expected_version: int, fields: dict[str, Any]) -> dict[str, Any]:
     """Narrow compare-and-swap update for admin-owned purchase fields."""
     names = {'#version': 'version', '#updated_at': 'updated_at'}
@@ -621,7 +628,7 @@ def update_purchase_with_version(purchase_id: str, expected_version: int, fields
         return response.get('Attributes') or {}
     except ClientError as exc:
         if exc.response.get('Error', {}).get('Code') == 'ConditionalCheckFailedException':
-            raise ValueError('Purchase was changed by another administrator; reload and retry') from exc
+            raise PurchaseVersionConflict('Purchase was changed by another administrator; reload and retry') from exc
         raise
 
 
@@ -1392,7 +1399,10 @@ def delete_video(video_id):
         s3_client.delete_object(Bucket=VIDEO_BUCKET, Key=video_id)
         return create_response(200, {'success': True, 'message': 'Video deleted'})
     except ClientError as exc:
-        return create_response(500, {'error': str(exc)})
+        # Raw ClientError messages can include the bucket name/key; log it
+        # server-side only.
+        print(f'delete_video error: {exc}')
+        return create_response(500, {'error': 'Failed to delete video'})
 
 
 def generate_thumbnail(body):
@@ -2687,8 +2697,15 @@ def lambda_handler(event, context):
             return generate_thumbnail(body)
 
         return create_response(404, {'error': f'Route not implemented: {http_method} {path}'})
-    except ValueError as exc:
+    except PurchaseVersionConflict as exc:
         return create_response(409, {'error': str(exc), 'code': 'stale_version'})
+    except ValueError as exc:
+        # A plain ValueError is normal input/business-rule validation
+        # (e.g. "Cannot grant access to a refunded purchase") raised by any
+        # handler function - it must not be mislabeled as a version conflict.
+        return create_response(400, {'error': str(exc)})
     except Exception as exc:
+        # Never leak the raw exception text: it can be a boto3 ClientError or
+        # a Cognito error carrying internal AWS resource identifiers.
         print(f'admin handler error: {exc}')
-        return create_response(500, {'error': str(exc)})
+        return create_response(500, {'error': 'Internal server error'})

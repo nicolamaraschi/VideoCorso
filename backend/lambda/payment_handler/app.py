@@ -2144,8 +2144,11 @@ def lambda_handler(event, context):
         except ValueError as exc:
             return create_response(400, {'error': str(exc)})
         except Exception as exc:
+            # Never return the raw exception text: it can be a Stripe API
+            # error or a boto3 ClientError, both of which may include
+            # internal detail (table names, ARNs, Stripe account internals).
             print(f'create-checkout error: {exc}')
-            return create_response(500, {'error': str(exc)})
+            return create_response(500, {'error': 'Unable to create checkout session'})
 
     if path == '/payment/quote' and http_method == 'POST':
         try:
@@ -2163,13 +2166,13 @@ def lambda_handler(event, context):
             return verify_payment(path_parameters.get('sessionId'))
         except Exception as exc:
             print(f'verify-payment error: {exc}')
-            return create_response(500, {'error': str(exc)})
+            return create_response(500, {'error': 'Unable to verify payment'})
 
     if path == '/payment/webhook' and http_method == 'POST':
         try:
             return handle_webhook(event)
         except Exception as exc:
             print(f'webhook error: {exc}')
-            return create_response(500, {'error': str(exc)})
+            return create_response(500, {'error': 'Webhook processing failed'})
 
     return create_response(404, {'error': 'Not found'})

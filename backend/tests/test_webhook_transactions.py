@@ -330,8 +330,12 @@ def test_checkout_without_stripe_key_is_controlled_error(configured_payment, mon
         "path": "/payment/create-checkout", "httpMethod": "POST",
         "body": '{"course_id":"course-1","checkout_request_id":"req-test-no-stripe-key","success_url":"http://localhost:5173/ok","cancel_url":"http://localhost:5173/no","terms_accepted":true,"digital_content_consent":true,"terms_version":"2026-08-10"}',
     }, None)
+    # The response must be a controlled 500 without leaking the internal
+    # config/parameter name to the client; that detail is only ever printed
+    # server-side.
     assert response["statusCode"] == 500
-    assert "STRIPE_SECRET_KEY_PARAMETER" in response["body"]
+    assert "STRIPE_SECRET_KEY_PARAMETER" not in response["body"]
+    assert "Unable to create checkout session" in response["body"]
 
 
 def test_checkout_requires_versioned_explicit_digital_content_acceptance(configured_payment):

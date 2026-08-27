@@ -323,14 +323,22 @@ def lambda_handler(event, context):
     if not user_id:
         return create_response(401, {'error': 'Unauthorized'})
 
-    if path.startswith('/course/video/') and http_method == 'GET':
-        query_params = event.get('queryStringParameters') or {}
-        return get_video_url(
-            user_id,
-            path_parameters.get('lesson_id'),
-            admin_bypass=admin_bypass,
-            requested_quality=query_params.get('quality'),
-            request_event=event,
-        )
+    try:
+        if path.startswith('/course/video/') and http_method == 'GET':
+            query_params = event.get('queryStringParameters') or {}
+            return get_video_url(
+                user_id,
+                path_parameters.get('lesson_id'),
+                admin_bypass=admin_bypass,
+                requested_quality=query_params.get('quality'),
+                request_event=event,
+            )
 
-    return create_response(404, {'error': 'Not found'})
+        return create_response(404, {'error': 'Not found'})
+    except Exception as exc:  # noqa: BLE001 - last-resort guard, see below
+        # Without this, any unexpected error (e.g. an S3/DynamoDB throttling
+        # exception not already caught locally) becomes a raw Lambda failure
+        # instead of a controlled JSON response. Log server-side, keep the
+        # client-facing message generic.
+        print(f'Unhandled error in video_handler: {exc}')
+        return create_response(500, {'error': 'Internal server error'})

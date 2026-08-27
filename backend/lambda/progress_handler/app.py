@@ -330,6 +330,18 @@ def update_progress(user_id: str, body: dict[str, Any], admin_status: bool = Fal
     if not lesson_id or watched_seconds is None:
         return create_response(400, {'error': 'lesson_id and watched_seconds are required'})
 
+    # watched_seconds flows straight into Decimal(str(...)) below; a
+    # non-numeric value (string, list, dict) or a NaN/Infinity float raises
+    # decimal.InvalidOperation, and this handler has no top-level try/except,
+    # so an unvalidated value here would surface as a raw Lambda failure
+    # instead of a clean 400.
+    if isinstance(watched_seconds, bool) or not isinstance(watched_seconds, (int, float)):
+        return create_response(400, {'error': 'watched_seconds must be a number'})
+    if not (watched_seconds == watched_seconds) or watched_seconds in (float('inf'), float('-inf')):
+        return create_response(400, {'error': 'watched_seconds must be a finite number'})
+    if watched_seconds < 0 or watched_seconds > 86400:
+        return create_response(400, {'error': 'watched_seconds is out of range'})
+
     lesson = get_lesson(lesson_id)
     if not lesson:
         return create_response(404, {'error': 'Lesson not found'})
@@ -548,28 +560,38 @@ def lambda_handler(event, context):
     if not user_id:
         return create_response(401, {'error': 'Unauthorized'})
 
-    if path == '/progress/update' and http_method == 'POST':
-        return update_progress(user_id, json.loads(event.get('body') or '{}'), admin_status)
+    try:
+        if path == '/progress/update' and http_method == 'POST':
+            return update_progress(user_id, json.loads(event.get('body') or '{}'), admin_status)
 
-    if path == '/progress/user' and http_method == 'GET':
-        return get_user_progress(user_id, admin_status)
+        if path == '/progress/user' and http_method == 'GET':
+            return get_user_progress(user_id, admin_status)
 
-    if path.startswith('/progress/lesson/') and http_method == 'GET':
-        return get_lesson_progress(user_id, path_parameters.get('lessonId'), admin_status)
+        if path.startswith('/progress/lesson/') and http_method == 'GET':
+            return get_lesson_progress(user_id, path_parameters.get('lessonId'), admin_status)
 
-    if path == '/progress/complete' and http_method == 'POST':
-        body = json.loads(event.get('body') or '{}')
-        body['completed'] = True
-        body['watched_seconds'] = body.get('watched_seconds', body.get('total_seconds', 0))
-        return update_progress(user_id, body, admin_status)
+        if path == '/progress/complete' and http_method == 'POST':
+            body = json.loads(event.get('body') or '{}')
+            body['completed'] = True
+            body['watched_seconds'] = body.get('watched_seconds', body.get('total_seconds', 0))
+            return update_progress(user_id, body, admin_status)
 
-    if path == '/progress/reset' and http_method == 'POST':
-        return reset_progress(user_id, json.loads(event.get('body') or '{}'), admin_status)
+        if path == '/progress/reset' and http_method == 'POST':
+            return reset_progress(user_id, json.loads(event.get('body') or '{}'), admin_status)
 
-    if path == '/user/subscription' and http_method == 'GET':
-        return get_subscription(user_id, admin_status)
+        if path == '/user/subscription' and http_method == 'GET':
+            return get_subscription(user_id, admin_status)
 
-    if path.startswith('/me/courses/') and path.endswith('/progress') and http_method == 'GET':
-        return build_course_progress(user_id, path_parameters.get('courseId'), admin_status)
+        if path.startswith('/me/courses/') and path.endswith('/progress') and http_method == 'GET':
+            return build_course_progress(user_id, path_parameters.get('courseId'), admin_status)
 
-    return create_response(404, {'error': 'Not found'})
+        return create_response(404, {'error': 'Not found'})
+    except json.JSONDecodeError:
+        return create_response(400, {'error': 'Invalid JSON body'})
+    except Exception as exc:  # noqa: BLE001 - last-resort guard, see below
+        # Never let an unexpected error (bad input shape, transient AWS
+        # error, etc.) surface as a raw Lambda failure / API Gateway 502.
+        # Log the real exception server-side, return a generic 500 to the
+        # client so no internal detail (table names, stack traces) leaks.
+        print(f'Unhandled error in progress_handler: {exc}')
+        return create_response(500, {'error': 'Internal server error'})
