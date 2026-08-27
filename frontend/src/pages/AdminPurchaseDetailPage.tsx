@@ -193,7 +193,7 @@ export const AdminPurchaseDetailPage: React.FC = () => {
     );
   }
 
-  const { purchase, timeline, customer_view: customerView } = detail;
+  const { purchase, timeline, customer_view: customerView, video_access_events: videoAccessEvents = [] } = detail;
   const localStatus = purchase.local_status || purchase.status;
   const amount = Number(purchase.amount_gross ?? purchase.amount ?? 0);
   const currency = (purchase.currency || 'EUR').toUpperCase();
@@ -330,6 +330,18 @@ export const AdminPurchaseDetailPage: React.FC = () => {
               <p className="text-gray-500">Verificato admin</p>
               <p className="font-medium text-gray-900">{purchase.verified_by_admin ? 'Sì' : 'Non ancora'}</p>
             </div>
+            <div>
+              <p className="text-gray-500">Termini accettati</p>
+              <p className="font-medium text-gray-900">
+                {purchase.terms_accepted ? `Sì · v${purchase.terms_version || 'n/d'}` : 'Non registrati'}
+              </p>
+              {purchase.terms_accepted_at && <p className="text-gray-600">{formatDateTime(purchase.terms_accepted_at)}</p>}
+            </div>
+            <div>
+              <p className="text-gray-500">Accesso digitale immediato</p>
+              <p className="font-medium text-gray-900">{purchase.digital_content_consent ? 'Consenso registrato' : 'Non registrato'}</p>
+              {purchase.digital_content_consent_at && <p className="text-gray-600">{formatDateTime(purchase.digital_content_consent_at)}</p>}
+            </div>
           </div>
 
           <div className="border-t border-gray-200 pt-4 space-y-3 text-sm">
@@ -431,6 +443,22 @@ export const AdminPurchaseDetailPage: React.FC = () => {
           {purchase.is_stripe_test_purchase && <Button variant="danger" loading={actionLoading === 'delete-test'} onClick={() => void runAction('delete-test')}>Elimina ordine di test</Button>}
         </div>
         {!canManuallyGrant && !canRevoke && !purchase.is_stripe_test_purchase && <p className="mt-4 text-sm text-gray-500">Nessuna modifica manuale disponibile per questo ordine.</p>}
+      </section>
+
+      <section className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Evidenze di fruizione</h2>
+        <p className="text-sm text-gray-600">Richieste di URL video autorizzate per questo acquisto. IP e browser sono conservati solo come hash.</p>
+        <div className="mt-4 space-y-3">
+          {videoAccessEvents.map((event) => (
+            <div key={event.access_id} className="flex flex-col gap-1 rounded-lg border border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <p className="font-medium text-gray-900 break-all">Lezione {event.lesson_id}</p>
+              <p className="text-sm text-gray-600">{formatDateTime(event.issued_at)}</p>
+            </div>
+          ))}
+          {videoAccessEvents.length === 0 && (
+            <p className="text-gray-500">Nessuna richiesta video registrata per questo ordine.</p>
+          )}
+        </div>
       </section>
 
       <section className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">

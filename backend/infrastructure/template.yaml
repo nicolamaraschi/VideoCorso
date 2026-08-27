@@ -40,6 +40,7 @@ Globals:
         COUPON_RESERVATIONS_TABLE: !Ref CouponReservationsTable
         PROVISIONING_OUTBOX_TABLE: !Ref ProvisioningOutboxTable
         AUDIT_LOGS_TABLE: !Ref AuditLogsTable
+        VIDEO_ACCESS_LOGS_TABLE: !Ref VideoAccessLogsTable
         PROGRESS_TABLE: !Ref ProgressTable
         USERS_TABLE: !Ref UsersTable
         VIDEO_BUCKET: !Ref VideoBucket
@@ -354,6 +355,52 @@ Resources:
       KeySchema:
         - AttributeName: audit_id
           KeyType: HASH
+
+  # Append-only evidence that an authorised account requested a protected
+  # lesson URL. It contains hashed, never raw, network/browser identifiers.
+  VideoAccessLogsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "${Environment}-videocorso-video-access-logs"
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: ttl_expires_at
+        Enabled: true
+      AttributeDefinitions:
+        - AttributeName: access_id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: issued_at
+          AttributeType: S
+        - AttributeName: purchase_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: access_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIndex
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+            - AttributeName: issued_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: PurchaseIndex
+          KeySchema:
+            - AttributeName: purchase_id
+              KeyType: HASH
+            - AttributeName: issued_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
 
   # ==================== S3 Buckets ====================
 
@@ -675,6 +722,14 @@ Resources:
             TableName: !Ref PurchasesTable
         - DynamoDBReadPolicy:
             TableName: !Ref UsersTable
+        # Evidence rows are write-only for this handler: it can append a URL
+        # issuance record but cannot edit or delete historical evidence.
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt VideoAccessLogsTable.Arn
       Events:
         GetVideoUrl:
           Type: Api
@@ -1046,6 +1101,8 @@ Resources:
             TableName: !Ref ProgressTable
         - DynamoDBCrudPolicy:
             TableName: !Ref AuditLogsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref VideoAccessLogsTable
         - S3CrudPolicy:
             BucketName: !Ref VideoBucket
         - S3CrudPolicy:

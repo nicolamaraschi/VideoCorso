@@ -8,11 +8,13 @@ import type{
 } from '../types';
 
 export const paymentService = {
-  async quoteCheckout(data: { course_id: string; email?: string; coupon_code?: string }): Promise<{
+  async quoteCheckout(data: { course_id: string; email?: string; coupon_code?: string; package_id?: string }): Promise<{
     base_total: number;
     final_total: number;
     coupon_code: string | null;
     is_free_access: boolean;
+    package_id: string | null;
+    requires_shipping_address: boolean;
   }> {
     return apiClient.post('/payment/quote', data);
   },

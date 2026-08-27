@@ -458,6 +458,58 @@ def parse_iso_datetime(value: Optional[str]):
     return parsed
 
 
+def normalize_package(package: dict[str, Any]) -> dict[str, Any]:
+    """Mirror of course_handler.normalize_package. A package is a commercial
+    tier (Basic/Intermedio/Avanzato); every package of a course grants access
+    to the exact same lessons and differs only in price and benefits."""
+    normalized = dict(package)
+    normalized['package_id'] = str(normalized.get('package_id') or '')
+    normalized['name'] = str(normalized.get('name') or '')
+    normalized['price'] = Decimal(str(normalized.get('price', 0) or 0))
+    normalized['discounted_price'] = (
+        Decimal(str(normalized['discounted_price']))
+        if normalized.get('discounted_price') not in (None, '') else None
+    )
+    normalized['display_order'] = int(normalized.get('display_order', 999))
+    normalized['benefits'] = [str(item) for item in (normalized.get('benefits') or [])]
+    normalized['includes_kit'] = normalize_bool(normalized.get('includes_kit', False))
+    normalized['includes_ebook'] = normalize_bool(normalized.get('includes_ebook', False))
+    normalized['includes_whatsapp_support'] = normalize_bool(normalized.get('includes_whatsapp_support', False))
+    normalized['whatsapp_support_months'] = normalized.get('whatsapp_support_months')
+    normalized['includes_community'] = normalize_bool(normalized.get('includes_community', False))
+    normalized['live_meetings_count'] = int(normalized.get('live_meetings_count', 0) or 0)
+    return normalized
+
+
+def validate_package_payload(package: dict[str, Any]) -> Optional[str]:
+    if not str(package.get('package_id') or '').strip():
+        return 'package_id is required for every package'
+    if not str(package.get('name') or '').strip():
+        return 'package name is required for every package'
+    try:
+        price = Decimal(str(package.get('price', 0)))
+    except Exception:
+        return 'package price must be numeric'
+    if price < 0:
+        return 'package price cannot be negative'
+    discounted_price = package.get('discounted_price')
+    if discounted_price not in (None, ''):
+        try:
+            discounted = Decimal(str(discounted_price))
+        except Exception:
+            return 'package discounted_price must be numeric'
+        if discounted < 0 or discounted > price:
+            return 'package discounted_price must be between zero and the full price'
+    months = package.get('whatsapp_support_months')
+    if months not in (None, '') :
+        try:
+            if int(months) < 0:
+                return 'whatsapp_support_months cannot be negative'
+        except (TypeError, ValueError):
+            return 'whatsapp_support_months must be an integer'
+    return None
+
+
 def normalize_course(course: dict[str, Any]) -> dict[str, Any]:
     normalized = dict(course)
     status = str(normalized.get('status') or ('published' if normalize_bool(normalized.get('is_active', True)) else 'hidden'))
@@ -473,6 +525,10 @@ def normalize_course(course: dict[str, Any]) -> dict[str, Any]:
     normalized['display_order'] = int(normalized.get('display_order', 999))
     if 'discounted_price' in normalized and normalized.get('discounted_price') not in (None, ''):
         normalized['discounted_price'] = Decimal(str(normalized['discounted_price']))
+    normalized['packages'] = sorted(
+        (normalize_package(item) for item in (normalized.get('packages') or [])),
+        key=lambda item: item['display_order'],
+    )
     return normalized
 
 
@@ -699,6 +755,20 @@ def get_user_progress_items(user_id: str) -> list[dict[str, Any]]:
     )
 
 
+def get_purchase_video_access_events(purchase_id: str) -> list[dict[str, Any]]:
+    """Return recent append-only video URL issuance evidence for one sale."""
+    table = TABLES.get('VIDEO_ACCESS_LOGS')
+    if not table or not purchase_id:
+        return []
+    response = table.query(
+        IndexName='PurchaseIndex',
+        KeyConditionExpression=Key('purchase_id').eq(purchase_id),
+        ScanIndexForward=False,
+        Limit=50,
+    )
+    return response.get('Items') or []
+
+
 def user_has_global_access(user_item: dict[str, Any]) -> bool:
     return normalize_bool(user_item.get('global_access', False))
 
@@ -854,6 +924,12 @@ def create_course(body):
     badge = body.get('badge') or ''
     cover_image_url = body.get('cover_image_url', '')
     display_order = body.get('display_order', 999)
+    raw_packages = body.get('packages') or []
+
+    for raw_package in raw_packages:
+        package_error = validate_package_payload(raw_package)
+        if package_error:
+            return create_response(400, {'error': package_error})
 
     item = {
         'course_id': str(uuid.uuid4()),
@@ -871,6 +947,7 @@ def create_course(body):
         'display_order': display_order,
         'badge': badge,
         'is_active': status == 'published',
+        'packages': raw_packages,
         'created_at': now_iso(),
         'updated_at': now_iso(),
     }
@@ -880,6 +957,7 @@ def create_course(body):
     item['price'] = Decimal(str(price))
     item['discounted_price'] = Decimal(str(discounted_price)) if discounted_price not in (None, '') else None
     item['display_order'] = int(display_order)
+    item['packages'] = [normalize_package(package) for package in raw_packages]
     TABLES['COURSES'].put_item(Item=item)
     return create_response(201, {'success': True, 'data': normalize_course(item)})
 
@@ -896,13 +974,19 @@ def update_course(course_id, body):
     if validation_error:
         return create_response(400, {'error': validation_error})
 
+    if 'packages' in body:
+        for raw_package in (body.get('packages') or []):
+            package_error = validate_package_payload(raw_package)
+            if package_error:
+                return create_response(400, {'error': package_error})
+
     expression_parts = []
     expression_values = {}
     expression_names = {}
     for key in [
         'title', 'description', 'subtitle', 'short_description', 'long_description',
         'price', 'discounted_price', 'cover_image_url', 'status', 'is_purchasable',
-        'public_slug', 'display_order', 'badge'
+        'public_slug', 'display_order', 'badge', 'packages'
     ]:
         if key not in body:
             continue
@@ -911,6 +995,8 @@ def update_course(course_id, body):
           expression_values[f':{key}'] = None if body[key] in (None, '') else Decimal(str(body[key]))
         elif key == 'display_order':
           expression_values[f':{key}'] = int(body[key])
+        elif key == 'packages':
+          expression_values[f':{key}'] = [normalize_package(package) for package in (body[key] or [])]
         else:
           expression_values[f':{key}'] = body[key]
         expression_parts.append(f'#{key} = :{key}')
@@ -1644,6 +1730,7 @@ def get_purchase_detail(purchase_id):
         'label': f"Email corretta: {entry.get('from_email') or '—'} → {entry.get('to_email') or '—'}",
         'at': entry.get('corrected_at'),
     } for entry in normalized.get('email_correction_history') or [])
+    video_access_events = get_purchase_video_access_events(normalized.get('purchase_id', ''))
 
     return create_response(200, {
         'purchase': {
@@ -1654,6 +1741,7 @@ def get_purchase_detail(purchase_id):
         },
         'customer_view': build_purchase_customer_view(normalized, user_item),
         'timeline': [entry for entry in timeline if entry.get('at')],
+        'video_access_events': video_access_events,
     })
 
 
@@ -2403,6 +2491,7 @@ TABLE_NAMES = {
     'COUPONS': os.environ.get('COUPONS_TABLE'),
     'WEBHOOK_EVENTS': os.environ.get('WEBHOOK_EVENTS_TABLE'),
     'AUDIT_LOGS': os.environ.get('AUDIT_LOGS_TABLE'),
+    'VIDEO_ACCESS_LOGS': os.environ.get('VIDEO_ACCESS_LOGS_TABLE'),
 }
 TABLES = {name: dynamodb.Table(table_name) for name, table_name in TABLE_NAMES.items() if table_name}
 
