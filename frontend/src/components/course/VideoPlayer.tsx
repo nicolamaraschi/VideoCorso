@@ -132,14 +132,26 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, [seekToSeconds, clearSeekTo]);
 
-  // Handle unmount save
+  // Keep the latest playback position in refs so the unmount-save effect
+  // below can read current values without re-running (and thus re-firing
+  // its cleanup) on every timeupdate tick.
+  const currentTimeRef = useRef(currentTime);
+  const durationRef = useRef(duration);
+  currentTimeRef.current = currentTime;
+  durationRef.current = duration;
+
+  // Handle unmount save. Empty dependency array is intentional: this effect
+  // must mount/cleanup exactly once (on mount / on unmount), not on every
+  // currentTime update - otherwise the cleanup fires on every tick and saves
+  // progress far more often than intended.
   useEffect(() => {
     return () => {
-      if (trackProgress && currentTime > 0 && duration > 0) {
-        saveProgress(currentTime, duration);
+      if (trackProgress && currentTimeRef.current > 0 && durationRef.current > 0) {
+        saveProgress(currentTimeRef.current, durationRef.current);
       }
     };
-  }, [currentTime, duration, saveProgress, trackProgress]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const togglePlay = useCallback(() => {
     if (!playerRef.current) return;
