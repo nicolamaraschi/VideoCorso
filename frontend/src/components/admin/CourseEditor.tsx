@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, GripVertical, Save, Play } from 'lucide-react';
+import { Plus, Edit, Trash2, GripVertical, Save, Play, ArrowUp, ArrowDown } from 'lucide-react';
 import { Reorder } from 'framer-motion';
 import type { Chapter, Lesson, VideoQuality } from '../../types';
 import { Button } from '../common/Button';
@@ -87,6 +87,37 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       order_number: i + 1,
     }));
     onReorderLessons(updates);
+  };
+
+  // Keyboard-accessible alternative to the drag handle above: reordering via
+  // pointer drag alone is unusable without a mouse/touch, so move up/down
+  // buttons give the same result via click or Enter/Space on a focused
+  // button.
+  const moveChapter = (chapterId: string, direction: -1 | 1) => {
+    const index = localChapters.findIndex((c) => c.chapter_id === chapterId);
+    const targetIndex = index + direction;
+    if (index === -1 || targetIndex < 0 || targetIndex >= localChapters.length) return;
+
+    const reordered = [...localChapters];
+    [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
+    const reindexed = reindexChapters(reordered);
+    setLocalChapters(reindexed);
+    onReorderChapters(reindexed.map((c, i) => ({ id: c.chapter_id, order_number: i + 1 })));
+  };
+
+  const moveLesson = (chapterId: string, lessonId: string, direction: -1 | 1) => {
+    const chapter = localChapters.find((c) => c.chapter_id === chapterId);
+    if (!chapter || !chapter.lessons) return;
+
+    const index = chapter.lessons.findIndex((l) => l.lesson_id === lessonId);
+    const targetIndex = index + direction;
+    if (index === -1 || targetIndex < 0 || targetIndex >= chapter.lessons.length) return;
+
+    const reordered = [...chapter.lessons];
+    [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
+    const reindexed = reindexLessons(reordered);
+    setLocalChapters((prev) => prev.map((c) => (c.chapter_id === chapterId ? { ...c, lessons: reindexed } : c)));
+    onReorderLessons(reindexed.map((l, i) => ({ id: l.lesson_id, order_number: i + 1 })));
   };
 
 
@@ -292,6 +323,26 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                   <div className="cursor-move p-1 hover:bg-gray-200 rounded">
                     <GripVertical className="w-5 h-5 text-gray-400" />
                   </div>
+                  <div className="flex flex-col">
+                    <button
+                      type="button"
+                      onClick={() => moveChapter(chapter.chapter_id, -1)}
+                      disabled={chapter.order_number <= 1}
+                      className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
+                      aria-label={`Sposta capitolo "${chapter.title}" su`}
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveChapter(chapter.chapter_id, 1)}
+                      disabled={chapter.order_number >= localChapters.length}
+                      className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
+                      aria-label={`Sposta capitolo "${chapter.title}" giù`}
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                   {chapter.image_url ? (
                     <img
                       src={chapter.image_url}
@@ -354,6 +405,26 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                         <div className="flex min-w-0 items-center gap-2 sm:gap-3 flex-1">
                           <div className="cursor-move p-1 hover:bg-gray-100 rounded text-gray-400 flex-shrink-0">
                             <GripVertical className="w-4 h-4" />
+                          </div>
+                          <div className="flex flex-shrink-0 flex-col">
+                            <button
+                              type="button"
+                              onClick={() => moveLesson(chapter.chapter_id, lesson.lesson_id, -1)}
+                              disabled={lesson.order_number <= 1}
+                              className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
+                              aria-label={`Sposta lezione "${lesson.title}" su`}
+                            >
+                              <ArrowUp className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveLesson(chapter.chapter_id, lesson.lesson_id, 1)}
+                              disabled={lesson.order_number >= (chapter.lessons?.length || 0)}
+                              className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
+                              aria-label={`Sposta lezione "${lesson.title}" giù`}
+                            >
+                              <ArrowDown className="w-3 h-3" />
+                            </button>
                           </div>
                           {lesson.thumbnail_url ? (
                             <img
