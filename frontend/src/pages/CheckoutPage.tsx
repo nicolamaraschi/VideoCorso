@@ -366,14 +366,13 @@ export const CheckoutPage: React.FC = () => {
                   <div className="mt-4 flex items-end justify-between gap-3">
                     <div>
                       {item.packages && item.packages.length > 0 ? (
-                        <>
-                          <span className="block text-xs text-gray-500">A partire da</span>
-                          <span className="text-2xl font-bold text-gray-900">
-                            € {Math.min(
-                              ...item.packages.map((pkg) => Number(pkg.discounted_price ?? pkg.price))
-                            ).toFixed(2)}
-                          </span>
-                        </>
+                        // The exact price depends on which package is chosen below,
+                        // so showing a number here would just repeat (and risk
+                        // looking inconsistent with) the package price shown in
+                        // the "Scegli il tuo pacchetto" section.
+                        <span className="text-sm font-medium text-gray-600">
+                          {item.packages.length} pacchetti disponibili
+                        </span>
                       ) : (
                         <>
                           {item.discounted_price && Number(item.discounted_price) < Number(item.price) && (
