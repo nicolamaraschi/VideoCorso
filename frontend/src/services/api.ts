@@ -33,13 +33,17 @@ class ApiClient {
             config.headers.Authorization = `Bearer ${token}`;
           }
         } catch (error) {
-          console.error('Error fetching auth session:', error);
+          if (import.meta.env.DEV) {
+            console.error('Error fetching auth session:', error);
+          }
         }
 
         return config;
       },
       (error) => {
-        console.error('Request interceptor error:', error);
+        if (import.meta.env.DEV) {
+          console.error('Request interceptor error:', error);
+        }
         return Promise.reject(error);
       }
     );
@@ -48,16 +52,24 @@ class ApiClient {
     this.client.interceptors.response.use(
       (response) => response,
       (error: AxiosError) => {
-        console.error('API response error:', error);
-        
+        // Never log the full AxiosError: error.config.headers includes the
+        // Authorization bearer token, and error.config can include request
+        // bodies. Only log a minimal, safe summary, and only in development.
+        if (import.meta.env.DEV) {
+          console.error('API response error:', {
+            url: error.config?.url,
+            method: error.config?.method,
+            status: error.response?.status,
+            data: error.response?.data,
+          });
+        }
+
         if (error.response) {
           const status = error.response.status;
 
           if (status === 401) {
             window.location.href = '/login';
           }
-        } else if (!error.request) {
-          console.error('Request setup error:', error.message);
         }
 
         return Promise.reject(error);
