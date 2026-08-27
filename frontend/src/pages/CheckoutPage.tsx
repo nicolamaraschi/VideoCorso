@@ -473,62 +473,94 @@ export const CheckoutPage: React.FC = () => {
                 Il pacchetto selezionato include un kit fisico: indicaci dove spedirlo.
               </p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <input
-                  type="text"
-                  value={shippingAddress.full_name}
-                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, full_name: e.target.value }))}
-                  placeholder="Nome e cognome *"
-                  className="sm:col-span-2 w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-                />
-                <input
-                  type="text"
-                  value={shippingAddress.address_line1}
-                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, address_line1: e.target.value }))}
-                  placeholder="Indirizzo (via, numero) *"
-                  className="sm:col-span-2 w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-                />
-                <input
-                  type="text"
-                  value={shippingAddress.address_line2 || ''}
-                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, address_line2: e.target.value }))}
-                  placeholder="Indirizzo riga 2 (opzionale)"
-                  className="sm:col-span-2 w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-                />
-                <input
-                  type="text"
-                  value={shippingAddress.city}
-                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, city: e.target.value }))}
-                  placeholder="Città *"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-                />
-                <input
-                  type="text"
-                  value={shippingAddress.postal_code}
-                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, postal_code: e.target.value }))}
-                  placeholder="CAP *"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-                />
-                <input
-                  type="text"
-                  value={shippingAddress.province || ''}
-                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, province: e.target.value }))}
-                  placeholder="Provincia"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-                />
-                <input
-                  type="text"
-                  value={shippingAddress.country}
-                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, country: e.target.value }))}
-                  placeholder="Nazione *"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-                />
-                <input
-                  type="tel"
-                  value={shippingAddress.phone || ''}
-                  onChange={(e) => setShippingAddress((prev) => ({ ...prev, phone: e.target.value }))}
-                  placeholder="Telefono (opzionale)"
-                  className="sm:col-span-2 w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-                />
+                <div className="sm:col-span-2">
+                  <label htmlFor="shipping-full-name" className="sr-only">Nome e cognome</label>
+                  <input
+                    id="shipping-full-name"
+                    type="text"
+                    value={shippingAddress.full_name}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, full_name: e.target.value }))}
+                    placeholder="Nome e cognome *"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label htmlFor="shipping-address-line1" className="sr-only">Indirizzo (via, numero)</label>
+                  <input
+                    id="shipping-address-line1"
+                    type="text"
+                    value={shippingAddress.address_line1}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, address_line1: e.target.value }))}
+                    placeholder="Indirizzo (via, numero) *"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label htmlFor="shipping-address-line2" className="sr-only">Indirizzo riga 2 (opzionale)</label>
+                  <input
+                    id="shipping-address-line2"
+                    type="text"
+                    value={shippingAddress.address_line2 || ''}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, address_line2: e.target.value }))}
+                    placeholder="Indirizzo riga 2 (opzionale)"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="shipping-city" className="sr-only">Città</label>
+                  <input
+                    id="shipping-city"
+                    type="text"
+                    value={shippingAddress.city}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, city: e.target.value }))}
+                    placeholder="Città *"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="shipping-postal-code" className="sr-only">CAP</label>
+                  <input
+                    id="shipping-postal-code"
+                    type="text"
+                    value={shippingAddress.postal_code}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, postal_code: e.target.value }))}
+                    placeholder="CAP *"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="shipping-province" className="sr-only">Provincia</label>
+                  <input
+                    id="shipping-province"
+                    type="text"
+                    value={shippingAddress.province || ''}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, province: e.target.value }))}
+                    placeholder="Provincia"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="shipping-country" className="sr-only">Nazione</label>
+                  <input
+                    id="shipping-country"
+                    type="text"
+                    value={shippingAddress.country}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, country: e.target.value }))}
+                    placeholder="Nazione *"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label htmlFor="shipping-phone" className="sr-only">Telefono (opzionale)</label>
+                  <input
+                    id="shipping-phone"
+                    type="tel"
+                    value={shippingAddress.phone || ''}
+                    onChange={(e) => setShippingAddress((prev) => ({ ...prev, phone: e.target.value }))}
+                    placeholder="Telefono (opzionale)"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                  />
+                </div>
               </div>
             </div>
           )}
