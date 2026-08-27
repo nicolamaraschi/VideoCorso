@@ -261,12 +261,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           e.preventDefault();
           toggleFullscreen();
           break;
+        case 'Escape':
+          if (showSettings) {
+            e.preventDefault();
+            setShowSettings(false);
+          }
+          break;
       }
     };
 
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [changeVolume, skip, toggleFullscreen, toggleMute, togglePlay]);
+  }, [changeVolume, skip, toggleFullscreen, toggleMute, togglePlay, showSettings]);
 
   // Auto-hide controls
   useEffect(() => {
@@ -446,6 +452,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   }}
                   className="hidden min-h-11 min-w-11 rounded-full p-2 text-white hover:bg-white/10 hover:text-primary-400 sm:block"
                   title="Restart"
+                  aria-label="Riavvia dall'inizio"
                 >
                   <RotateCcw className="w-5 h-5" />
                 </button>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminService } from '../services/adminService';
 import type { AdminStats } from '../types';
@@ -19,28 +19,51 @@ export const AdminDashboardPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const loadStats = async () => {
+  // Prevents overlapping requests if a manual refresh and the 60s poll (or
+  // two poll ticks, if one request is slow) fire close together.
+  const isFetchingRef = useRef(false);
+
+  const loadStats = useCallback(async (showLoadingState = true) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     try {
-      setLoading(true);
+      if (showLoadingState) setLoading(true);
       setError(null);
       setStats(await adminService.getStats());
       setLastUpdated(new Date());
     } catch (err) {
       setError(getErrorMessage(err, 'Impossibile caricare la panoramica'));
     } finally {
-      setLoading(false);
+      if (showLoadingState) setLoading(false);
+      isFetchingRef.current = false;
     }
-  };
+  }, []);
 
   useEffect(() => {
     void loadStats();
-    const refreshTimer = window.setInterval(() => void loadStats(), 60_000);
-    return () => window.clearInterval(refreshTimer);
-  }, []);
+    // Skip background polling while the tab isn't visible: no point
+    // refreshing stats the admin isn't looking at, and it avoids piling up
+    // requests that resume all at once when the tab regains focus.
+    const refreshTimer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void loadStats(false);
+      }
+    }, 60_000);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void loadStats(false);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.clearInterval(refreshTimer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [loadStats]);
 
   if (loading) return <Loading fullScreen text="Aggiornamento della panoramica..." />;
   if (error || !stats) {
-    return <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12"><ErrorMessage variant="card" message={error || 'Panoramica non disponibile'} onRetry={loadStats} /></div>;
+    return <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12"><ErrorMessage variant="card" message={error || 'Panoramica non disponibile'} onRetry={() => void loadStats()} /></div>;
   }
 
   // The deployed API may be updated independently from the interface. Defaults keep

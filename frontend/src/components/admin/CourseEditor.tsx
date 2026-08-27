@@ -128,6 +128,23 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
 
   // FIX: Aggiungi stato per il modale di anteprima
+  // Confirmation modal replacing native confirm() for delete actions, to
+  // stay consistent with the rest of the app's UI instead of the browser's
+  // built-in dialog.
+  const [confirmDelete, setConfirmDelete] = useState<
+    { type: 'chapter'; chapterId: string } | { type: 'lesson'; lessonId: string } | null
+  >(null);
+
+  const handleConfirmDelete = () => {
+    if (!confirmDelete) return;
+    if (confirmDelete.type === 'chapter') {
+      onDeleteChapter(confirmDelete.chapterId);
+    } else {
+      onDeleteLesson(confirmDelete.lessonId);
+    }
+    setConfirmDelete(null);
+  };
+
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
   const [previewLessonId, setPreviewLessonId] = useState<string | null>(null);
@@ -377,11 +394,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => {
-                      if (confirm('Delete this chapter?')) {
-                        onDeleteChapter(chapter.chapter_id);
-                      }
-                    }}
+                    onClick={() => setConfirmDelete({ type: 'chapter', chapterId: chapter.chapter_id })}
                     className="p-2 text-gray-600 hover:text-red-600 pointer-events-auto"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -483,11 +496,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                             <Edit className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => {
-                              if (confirm('Delete this lesson?')) {
-                                onDeleteLesson(lesson.lesson_id);
-                              }
-                            }}
+                            onClick={() => setConfirmDelete({ type: 'lesson', lessonId: lesson.lesson_id })}
                             className="p-2 sm:p-1.5 text-gray-500 hover:text-red-600 rounded hover:bg-red-50 transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -728,6 +737,31 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             <Save className="w-4 h-4 mr-2" />
             {isSubmitting ? 'Saving...' : (editingLesson ? 'Update Lesson' : 'Create Lesson')}
           </Button>
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        title={confirmDelete?.type === 'chapter' ? 'Delete chapter?' : 'Delete lesson?'}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            {confirmDelete?.type === 'chapter'
+              ? 'This will permanently delete the chapter and all its lessons. This action cannot be undone.'
+              : 'This will permanently delete the lesson. This action cannot be undone.'}
+          </p>
+          <div className="flex gap-3">
+            <Button variant="secondary" fullWidth onClick={() => setConfirmDelete(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" fullWidth onClick={handleConfirmDelete}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </Button>
+          </div>
         </div>
       </Modal>
 
