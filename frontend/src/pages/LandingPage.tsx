@@ -417,20 +417,50 @@ export const LandingPage: React.FC = () => {
                     <p className="text-gray-600 mb-8 flex-1 leading-relaxed">
                       {course.short_description || course.description || "Nessuna descrizione disponibile."}
                     </p>
+                    {course.packages && course.packages.length > 0 && (
+                      <ul className="mb-6 space-y-2">
+                        {[...course.packages]
+                          .sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999))
+                          .map((pkg) => (
+                            <li
+                              key={pkg.package_id}
+                              className="flex items-center justify-between gap-3 rounded-lg border border-primary-50 bg-primary-50/40 px-3 py-2 text-sm"
+                            >
+                              <span className="font-medium text-gray-800">{pkg.name}</span>
+                              <span className="font-semibold text-gray-900">
+                                € {Number(pkg.discounted_price ?? pkg.price).toFixed(2)}
+                              </span>
+                            </li>
+                          ))}
+                      </ul>
+                    )}
                     <div className="mt-auto flex flex-col items-start gap-3 border-t border-primary-50 pt-6 sm:flex-row sm:items-end sm:justify-between">
                       <div className="shrink-0 whitespace-nowrap">
-                        {course.discounted_price && Number(course.discounted_price) < Number(course.price) && (
-                          <span className="block text-sm text-gray-400 line-through mb-1">€ {Number(course.price).toFixed(2)}</span>
+                        {course.packages && course.packages.length > 0 ? (
+                          <>
+                            <span className="block text-sm text-gray-500 mb-1">A partire da</span>
+                            <span className="whitespace-nowrap text-3xl font-bold text-gray-900 font-serif">
+                              € {Math.min(
+                                ...course.packages.map((pkg) => Number(pkg.discounted_price ?? pkg.price))
+                              ).toFixed(2)}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            {course.discounted_price && Number(course.discounted_price) < Number(course.price) && (
+                              <span className="block text-sm text-gray-400 line-through mb-1">€ {Number(course.price).toFixed(2)}</span>
+                            )}
+                            <span className="whitespace-nowrap text-3xl font-bold text-gray-900 font-serif">
+                              € {Number(course.discounted_price ?? course.price).toFixed(2)}
+                            </span>
+                          </>
                         )}
-                        <span className="whitespace-nowrap text-3xl font-bold text-gray-900 font-serif">
-                          € {Number(course.discounted_price ?? course.price).toFixed(2)}
-                        </span>
                       </div>
                       <Link 
                         to={`/checkout?courseId=${course.public_slug || course.course_id}`} 
                         className="inline-flex min-h-11 w-full items-center justify-center whitespace-nowrap rounded-xl bg-primary-600 px-6 py-3 text-sm font-medium text-white shadow-md transition hover:bg-primary-700 hover:shadow-lg sm:w-auto"
                       >
-                        Acquista Ora
+                        {course.packages && course.packages.length > 0 ? 'Scegli il tuo pacchetto' : 'Acquista Ora'}
                       </Link>
                     </div>
                   </div>
