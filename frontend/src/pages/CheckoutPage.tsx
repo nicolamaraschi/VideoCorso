@@ -365,12 +365,25 @@ export const CheckoutPage: React.FC = () => {
                   <p className="text-sm text-gray-600 mt-2 line-clamp-3">{item.short_description || item.description}</p>
                   <div className="mt-4 flex items-end justify-between gap-3">
                     <div>
-                      {item.discounted_price && Number(item.discounted_price) < Number(item.price) && (
-                        <span className="block text-sm text-gray-400 line-through">€ {Number(item.price).toFixed(2)}</span>
+                      {item.packages && item.packages.length > 0 ? (
+                        <>
+                          <span className="block text-xs text-gray-500">A partire da</span>
+                          <span className="text-2xl font-bold text-gray-900">
+                            € {Math.min(
+                              ...item.packages.map((pkg) => Number(pkg.discounted_price ?? pkg.price))
+                            ).toFixed(2)}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          {item.discounted_price && Number(item.discounted_price) < Number(item.price) && (
+                            <span className="block text-sm text-gray-400 line-through">€ {Number(item.price).toFixed(2)}</span>
+                          )}
+                          <span className="text-2xl font-bold text-gray-900">
+                            € {Number(item.discounted_price ?? item.price).toFixed(2)}
+                          </span>
+                        </>
                       )}
-                      <span className="text-2xl font-bold text-gray-900">
-                        € {Number(item.discounted_price ?? item.price).toFixed(2)}
-                      </span>
                     </div>
                     <span className={`text-sm font-medium ${isSelected ? 'text-primary-700' : 'text-gray-500'}`}>
                       {selectedCourseIndex === index ? 'Pronto al checkout' : 'Seleziona'}
