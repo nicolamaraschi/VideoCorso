@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit, MoreHorizontal, Search, Key, Trash2 } from 'lucide-react';
+import { Edit, MoreHorizontal, Key, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { StudentListItem } from '../../types';
 import { formatDate, getSubscriptionStatusColor } from '../../utils/formatters';
@@ -15,19 +15,14 @@ interface StudentTableProps {
 
 export const StudentTable: React.FC<StudentTableProps> = ({ students, onUpdateStudent, onResetPassword, onDeleteStudent }) => {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
   const [editingStudent, setEditingStudent] = useState<StudentListItem | null>(null);
   const [globalAccess, setGlobalAccess] = useState(false);
   const [newEndDate, setNewEndDate] = useState('');
   const [actionMenuStudentId, setActionMenuStudentId] = useState<string | null>(null);
 
-  const filteredStudents = students.filter((student) => {
-    const value = searchTerm.toLowerCase();
-    return (
-      student.email.toLowerCase().includes(value) ||
-      student.full_name.toLowerCase().includes(value)
-    );
-  });
+  // Search is handled server-side by the parent page (AdminStudentsPage);
+  // this table only renders whatever page of students it's given.
+  const filteredStudents = students;
 
   const handleEditClick = (student: StudentListItem) => {
     setEditingStudent(student);
@@ -49,19 +44,6 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, onUpdateSt
 
   return (
     <div>
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search students by name or email..."
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          />
-        </div>
-      </div>
-
       {/* Mobile card list */}
       <div className="space-y-3 sm:hidden">
         {filteredStudents.map((student) => (

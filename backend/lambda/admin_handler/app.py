@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import secrets
 import string
@@ -1582,15 +1583,30 @@ def update_student(student_id, body):
     return create_response(200, {'success': True, 'data': updated_item})
 
 
-def get_students():
-    users = list_student_records()
-    items = [summarize_student(user) for user in sorted(users, key=lambda item: item.get('created_at', ''), reverse=True)]
+def get_students(params: dict[str, Any] | None = None):
+    params = params or {}
+    try:
+        page = max(1, int(params.get('page', 1)))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        per_page = max(1, min(200, int(params.get('per_page', 50))))
+    except (TypeError, ValueError):
+        per_page = 50
+
+    users = sorted(list_student_records(), key=lambda item: item.get('created_at', ''), reverse=True)
+    total = len(users)
+    total_pages = max(1, math.ceil(total / per_page))
+    start = (page - 1) * per_page
+    page_users = users[start:start + per_page]
+    items = [summarize_student(user) for user in page_users]
+
     return create_response(200, {
         'items': items,
-        'total': len(items),
-        'page': 1,
-        'per_page': len(items),
-        'total_pages': 1,
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'total_pages': total_pages,
     })
 
 
@@ -2632,7 +2648,7 @@ def lambda_handler(event, context):
             return delete_student(path_parameters.get('studentId'))
 
         if path == '/admin/students' and http_method == 'GET':
-            return get_students()
+            return get_students(params)
         if path == '/admin/students/search' and http_method == 'GET':
             return search_students(params)
 
