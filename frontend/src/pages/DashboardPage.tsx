@@ -121,6 +121,9 @@ export const DashboardPage: React.FC = () => {
                   <img
                     src={course.cover_image_url}
                     alt={`Copertina ${course.title}`}
+                    loading="lazy"
+                    width={640}
+                    height={280}
                     className="w-full h-full object-contain"
                   />
                 ) : (
@@ -209,6 +212,9 @@ export const DashboardPage: React.FC = () => {
                   <img
                     src={course.cover_image_url}
                     alt={`Copertina ${course.title}`}
+                    loading="lazy"
+                    width={640}
+                    height={280}
                     className="w-full h-full object-contain"
                   />
                 ) : (

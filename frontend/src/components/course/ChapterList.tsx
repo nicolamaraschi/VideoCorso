@@ -76,6 +76,9 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                       <img
                         src={chapter.image_url}
                         alt={`Copertina ${chapter.title}`}
+                        loading="lazy"
+                        width={800}
+                        height={144}
                         className="h-36 w-full object-cover"
                       />
                     </div>

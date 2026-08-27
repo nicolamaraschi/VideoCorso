@@ -347,6 +347,9 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                     <img
                       src={chapter.image_url}
                       alt={chapter.title}
+                      loading="lazy"
+                      width={112}
+                      height={80}
                       className="h-14 w-20 sm:h-20 sm:w-28 rounded-lg border border-gray-200 object-cover bg-white"
                     />
                   ) : null}
@@ -430,6 +433,9 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                             <img
                               src={lesson.thumbnail_url}
                               alt={lesson.title}
+                              loading="lazy"
+                              width={96}
+                              height={64}
                               className="h-12 w-16 sm:h-16 sm:w-24 rounded-lg border border-gray-200 object-cover bg-gray-50 flex-shrink-0"
                             />
                           ) : (
@@ -549,6 +555,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               <img
                 src={chapterForm.image_url}
                 alt="Anteprima immagine capitolo"
+                width={400}
+                height={160}
                 className="max-h-40 w-auto rounded-lg border border-gray-200 object-contain mx-auto"
               />
             )}
@@ -664,6 +672,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                 <img
                   src={lessonForm.thumbnail_url}
                   alt="Anteprima copertina lezione"
+                  width={400}
+                  height={160}
                   className="max-h-40 w-auto rounded-lg border border-gray-200 object-contain mx-auto"
                 />
                 <Button type="button" size="sm" variant="secondary" onClick={() => setReplacingThumbnail(true)}>

@@ -74,6 +74,8 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
               <img 
                 src={logoUrl} 
                 alt="Chiara Morocutti" 
+                width={40}
+                height={40}
                 className="h-10 w-auto rounded-full object-cover flex-shrink-0"
               />
               

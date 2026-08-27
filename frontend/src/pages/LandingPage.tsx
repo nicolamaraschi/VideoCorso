@@ -338,7 +338,7 @@ export const LandingPage: React.FC = () => {
               className="lg:w-5/12 relative"
             >
               <div className="absolute inset-0 bg-primary-100 rounded-full transform translate-x-4 translate-y-4 -z-10"></div>
-              <img src="/chiara morocutti.webp" alt="Chiara Morocutti" className="rounded-full w-64 h-64 md:w-80 md:h-80 object-cover mx-auto border-4 border-white shadow-xl" />
+              <img src="/chiara morocutti.webp" alt="Chiara Morocutti" loading="lazy" width={320} height={320} className="rounded-full w-64 h-64 md:w-80 md:h-80 object-cover mx-auto border-4 border-white shadow-xl" />
             </motion.div>
             <motion.div 
               initial={{ opacity: 0, x: 20 }}
@@ -400,7 +400,7 @@ export const LandingPage: React.FC = () => {
                 >
                   <div className="relative h-56">
                     {course.cover_image_url ? (
-                      <img src={course.cover_image_url} alt={course.title} className="w-full h-full object-cover" />
+                      <img src={course.cover_image_url} alt={course.title} loading="lazy" width={400} height={224} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-primary-100 flex items-center justify-center text-primary-400 font-serif">
                         Corso Beauty
@@ -515,7 +515,7 @@ export const LandingPage: React.FC = () => {
                 className="bg-primary-50/50 rounded-2xl p-6 shadow-sm hover:shadow-md transition border border-primary-100 flex flex-col"
               >
                 <div className="mb-6 rounded-xl overflow-hidden shadow-sm border border-primary-100 bg-white">
-                  <img className="w-full h-auto object-contain hover:scale-105 transition-transform duration-500" src={testimonial.image} alt="Prima e Dopo Microblading" />
+                  <img className="w-full h-auto object-contain hover:scale-105 transition-transform duration-500" src={testimonial.image} alt="Prima e Dopo Microblading" loading="lazy" width={480} height={480} />
                 </div>
                 <div className="flex flex-col mb-4">
                   <h3 className="text-lg font-serif font-semibold text-gray-900">{testimonial.name}</h3>

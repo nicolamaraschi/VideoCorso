@@ -38,6 +38,9 @@ export const LessonCard: React.FC<LessonCardProps> = ({
           <img
             src={lesson.thumbnail_url}
             alt={`Copertina ${lesson.title}`}
+            loading="lazy"
+            width={112}
+            height={64}
             className="w-full h-full object-cover"
           />
         </div>
