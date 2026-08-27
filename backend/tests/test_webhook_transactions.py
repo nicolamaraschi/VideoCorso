@@ -48,6 +48,7 @@ def install_stubs():
             if isinstance(value, (int, float)): return {"N": str(value)}
             if isinstance(value, str): return {"S": value}
             if isinstance(value, dict): return {"M": {k: self.serialize(v) for k, v in value.items()}}
+            if isinstance(value, list): return {"L": [self.serialize(v) for v in value]}
             raise TypeError(f"unsupported value: {value!r}")
 
     types_module.TypeSerializer = TypeSerializer

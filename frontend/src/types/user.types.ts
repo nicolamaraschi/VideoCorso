@@ -14,6 +14,13 @@ export interface PurchaseRecord {
   purchase_id: string;
   user_id: string;
   course_id: string;
+  /** Commercial tier purchased (Basic/Intermedio/Avanzato). Absent for
+   * legacy single-price courses. All tiers grant identical lesson access. */
+  package_id?: string | null;
+  package_name?: string | null;
+  package_benefits_snapshot?: string[];
+  shipping_address?: import('./api.types').ShippingAddress | null;
+  shipping_status?: 'pending' | 'shipped' | 'delivered' | null;
   payment_id?: string;
   stripe_session_id?: string;
   stripe_payment_intent_id?: string;

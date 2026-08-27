@@ -303,6 +303,46 @@ def ensure_legacy_course():
     return course
 
 
+def normalize_package(package: dict[str, Any]) -> dict[str, Any]:
+    """Mirror of course_handler.normalize_package (see that module for the
+    policy: all packages of a course grant identical lesson access)."""
+    normalized = dict(package)
+    normalized['package_id'] = str(normalized.get('package_id') or '')
+    normalized['name'] = str(normalized.get('name') or '')
+    normalized['price'] = normalized.get('price', 0)
+    normalized['discounted_price'] = normalized.get('discounted_price')
+    normalized['display_order'] = int(normalized.get('display_order', 999))
+    normalized['benefits'] = [str(item) for item in (normalized.get('benefits') or [])]
+    normalized['includes_kit'] = normalize_bool(normalized.get('includes_kit', False))
+    normalized['includes_ebook'] = normalize_bool(normalized.get('includes_ebook', False))
+    normalized['includes_whatsapp_support'] = normalize_bool(normalized.get('includes_whatsapp_support', False))
+    normalized['whatsapp_support_months'] = normalized.get('whatsapp_support_months')
+    normalized['includes_community'] = normalize_bool(normalized.get('includes_community', False))
+    normalized['live_meetings_count'] = int(normalized.get('live_meetings_count', 0) or 0)
+    return normalized
+
+
+def find_package(course: dict[str, Any], package_id: Optional[str]) -> Optional[dict[str, Any]]:
+    if not package_id:
+        return None
+    for raw_package in course.get('packages') or []:
+        package = normalize_package(raw_package)
+        if package['package_id'] == package_id:
+            return package
+    return None
+
+
+def package_requires_shipping_address(package: Optional[dict[str, Any]]) -> bool:
+    """A physical kit must be mailed to the buyer."""
+    return bool(package) and normalize_bool(package.get('includes_kit', False))
+
+
+def get_package_effective_price(package: dict[str, Any]) -> Decimal:
+    if package.get('discounted_price') not in (None, ''):
+        return Decimal(str(package['discounted_price']))
+    return Decimal(str(package.get('price', 0) or 0))
+
+
 def normalize_course(course: dict[str, Any]) -> dict[str, Any]:
     normalized = dict(course)
     status = str(normalized.get('status') or ('published' if normalize_bool(normalized.get('is_active', True)) else 'hidden'))
@@ -318,6 +358,11 @@ def normalize_course(course: dict[str, Any]) -> dict[str, Any]:
     normalized['display_order'] = int(normalized.get('display_order', 999))
     if 'discounted_price' in normalized and normalized.get('discounted_price') not in (None, ''):
         normalized['discounted_price'] = Decimal(str(normalized['discounted_price']))
+    normalized['packages'] = [normalize_package(item) for item in (normalized.get('packages') or [])]
+    for package in normalized['packages']:
+        if package.get('discounted_price') not in (None, ''):
+            package['discounted_price'] = Decimal(str(package['discounted_price']))
+        package['price'] = Decimal(str(package.get('price', 0) or 0))
     return normalized
 
 
@@ -485,8 +530,9 @@ def coupon_is_valid_for_checkout(coupon: dict[str, Any], course: dict[str, Any],
     return True, ''
 
 
-def compute_discounted_total(course: dict[str, Any], coupon: Optional[dict[str, Any]]):
-    base_price = get_course_effective_price(course)
+def compute_discounted_total(course: dict[str, Any], coupon: Optional[dict[str, Any]],
+                             package: Optional[dict[str, Any]] = None):
+    base_price = get_package_effective_price(package) if package else get_course_effective_price(course)
     if not coupon:
         return base_price
 
@@ -616,7 +662,8 @@ def redeem_free_coupon_atomically(purchase: dict[str, Any], coupon: dict[str, An
 
 def reserve_coupon_for_paid_checkout(checkout_request_id: str, fingerprint: str, coupon: dict[str, Any],
                                      course: dict[str, Any], email: str, total: Decimal,
-                                     acceptance: dict[str, Any]) -> dict[str, Any]:
+                                     acceptance: dict[str, Any], package: Optional[dict[str, Any]] = None,
+                                     shipping_address: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     """Atomically reserve a coupon before the Stripe Checkout Session exists.
 
     A reservation consumes a separate capacity slot, never
@@ -661,6 +708,8 @@ def reserve_coupon_for_paid_checkout(checkout_request_id: str, fingerprint: str,
         'coupon_code': coupon_id, 'coupon_reserved': True, 'reservation_id': reservation_id,
         'amount_gross': Decimal(str(total)), 'status': 'RESERVED', 'created_at': now,
         'ttl_expires_at': ttl_epoch(7),
+        'package_id': package.get('package_id') if package else None,
+        'shipping_address': shipping_address,
         **acceptance,
     }
     reservation = {
@@ -974,15 +1023,44 @@ def stripe_stream_timestamps(event_type: str, event_created: Any) -> dict[str, i
     return {}
 
 
-def coupon_purchase_id(coupon_id: str, course_id: str, user_id: str) -> str:
-    raw = f'{coupon_id}:{course_id}:{user_id}'.encode('utf-8')
+def coupon_purchase_id(coupon_id: str, course_id: str, user_id: str, package_id: Optional[str] = None) -> str:
+    raw = f'{coupon_id}:{course_id}:{user_id}:{package_id or ""}'.encode('utf-8')
     return f"coupon-{hashlib.sha256(raw).hexdigest()[:32]}"
 
 
 def checkout_fingerprint(user_id: str, course_id: str, coupon_code: Optional[str], amount: Decimal,
-                         terms_version: str = TERMS_VERSION) -> str:
-    raw = f'{user_id}:{course_id}:{coupon_code or ""}:{Decimal(str(amount))}:{terms_version}'.encode('utf-8')
+                         terms_version: str = TERMS_VERSION, package_id: Optional[str] = None) -> str:
+    raw = f'{user_id}:{course_id}:{coupon_code or ""}:{Decimal(str(amount))}:{terms_version}:{package_id or ""}'.encode('utf-8')
     return hashlib.sha256(raw).hexdigest()
+
+
+# ---------------------------------------------------------------------------
+# Shipping address (required only when the selected package includes a
+# physical kit). Kept intentionally small: this is not a full address book,
+# just enough to mail one kit per purchase.
+# ---------------------------------------------------------------------------
+_REQUIRED_ADDRESS_FIELDS = ('full_name', 'address_line1', 'city', 'postal_code', 'country')
+
+
+def validate_shipping_address(raw_address: Any, package: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    if not package_requires_shipping_address(package):
+        return None
+    if not isinstance(raw_address, dict):
+        raise ValueError('shipping_address is required because the selected package includes a physical kit')
+    address = {
+        'full_name': str(raw_address.get('full_name') or '').strip(),
+        'address_line1': str(raw_address.get('address_line1') or '').strip(),
+        'address_line2': str(raw_address.get('address_line2') or '').strip(),
+        'city': str(raw_address.get('city') or '').strip(),
+        'postal_code': str(raw_address.get('postal_code') or '').strip(),
+        'province': str(raw_address.get('province') or '').strip(),
+        'country': str(raw_address.get('country') or '').strip(),
+        'phone': str(raw_address.get('phone') or '').strip(),
+    }
+    missing = [field for field in _REQUIRED_ADDRESS_FIELDS if not address[field]]
+    if missing:
+        raise ValueError(f"shipping_address is missing required field(s): {', '.join(missing)}")
+    return address
 
 
 def pending_user_id(email: str) -> str:
@@ -1030,7 +1108,8 @@ def build_purchase_item(*, user_id: str, customer_email: str, course: dict[str, 
                         local_status: str, stripe_status: str, stripe_session_id: Optional[str], stripe_payment_intent_id: Optional[str],
                         stripe_charge_id: Optional[str], webhook_status: str, purchase_origin: str, coupon: Optional[dict[str, Any]],
                         refunded_amount: Decimal = Decimal('0'), is_disputed: bool = False, webhook_received_at: Optional[str] = None,
-                        verified_by_admin: bool = False, acceptance: Optional[dict[str, Any]] = None):
+                        verified_by_admin: bool = False, acceptance: Optional[dict[str, Any]] = None,
+                        package: Optional[dict[str, Any]] = None, shipping_address: Optional[dict[str, Any]] = None):
     coupon_code = coupon.get('code') if coupon else None
     purchase = {
         'purchase_id': stripe_payment_intent_id or stripe_session_id or str(secrets.token_hex(12)),
@@ -1038,6 +1117,14 @@ def build_purchase_item(*, user_id: str, customer_email: str, course: dict[str, 
         'user_id': user_id,
         'course_id': course['course_id'],
         'course_title': course.get('title', ''),
+        # All packages of a course grant identical lesson access; this only
+        # records which commercial tier was purchased (Basic/Intermedio/Avanzato)
+        # and its included benefits at the time of purchase.
+        'package_id': package.get('package_id') if package else None,
+        'package_name': package.get('name') if package else None,
+        'package_benefits_snapshot': list(package.get('benefits') or []) if package else [],
+        'shipping_address': shipping_address,
+        'shipping_status': 'pending' if shipping_address else None,
         'customer_email': customer_email,
         'amount_gross': amount_gross,
         'currency': 'eur',
@@ -1386,11 +1473,15 @@ def save_checkout_completion(session: dict[str, Any], event_type: str = 'checkou
     is_disputed = extract_is_disputed(payment_intent)
     stripe_status = session.get('payment_status') or session.get('status') or 'unknown'
     local_status = purchase_status_from_stripe(session.get('status', ''), session.get('payment_status'), refunded_amount, is_disputed)
+    package = find_package(course, (checkout_request or {}).get('package_id'))
+    shipping_address = (checkout_request or {}).get('shipping_address')
     purchase = build_purchase_item(
         user_id=user_id,
         customer_email=customer_email,
         course=course,
         amount_gross=amount_gross,
+        package=package,
+        shipping_address=shipping_address,
         local_status=local_status,
         stripe_status=stripe_status,
         stripe_session_id=stripe_session_id,
@@ -1678,7 +1769,8 @@ def validate_coupon_for_checkout(course: dict[str, Any], coupon_code: Optional[s
 
 
 def create_coupon_purchase_without_stripe(course: dict[str, Any], coupon: dict[str, Any], email: Optional[str],
-                                          acceptance: dict[str, Any]):
+                                          acceptance: dict[str, Any], package: Optional[dict[str, Any]] = None,
+                                          shipping_address: Optional[dict[str, Any]] = None):
     customer_email = (email or '').strip().lower()
     if not customer_email:
         raise ValueError('Email is required for free coupon access')
@@ -1696,6 +1788,7 @@ def create_coupon_purchase_without_stripe(course: dict[str, Any], coupon: dict[s
         stripe_session_id=None,
         stripe_payment_intent_id=coupon_purchase_id(
             str(coupon.get('coupon_id') or coupon.get('code')).upper(), course['course_id'], user_id,
+            package_id=package.get('package_id') if package else None,
         ),
         stripe_charge_id=None,
         webhook_status='not_required',
@@ -1703,6 +1796,8 @@ def create_coupon_purchase_without_stripe(course: dict[str, Any], coupon: dict[s
         coupon=coupon,
         verified_by_admin=False,
         acceptance=acceptance,
+        package=package,
+        shipping_address=shipping_address,
     )
     purchase['verified_by_admin'] = True
     purchase = sync_purchase_access(purchase)
@@ -1720,6 +1815,7 @@ def quote_checkout(body: dict[str, Any]):
     course_ref = body.get('course_id')
     email = body.get('email')
     coupon_code = body.get('coupon_code')
+    package_id = body.get('package_id')
 
     course = get_checkout_course(course_ref)
     if not course:
@@ -1727,13 +1823,22 @@ def quote_checkout(body: dict[str, Any]):
     if not is_purchasable_course(course):
         return create_response(400, {'error': 'Course is not available for purchase'})
 
+    package = None
+    if course.get('packages'):
+        package = find_package(course, package_id)
+        if not package:
+            return create_response(400, {'error': 'A valid package_id is required for this course'})
+
     coupon = validate_coupon_for_checkout(course, coupon_code, email)
-    total = compute_discounted_total(course, coupon)
+    total = compute_discounted_total(course, coupon, package)
+    base_total = get_package_effective_price(package) if package else get_course_effective_price(course)
     return create_response(200, {
-        'base_total': float(get_course_effective_price(course)),
+        'base_total': float(base_total),
         'final_total': float(total),
         'coupon_code': coupon.get('code') if coupon else None,
         'is_free_access': total <= 0,
+        'package_id': package.get('package_id') if package else None,
+        'requires_shipping_address': package_requires_shipping_address(package),
     })
 
 
@@ -1744,6 +1849,7 @@ def create_checkout_session(event):
     cancel_url = body.get('cancel_url')
     email = body.get('email')
     coupon_code = body.get('coupon_code')
+    package_id = body.get('package_id')
     checkout_request_id = str(body.get('checkout_request_id') or '').strip()
 
     if not course_ref or not success_url or not cancel_url:
@@ -1759,6 +1865,14 @@ def create_checkout_session(event):
     if not is_purchasable_course(course):
         return create_response(400, {'error': 'Course is not available for purchase'})
 
+    package = None
+    if course.get('packages'):
+        package = find_package(course, package_id)
+        if not package:
+            return create_response(400, {'error': 'A valid package_id is required for this course'})
+
+    shipping_address = validate_shipping_address(body.get('shipping_address'), package)
+
     # Retry of an already-granted free coupon must succeed even though the
     # coupon is now exhausted/disabled. Check the deterministic purchase
     # before re-validating the mutable coupon inventory.
@@ -1767,6 +1881,7 @@ def create_checkout_session(event):
         existing_free_id = coupon_purchase_id(
             str(raw_coupon.get('coupon_id') or raw_coupon.get('code') or '').upper(),
             course['course_id'], pending_user_id(str(email).strip().lower()),
+            package_id=package.get('package_id') if package else None,
         )
         existing_free = purchases_table.get_item(
             Key={'purchase_id': existing_free_id}, ConsistentRead=True,
@@ -1778,9 +1893,9 @@ def create_checkout_session(event):
             })
 
     coupon = validate_coupon_for_checkout(course, coupon_code, email)
-    total = compute_discounted_total(course, coupon)
+    total = compute_discounted_total(course, coupon, package)
     if total <= 0:
-        purchase = create_coupon_purchase_without_stripe(course, coupon, email, acceptance)
+        purchase = create_coupon_purchase_without_stripe(course, coupon, email, acceptance, package, shipping_address)
         return create_response(200, {
             'session_id': purchase['purchase_id'],
             'checkout_url': success_url,
@@ -1792,7 +1907,7 @@ def create_checkout_session(event):
         return create_response(400, {'error': 'checkout_request_id is required'})
     fingerprint = checkout_fingerprint(
         (email or '').strip().lower(), course['course_id'], coupon.get('code') if coupon else None,
-        total, acceptance['terms_version'],
+        total, acceptance['terms_version'], package_id=package.get('package_id') if package else None,
     )
     existing_request = checkout_requests_table.get_item(
         Key={'checkout_request_id': checkout_request_id}, ConsistentRead=True,
@@ -1810,6 +1925,7 @@ def create_checkout_session(event):
     if coupon:
         existing_request = reserve_coupon_for_paid_checkout(
             checkout_request_id, fingerprint, coupon, course, (email or '').strip().lower(), total, acceptance,
+            package, shipping_address,
         )
         if existing_request.get('stripe_session_id'):
             return create_response(200, {
@@ -1825,6 +1941,8 @@ def create_checkout_session(event):
             'amount_gross': Decimal(str(total)),
             'coupon_code': str(coupon.get('coupon_id') or coupon.get('code')) if coupon else None,
             'coupon_reserved': bool(coupon),
+            'package_id': package.get('package_id') if package else None,
+            'shipping_address': shipping_address,
             **acceptance,
         },
     )
@@ -1840,7 +1958,7 @@ def create_checkout_session(event):
         return create_response(202, {'status': 'CREATING_SESSION', 'retryable': True})
 
     product_data = {
-        'name': course.get('title', 'VideoCorso'),
+        'name': f"{course.get('title', 'VideoCorso')} - {package['name']}" if package else course.get('title', 'VideoCorso'),
         'description': course.get('short_description') or course.get('description', ''),
     }
     if course.get('cover_image_url'):
@@ -1864,7 +1982,9 @@ def create_checkout_session(event):
                 'course_slug': str(course.get('public_slug', course['course_id'])),
                 'course_title': str(course.get('title', '')),
                 'coupon_code': str(coupon.get('code')) if coupon else '',
-                'base_price': str(get_course_effective_price(course)),
+                'package_id': package.get('package_id') if package else '',
+                'package_name': package.get('name') if package else '',
+                'base_price': str(get_package_effective_price(package) if package else get_course_effective_price(course)),
                 'final_price': str(total), 'checkout_request_id': checkout_request_id,
                 'terms_version': acceptance['terms_version'],
                 'terms_accepted_at': acceptance['terms_accepted_at'],

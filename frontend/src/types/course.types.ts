@@ -1,3 +1,20 @@
+export interface CoursePackage {
+  package_id: string;
+  name: string;
+  price: number;
+  discounted_price?: number | null;
+  display_order?: number;
+  benefits: string[];
+  includes_kit: boolean;
+  includes_ebook: boolean;
+  includes_whatsapp_support: boolean;
+  /** null means "support included but duration not yet confirmed" - never
+   * assume a duration in the UI when this is null. */
+  whatsapp_support_months?: number | null;
+  includes_community: boolean;
+  live_meetings_count: number;
+}
+
 export interface Course {
   course_id: string;
   title: string;
@@ -17,6 +34,10 @@ export interface Course {
   updated_at: string;
   is_active: boolean;
   has_access?: boolean;
+  /** Commercial tiers (e.g. Basic/Intermedio/Avanzato). All packages of a
+   * course grant identical lesson access; they differ only in price and
+   * included benefits. Empty when the course uses the legacy flat price. */
+  packages?: CoursePackage[];
 }
 
 export interface Chapter {

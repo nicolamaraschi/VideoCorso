@@ -13,6 +13,17 @@ export interface PaginatedResponse<T> {
   total_pages: number;
 }
 
+export interface ShippingAddress {
+  full_name: string;
+  address_line1: string;
+  address_line2?: string;
+  city: string;
+  postal_code: string;
+  province?: string;
+  country: string;
+  phone?: string;
+}
+
 // Payment API types
 export interface CreateCheckoutRequest {
   checkout_request_id: string;
@@ -21,6 +32,10 @@ export interface CreateCheckoutRequest {
   cancel_url: string;
   email?: string;
   coupon_code?: string;
+  /** Required when the course has packages (see Course.packages). */
+  package_id?: string;
+  /** Required only when the selected package includes a physical kit. */
+  shipping_address?: ShippingAddress;
   terms_accepted: boolean;
   digital_content_consent: boolean;
   terms_version: string;
@@ -111,6 +126,7 @@ export interface AdminCourseRequest {
   public_slug?: string;
   display_order?: number;
   badge?: '' | 'bestseller' | 'new' | 'sale';
+  packages?: import('./course.types').CoursePackage[];
 }
 
 export interface CreateChapterRequest {

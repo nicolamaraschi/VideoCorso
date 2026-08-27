@@ -87,6 +87,29 @@ def normalize_bool(value: Any) -> bool:
     return bool(value)
 
 
+def normalize_package(package: dict[str, Any]) -> dict[str, Any]:
+    """One purchasable tier (Basic/Intermedio/Avanzato). All tiers of the same
+    course grant identical lesson access; only price and included benefits
+    differ. See normalize_course() for why this lives inside the course item
+    rather than as separate course rows."""
+    normalized = dict(package)
+    normalized['package_id'] = str(normalized.get('package_id') or '')
+    normalized['name'] = str(normalized.get('name') or '')
+    normalized['price'] = normalized.get('price', 0)
+    normalized['discounted_price'] = normalized.get('discounted_price')
+    normalized['display_order'] = int(normalized.get('display_order', 999))
+    normalized['benefits'] = [str(item) for item in (normalized.get('benefits') or [])]
+    normalized['includes_kit'] = normalize_bool(normalized.get('includes_kit', False))
+    normalized['includes_ebook'] = normalize_bool(normalized.get('includes_ebook', False))
+    normalized['includes_whatsapp_support'] = normalize_bool(normalized.get('includes_whatsapp_support', False))
+    # None means "included but duration not yet defined" - never assume a
+    # duration that has not been explicitly confirmed by the business.
+    normalized['whatsapp_support_months'] = normalized.get('whatsapp_support_months')
+    normalized['includes_community'] = normalize_bool(normalized.get('includes_community', False))
+    normalized['live_meetings_count'] = int(normalized.get('live_meetings_count', 0) or 0)
+    return normalized
+
+
 def normalize_course(course: dict[str, Any]) -> dict[str, Any]:
     normalized = dict(course)
     status = str(normalized.get('status') or ('published' if normalize_bool(normalized.get('is_active', True)) else 'hidden'))
@@ -100,7 +123,31 @@ def normalize_course(course: dict[str, Any]) -> dict[str, Any]:
     normalized['cover_image_url'] = normalized.get('cover_image_url', '')
     normalized['badge'] = normalized.get('badge') or ''
     normalized['display_order'] = int(normalized.get('display_order', 999))
+    # Purchasable tiers (Basic/Intermedio/Avanzato). All grant the same
+    # lesson access; they differ only in included benefits/price. A course
+    # with an empty packages list is sold using the flat price/discounted_price
+    # fields below (legacy single-price behaviour), so existing courses keep
+    # working without a data migration.
+    normalized['packages'] = sorted(
+        (normalize_package(item) for item in (normalized.get('packages') or [])),
+        key=lambda item: item['display_order'],
+    )
     return normalized
+
+
+def package_requires_shipping_address(package: dict[str, Any]) -> bool:
+    """A physical kit must be mailed to the buyer, so checkout must collect
+    an address for any package that includes one."""
+    return normalize_bool(package.get('includes_kit', False))
+
+
+def find_package(course: dict[str, Any], package_id: Optional[str]) -> Optional[dict[str, Any]]:
+    if not package_id:
+        return None
+    for package in course.get('packages') or []:
+        if package.get('package_id') == package_id:
+            return package
+    return None
 
 
 def get_legacy_course():
