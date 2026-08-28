@@ -172,25 +172,31 @@ def normalize_purchase_course_id(purchase: dict[str, Any]) -> str:
     return purchase.get('course_id') or LEGACY_COURSE_ID
 
 
-def can_access_course(user_id: str, course_id: str) -> bool:
-    if user_has_global_access(get_user_item(user_id)):
-        return True
-
-    for purchase in get_user_purchases(user_id):
-        if normalize_purchase_course_id(purchase) == course_id and purchase_grants_access(purchase):
-            return True
-
-    return False
-
-
 def find_access_purchase(user_id: str, course_id: str) -> Optional[dict[str, Any]]:
-    """Return the entitlement used for a video request, if it is a purchase."""
-    if user_has_global_access(get_user_item(user_id)):
-        return None
+    """Return the matching active purchase, if the entitlement is a purchase."""
     for purchase in get_user_purchases(user_id):
         if normalize_purchase_course_id(purchase) == course_id and purchase_grants_access(purchase):
             return purchase
     return None
+
+
+def get_course_access(user_id: str, course_id: str) -> tuple[bool, Optional[dict[str, Any]]]:
+    """Return whether access is granted and the purchase to audit, when present.
+
+    Global access is an explicit entitlement and deliberately has no purchase
+    record.  Keep that distinction so callers do not mistake ``None`` for a
+    denied request.
+    """
+    if user_has_global_access(get_user_item(user_id)):
+        return True, None
+
+    purchase = find_access_purchase(user_id, course_id)
+    return purchase is not None, purchase
+
+
+
+def can_access_course(user_id: str, course_id: str) -> bool:
+    return get_course_access(user_id, course_id)[0]
 
 
 def request_value_hash(value: Any) -> Optional[str]:
@@ -254,8 +260,8 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requ
     is_free_preview = normalize_bool(lesson.get('is_free_preview', False))
     access_purchase = None
     if not is_free_preview and not admin_bypass:
-        access_purchase = find_access_purchase(user_id, course_id)
-        if not access_purchase:
+        access_granted, access_purchase = get_course_access(user_id, course_id)
+        if not access_granted:
             return create_response(403, {'error': 'Course access required'})
 
     video_s3_key = lesson.get('video_s3_key')
