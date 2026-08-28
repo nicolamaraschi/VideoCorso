@@ -71,6 +71,11 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   };
 
   const handleSaveChapterOrder = () => {
+    const confirmed = window.confirm("Sei sicuro di voler salvare la nuova posizione dei capitoli?");
+    if (!confirmed) {
+      setLocalChapters(chapters);
+      return;
+    }
     const updates = localChapters.map((c, i) => ({
       id: c.chapter_id,
       order_number: i + 1,
@@ -79,6 +84,11 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   };
 
   const handleSaveLessonOrder = (chapterId: string) => {
+    const confirmed = window.confirm("Sei sicuro di voler salvare la nuova posizione delle lezioni?");
+    if (!confirmed) {
+      setLocalChapters(chapters);
+      return;
+    }
     const chapter = localChapters.find(c => c.chapter_id === chapterId);
     if (!chapter || !chapter.lessons) return;
 
@@ -98,6 +108,11 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     const targetIndex = index + direction;
     if (index === -1 || targetIndex < 0 || targetIndex >= localChapters.length) return;
 
+    const currentTitle = localChapters[index]?.title || 'questo capitolo';
+    const directionText = direction === -1 ? 'sopra' : 'sotto';
+    const confirmed = window.confirm(`Sei sicuro di voler spostare "${currentTitle}" ${directionText}?`);
+    if (!confirmed) return;
+
     const reordered = [...localChapters];
     [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
     const reindexed = reindexChapters(reordered);
@@ -112,6 +127,11 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     const index = chapter.lessons.findIndex((l) => l.lesson_id === lessonId);
     const targetIndex = index + direction;
     if (index === -1 || targetIndex < 0 || targetIndex >= chapter.lessons.length) return;
+
+    const currentTitle = chapter.lessons[index]?.title || 'questa lezione';
+    const directionText = direction === -1 ? 'sopra' : 'sotto';
+    const confirmed = window.confirm(`Sei sicuro di voler spostare la lezione "${currentTitle}" ${directionText}?`);
+    if (!confirmed) return;
 
     const reordered = [...chapter.lessons];
     [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
