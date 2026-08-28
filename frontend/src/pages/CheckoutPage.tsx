@@ -423,13 +423,25 @@ export const CheckoutPage: React.FC = () => {
                   >
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <h3 className="text-lg font-semibold text-gray-900">{pkg.name}</h3>
-                      {isSelected && (
-                        <span className="inline-flex px-2.5 py-1 rounded-full bg-primary-600 text-white text-xs font-medium">
-                          Selezionato
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {pkg.discounted_price && Number(pkg.discounted_price) < Number(pkg.price) && (
+                          <span className="inline-flex px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[11px] font-bold uppercase tracking-wide">
+                            -500€ Lancio
+                          </span>
+                        )}
+                        {isSelected && (
+                          <span className="inline-flex px-2.5 py-1 rounded-full bg-primary-600 text-white text-xs font-medium">
+                            Selezionato
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <span className="block text-2xl font-bold text-gray-900 mb-3">€ {pkgPrice.toFixed(2)}</span>
+                    <div className="mb-3">
+                      {pkg.discounted_price && Number(pkg.discounted_price) < Number(pkg.price) && (
+                        <span className="block text-sm text-gray-400 line-through">€ {Number(pkg.price).toFixed(2)}</span>
+                      )}
+                      <span className="block text-2xl font-bold text-gray-900">€ {pkgPrice.toFixed(2)}</span>
+                    </div>
                     <ul className="space-y-1.5 text-sm text-gray-600">
                       {pkg.benefits.map((benefit) => (
                         <li key={benefit} className="flex items-start gap-2">
