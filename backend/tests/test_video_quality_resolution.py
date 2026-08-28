@@ -1,6 +1,7 @@
 """Unit tests for deterministic rendition selection in the video endpoint."""
 
 import importlib.util
+import json
 import pathlib
 import sys
 import types
@@ -60,3 +61,49 @@ def test_source_is_served_only_while_no_rendition_exists():
     source = 'videos/lesson-1/version-1/source.mp4'
 
     assert handler.resolve_served_video_key(source, 'high', {}) == (source, None)
+
+
+class _StaticTable:
+    def __init__(self, item):
+        self.item = item
+
+    def get_item(self, **_kwargs):
+        return {'Item': self.item}
+
+
+class _CaptureTable:
+    def __init__(self):
+        self.items = []
+
+    def put_item(self, **kwargs):
+        self.items.append(kwargs['Item'])
+
+
+def test_global_access_can_open_a_protected_video_and_is_audited():
+    """A global entitlement has no purchase object, but must never produce a 403."""
+    handler = load_video_handler()
+    handler.lessons_table = _StaticTable({
+        'lesson_id': 'lesson-1',
+        'chapter_id': 'chapter-1',
+        'video_s3_key': 'videos/lesson-1/source.mp4',
+        'is_free_preview': False,
+    })
+    handler.chapters_table = _StaticTable({'chapter_id': 'chapter-1', 'course_id': 'course-1'})
+    handler.users_table = _StaticTable({'user_id': 'user-1', 'global_access': True})
+    handler.purchases_table = types.SimpleNamespace(query=lambda **_kwargs: {'Items': []})
+    handler.get_available_renditions = lambda _key: {}
+    handler.s3_client = types.SimpleNamespace(
+        generate_presigned_url=lambda *_args, **_kwargs: 'https://video.example.test/signed'
+    )
+    access_log = _CaptureTable()
+    handler.video_access_logs_table = access_log
+
+    response = handler.get_video_url(
+        'user-1',
+        'lesson-1',
+        request_event={'requestContext': {}, 'headers': {}},
+    )
+
+    assert response['statusCode'] == 200
+    assert json.loads(response['body'])['video_url'] == 'https://video.example.test/signed'
+    assert access_log.items[0]['purchase_id'] == 'global_access'
