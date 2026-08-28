@@ -4,7 +4,6 @@ frontend:
     preBuild:
       commands:
         - cd frontend
-        - npm install react@18.2.0 react-dom@18.2.0 --save-exact --force
         - npm install --legacy-peer-deps
     build:
       commands:
