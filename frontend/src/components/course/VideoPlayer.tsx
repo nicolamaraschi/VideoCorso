@@ -126,9 +126,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const boundedTime = Math.max(0, Math.min(targetTime, duration || 0));
     setCurrentTime(boundedTime); // Instant UI feedback without waiting for network
     if (video) {
-      if (typeof (video as any).fastSeek === 'function') {
+      if ('fastSeek' in video && typeof video.fastSeek === 'function') {
         try {
-          (video as any).fastSeek(boundedTime);
+          video.fastSeek(boundedTime);
         } catch {
           video.currentTime = boundedTime;
         }

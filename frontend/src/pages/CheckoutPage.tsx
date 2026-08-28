@@ -95,7 +95,7 @@ export const CheckoutPage: React.FC = () => {
     if (user?.email && !emailInput) {
       setEmailInput(user.email);
     }
-  }, [user?.email]);
+  }, [user?.email, emailInput]);
 
   const verifyReturnedPayment = useCallback(async () => {
     if (paymentReturn !== 'success') return;
