@@ -34,13 +34,13 @@ export const LessonCard: React.FC<LessonCardProps> = ({
       } ${isLocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
     >
       {lesson.thumbnail_url ? (
-        <div className="w-24 h-14 sm:w-36 sm:h-20 md:w-44 md:h-24 overflow-hidden rounded-xl border border-gray-200 bg-gray-100 flex-shrink-0 shadow-sm">
+        <div className="w-28 h-16 sm:w-44 sm:h-26 md:w-52 md:h-30 aspect-video overflow-hidden rounded-xl border border-gray-200 bg-gray-100 flex-shrink-0 shadow-sm">
           <img
             src={lesson.thumbnail_url}
             alt={`Copertina ${lesson.title}`}
             loading="lazy"
-            width={176}
-            height={96}
+            width={208}
+            height={120}
             className="w-full h-full object-cover"
           />
         </div>
