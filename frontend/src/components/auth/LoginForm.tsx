@@ -150,16 +150,23 @@ export const LoginForm: React.FC = () => {
 
     setLoading(true);
     const result = await submitPasswordReset(email, code, newPassword);
-    setLoading(false);
 
     if (result.success) {
-      setMessage('Password reimpostata con successo! Accedi con la nuova password.');
-      setView('login');
-      setPassword(''); 
-      setNewPassword('');
-      setConfirmNewPassword('');
-      setCode('');
+      // Effettua subito l'accesso automatico con la nuova password per evitare doppi passaggi
+      const loginResult = await login(email, newPassword);
+      setLoading(false);
+      if (loginResult.success && loginResult.user) {
+        handleRedirect(loginResult.user);
+      } else {
+        setMessage('Password reimpostata con successo! Accedi con la nuova password.');
+        setView('login');
+        setPassword(''); 
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setCode('');
+      }
     } else {
+      setLoading(false);
       setError(result.error || 'Impossibile reimpostare la password.');
     }
   };
