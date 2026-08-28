@@ -226,6 +226,12 @@ def record_audit_log(action: str, target_type: str, target_id: str, details: Opt
     table = TABLES.get('AUDIT_LOGS')
     if not table:
         return
+    safe_details = {}
+    if details:
+        try:
+            safe_details = json.loads(json.dumps(details, default=str), parse_float=Decimal)
+        except Exception:
+            safe_details = {k: str(v) for k, v in details.items()}
     table.put_item(Item={
         'audit_id': str(uuid.uuid4()),
         'created_at': now_iso(),
@@ -233,7 +239,7 @@ def record_audit_log(action: str, target_type: str, target_id: str, details: Opt
         'action': action,
         'target_type': target_type,
         'target_id': str(target_id),
-        'details': details or {},
+        'details': safe_details,
     })
 
 
@@ -1969,7 +1975,7 @@ def refund_purchase(purchase_id: str, body: dict[str, Any]):
     normalized = sync_purchase_access(normalized)
     normalized = put_purchase(normalized)
     record_audit_log('refund_purchase', 'purchase', purchase_id, {
-        'refund_id': refund.get('id'), 'amount': refund_args.get('amount', remaining_cents) / 100,
+        'refund_id': refund.get('id'), 'amount': Decimal(str(refund_args.get('amount', remaining_cents) / 100)),
         'note': normalized['refund_note'],
     })
     return create_response(200, {'success': True, 'data': normalized, 'refund_id': refund.get('id')})
