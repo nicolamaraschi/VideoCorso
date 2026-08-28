@@ -56,8 +56,12 @@ def ensure_cognito_user(email: str, full_name: str) -> str:
         try:
             response = cognito.admin_create_user(
                 UserPoolId=USER_POOL_ID, Username=email, TemporaryPassword=generate_temp_password(),
-                UserAttributes=[{'Name': 'email', 'Value': email}, {'Name': 'custom:subscription_status', 'Value': 'active'},
-                                *([{'Name': 'custom:full_name', 'Value': full_name}] if full_name else [])],
+                UserAttributes=[
+                    {'Name': 'email', 'Value': email},
+                    {'Name': 'email_verified', 'Value': 'true'},
+                    {'Name': 'custom:subscription_status', 'Value': 'active'},
+                    *([{'Name': 'custom:full_name', 'Value': full_name}] if full_name else [])
+                ],
                 DesiredDeliveryMediums=['EMAIL'],
             )
             existing = next(attribute['Value'] for attribute in response['User']['Attributes'] if attribute['Name'] == 'sub')
@@ -67,8 +71,11 @@ def ensure_cognito_user(email: str, full_name: str) -> str:
                 raise
     cognito.admin_update_user_attributes(
         UserPoolId=USER_POOL_ID, Username=email,
-        UserAttributes=[{'Name': 'custom:subscription_status', 'Value': 'active'},
-                        *([{'Name': 'custom:full_name', 'Value': full_name}] if full_name else [])],
+        UserAttributes=[
+            {'Name': 'email_verified', 'Value': 'true'},
+            {'Name': 'custom:subscription_status', 'Value': 'active'},
+            *([{'Name': 'custom:full_name', 'Value': full_name}] if full_name else [])
+        ],
     )
     cognito.admin_add_user_to_group(UserPoolId=USER_POOL_ID, Username=email, GroupName='students')
     return existing

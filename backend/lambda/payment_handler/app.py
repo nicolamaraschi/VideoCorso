@@ -425,7 +425,10 @@ def get_existing_user_from_cognito(email: str):
 def ensure_cognito_user(email: str, full_name: str, course_title: str):
     existing = get_existing_user_from_cognito(email)
     if existing:
-        attributes = [{'Name': 'custom:subscription_status', 'Value': 'active'}]
+        attributes = [
+            {'Name': 'email_verified', 'Value': 'true'},
+            {'Name': 'custom:subscription_status', 'Value': 'active'},
+        ]
         if full_name:
             attributes.append({'Name': 'custom:full_name', 'Value': full_name})
         cognito_client.admin_update_user_attributes(
@@ -442,6 +445,7 @@ def ensure_cognito_user(email: str, full_name: str, course_title: str):
         TemporaryPassword=temp_password,
         UserAttributes=[
             {'Name': 'email', 'Value': email},
+            {'Name': 'email_verified', 'Value': 'true'},
             {'Name': 'custom:subscription_status', 'Value': 'active'},
             *([{'Name': 'custom:full_name', 'Value': full_name}] if full_name else []),
         ],

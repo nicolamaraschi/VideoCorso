@@ -895,16 +895,13 @@ def summarize_student(user_item: dict[str, Any], catalog: Optional[dict[str, Any
 
 
 def sync_cognito_user(username: str, full_name=None, subscription_status=None, subscription_end_date=None):
-    attributes = []
+    attributes = [{'Name': 'email_verified', 'Value': 'true'}]
     if full_name is not None:
         attributes.append({'Name': 'custom:full_name', 'Value': full_name})
     if subscription_status is not None:
         attributes.append({'Name': 'custom:subscription_status', 'Value': subscription_status})
     if subscription_end_date is not None:
         attributes.append({'Name': 'custom:sub_end_date', 'Value': subscription_end_date})
-
-    if not attributes:
-        return
 
     cognito_client.admin_update_user_attributes(
         UserPoolId=COGNITO_USER_POOL_ID,
@@ -1464,6 +1461,7 @@ def ensure_cognito_student(email: str, full_name: str):
             TemporaryPassword=temp_password,
             UserAttributes=[
                 {'Name': 'email', 'Value': email},
+                {'Name': 'email_verified', 'Value': 'true'},
                 {'Name': 'custom:full_name', 'Value': full_name},
                 {'Name': 'custom:subscription_status', 'Value': 'active'},
             ],
@@ -2274,6 +2272,7 @@ def create_admin_account(body):
             TemporaryPassword=temp_password,
             UserAttributes=[
                 {'Name': 'email', 'Value': email},
+                {'Name': 'email_verified', 'Value': 'true'},
                 {'Name': 'custom:full_name', 'Value': full_name},
             ],
             DesiredDeliveryMediums=['EMAIL'],
