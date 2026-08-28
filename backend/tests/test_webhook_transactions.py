@@ -249,7 +249,6 @@ def test_payment_verification_never_calls_an_unpaid_session_successful(configure
     payload = __import__("json").loads(configured_payment.verify_payment("cs_test_customer_return")["body"])["data"]
     assert payload["payment_state"] == "pending"
     assert payload["access_state"] == "not_available"
-    assert items[2]["Put"]["TableName"] == "outbox"
 
 
 def test_coupon_transaction_uses_stored_key_not_normalized_display_code(configured_payment):

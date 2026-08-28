@@ -344,6 +344,74 @@ export const AdminPurchaseDetailPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Package and Shipping Information Card */}
+          {(purchase.package_name || purchase.shipping_address) && (
+            <div className="border-t border-gray-200 pt-4 space-y-3">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <span>📦 Pacchetto & Spedizione Kit</span>
+                {purchase.shipping_address && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary-100 text-primary-800">
+                    Kit Fisico Incluso
+                  </span>
+                )}
+              </h3>
+
+              {purchase.package_name && (
+                <div className="rounded-lg bg-primary-50/60 border border-primary-100 p-3.5 text-sm">
+                  <p className="text-xs text-primary-700 font-semibold uppercase tracking-wider">Pacchetto scelto</p>
+                  <p className="text-base font-bold text-gray-900 mt-0.5">{purchase.package_name}</p>
+                  {purchase.package_benefits_snapshot && purchase.package_benefits_snapshot.length > 0 && (
+                    <ul className="mt-2 space-y-1 text-xs text-gray-600">
+                      {purchase.package_benefits_snapshot.map((b, idx) => (
+                        <li key={idx} className="flex items-center gap-1.5">
+                          <span className="text-primary-600 font-bold">✓</span> {b}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {purchase.shipping_address && (
+                <div className="rounded-lg bg-amber-50/70 border border-amber-200 p-4 text-sm space-y-2">
+                  <p className="text-xs text-amber-800 font-bold uppercase tracking-wider flex items-center justify-between">
+                    <span>Indirizzo di Spedizione per il Corriere</span>
+                    <span className="text-xs font-medium px-2 py-0.5 bg-amber-200/80 rounded text-amber-900">
+                      {purchase.shipping_status === 'shipped' ? 'Spedito' : 'In preparazione'}
+                    </span>
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-800 pt-1">
+                    <div>
+                      <p className="text-xs text-gray-500">Destinatario:</p>
+                      <p className="font-semibold text-gray-900">{purchase.shipping_address.full_name || 'Non specificato'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Telefono:</p>
+                      <p className="font-semibold text-gray-900">{purchase.shipping_address.phone || 'Non specificato'}</p>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <p className="text-xs text-gray-500">Indirizzo:</p>
+                      <p className="font-semibold text-gray-900">
+                        {purchase.shipping_address.address_line1}
+                        {purchase.shipping_address.address_line2 ? ` (${purchase.shipping_address.address_line2})` : ''}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Città & CAP:</p>
+                      <p className="font-semibold text-gray-900">
+                        {purchase.shipping_address.postal_code} {purchase.shipping_address.city} {purchase.shipping_address.province ? `(${purchase.shipping_address.province})` : ''}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Nazione:</p>
+                      <p className="font-semibold text-gray-900">{purchase.shipping_address.country}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="border-t border-gray-200 pt-4 space-y-3 text-sm">
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

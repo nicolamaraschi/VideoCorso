@@ -235,7 +235,19 @@ export const AdminPurchasesPage: React.FC = () => {
                       <div className="font-medium text-gray-900">{purchase.user_name || 'Cliente'}</div>
                       <div className="text-sm text-gray-500">{email || 'Non disponibile'}</div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{purchase.course_title || purchase.course_id}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      <div className="font-medium text-gray-900">{purchase.course_title || purchase.course_id}</div>
+                      {purchase.package_name && (
+                        <div className="text-xs text-primary-700 font-semibold mt-0.5">
+                          {purchase.package_name}
+                        </div>
+                      )}
+                      {purchase.shipping_address && (
+                        <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                          📦 Kit fisico da spedire
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-sm text-gray-700">{formatDateTime(purchase.purchase_date || purchase.created_at || '')}</td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-2">
