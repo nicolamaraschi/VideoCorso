@@ -70,33 +70,33 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                   <ChevronRight className="w-5 h-5 text-gray-600 flex-shrink-0" />
                 )}
 
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
                   {chapter.image_url && (
-                    <div className="mb-3 overflow-hidden rounded-xl border border-gray-200 bg-white">
+                    <div className="w-full sm:w-64 flex-shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white">
                       <img
                         src={chapter.image_url}
                         alt={`Copertina ${chapter.title}`}
                         loading="lazy"
-                        width={800}
-                        height={144}
-                        className="h-36 w-full object-cover"
+                        className="w-full aspect-video object-cover shadow-sm"
                       />
                     </div>
                   )}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium text-gray-900">
-                      Modulo {chapter.order_number}
-                    </span>
-                    {chapterProgress.percentage === 100 && (
-                      <CheckCircle className="w-4 h-4 text-green-600" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium text-gray-900">
+                        Modulo {chapter.order_number}
+                      </span>
+                      {chapterProgress.percentage === 100 && (
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      )}
+                    </div>
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mt-1 break-words">
+                      {chapter.title}
+                    </h3>
+                    {chapter.description && (
+                      <p className="text-sm text-gray-600 mt-1">{chapter.description}</p>
                     )}
                   </div>
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mt-1 break-words">
-                    {chapter.title}
-                  </h3>
-                  {chapter.description && (
-                    <p className="text-sm text-gray-600 mt-1">{chapter.description}</p>
-                  )}
                 </div>
               </div>
 
