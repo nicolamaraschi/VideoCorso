@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Video } from 'lucide-react';
 import { VideoPlayer } from '../components/course/VideoPlayer';
 import { Button } from '../components/common/Button';
 import { Loading } from '../components/common/Loading';
@@ -15,8 +15,8 @@ const QUALITY_STORAGE_KEY = 'videocorso_preferred_quality';
 const readStoredQuality = (): VideoQuality | undefined => {
   try {
     const stored = window.localStorage.getItem(QUALITY_STORAGE_KEY);
-    if (stored === 'high' || stored === 'medium' || stored === 'low') {
-      return stored;
+    if (stored === '1080p' || stored === '720p' || stored === '480p' || stored === '360p' || stored === 'high' || stored === 'medium' || stored === 'low') {
+      return stored as VideoQuality;
     }
   } catch {
     // localStorage may be unavailable (private browsing); default quality is fine.
@@ -95,30 +95,63 @@ export const VideoPlayerPage: React.FC = () => {
   };
 
   if (loading) {
-    return <Loading fullScreen text="Loading video..." />;
+    return <Loading fullScreen text="Caricamento video..." />;
   }
 
   if (error || !lesson || !videoUrl || !courseStructure) {
-    const isVideoMissing = error?.includes('404') || error?.includes('Not Found');
+    const isVideoMissing =
+      !videoUrl ||
+      error?.toLowerCase().includes('no video') ||
+      error?.toLowerCase().includes('not found') ||
+      error?.includes('404');
 
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {isVideoMissing ? (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center max-w-2xl mx-auto">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
-              <CheckCircle className="w-8 h-8 text-blue-600" />
+          <div className="bg-white border border-rose-100 shadow-lg rounded-2xl p-8 sm:p-12 text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-rose-50 border border-rose-200 mb-5 shadow-inner">
+              <Video className="w-10 h-10 text-primary-600" />
             </div>
-            <h2 className="text-2xl font-bold text-blue-900 mb-2">Materiale Informativo</h2>
-            <p className="text-blue-700 mb-8">
-              In questo modulo non è presente un video. Puoi continuare con il materiale testuale o passare direttamente alla lezione successiva.
+            <div>
+              <span className="inline-block px-3.5 py-1 bg-primary-50 border border-primary-200 text-primary-800 text-xs font-semibold rounded-full uppercase tracking-wider mb-3">
+                Chiara Morocutti Academy
+              </span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
+              Video-lezione in arrivo
+            </h2>
+            <p className="text-gray-600 max-w-lg mx-auto mb-8 text-sm sm:text-base leading-relaxed">
+              {lesson?.title ? (
+                <>La lezione <strong>"{lesson.title}"</strong> è attualmente in fase di preparazione/montaggio e sarà presto disponibile nel corso.</>
+              ) : (
+                <>Questa video-lezione è attualmente in fase di finalizzazione e sarà presto caricata.</>
+              )}
             </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Button onClick={() => navigate(`/courses/${courseId}`)} variant="secondary">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-3">
+              <Button
+                onClick={() => navigate(`/courses/${courseStructure?.course?.public_slug || courseStructure?.course?.course_id || courseId}`)}
+                variant="secondary"
+                className="w-full sm:w-auto"
+              >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Torna al corso
               </Button>
+              {previousLesson && (
+                <Button
+                  onClick={() => navigate(`/courses/${courseId}/lessons/${previousLesson.lesson_id}`)}
+                  variant="secondary"
+                  className="w-full sm:w-auto"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Lezione precedente
+                </Button>
+              )}
               {nextLesson && (
-                <Button onClick={() => navigate(`/courses/${courseId}/lessons/${nextLesson.lesson_id}`)} variant="primary">
+                <Button
+                  onClick={() => navigate(`/courses/${courseId}/lessons/${nextLesson.lesson_id}`)}
+                  variant="primary"
+                  className="w-full sm:w-auto"
+                >
                   Lezione successiva
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>

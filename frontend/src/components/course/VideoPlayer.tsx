@@ -427,7 +427,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           )}
 
           {/* Bottom Controls */}
-          <div className="absolute bottom-0 left-0 right-0 space-y-2 p-3 sm:p-4 pointer-events-auto">
+          <div className="absolute bottom-0 left-0 right-0 space-y-2 p-2.5 sm:p-4 pointer-events-auto">
             {/* Progress Bar */}
             <div
               ref={progressBarRef}
@@ -443,10 +443,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             </div>
 
             {/* Control Buttons */}
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                <button onClick={togglePlay} className="-m-1.5 min-h-11 min-w-11 rounded-full p-2 text-white hover:bg-white/10 hover:text-primary-400" aria-label={isPlaying ? 'Metti in pausa' : 'Riproduci'}>
-                  {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+                <button
+                  onClick={togglePlay}
+                  className="rounded-full p-1.5 text-white hover:bg-white/10 hover:text-primary-400 shrink-0"
+                  aria-label={isPlaying ? 'Metti in pausa' : 'Riproduci'}
+                >
+                  {isPlaying ? <Pause className="w-5 h-5 sm:w-6 sm:h-6" /> : <Play className="w-5 h-5 sm:w-6 sm:h-6" />}
                 </button>
 
                 <button
@@ -454,53 +458,66 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                     if (playerRef.current) playerRef.current.currentTime = 0;
                     if (!isPlaying) togglePlay();
                   }}
-                  className="hidden min-h-11 min-w-11 rounded-full p-2 text-white hover:bg-white/10 hover:text-primary-400 sm:block"
+                  className="hidden rounded-full p-1.5 text-white hover:bg-white/10 hover:text-primary-400 lg:block shrink-0"
                   title="Restart"
                   aria-label="Riavvia dall'inizio"
                 >
-                  <RotateCcw className="w-5 h-5" />
+                  <RotateCcw className="w-4 h-4" />
                 </button>
 
-                <button onClick={() => skip(-10)} className="hidden min-h-11 min-w-11 rounded-full p-2 text-white hover:bg-white/10 hover:text-primary-400 sm:block" aria-label="Indietro di dieci secondi">
-                  <SkipBack className="w-5 h-5" />
+                <button
+                  onClick={() => skip(-10)}
+                  className="hidden rounded-full p-1.5 text-white hover:bg-white/10 hover:text-primary-400 md:block shrink-0"
+                  aria-label="Indietro di dieci secondi"
+                >
+                  <SkipBack className="w-4 h-4" />
                 </button>
 
-                <button onClick={() => skip(10)} className="hidden min-h-11 min-w-11 rounded-full p-2 text-white hover:bg-white/10 hover:text-primary-400 sm:block" aria-label="Avanti di dieci secondi">
-                  <SkipForward className="w-5 h-5" />
+                <button
+                  onClick={() => skip(10)}
+                  className="hidden rounded-full p-1.5 text-white hover:bg-white/10 hover:text-primary-400 md:block shrink-0"
+                  aria-label="Avanti di dieci secondi"
+                >
+                  <SkipForward className="w-4 h-4" />
                 </button>
 
-                <button onClick={toggleMute} className="-m-1.5 min-h-11 min-w-11 rounded-full p-2 text-white hover:bg-white/10 hover:text-primary-400" aria-label={isMuted ? 'Attiva audio' : 'Disattiva audio'}>
-                  {isMuted || volume === 0 ? (
-                    <VolumeX className="w-5 h-5" />
-                  ) : (
-                    <Volume2 className="w-5 h-5" />
-                  )}
-                </button>
+                <div className="flex items-center group/vol">
+                  <button
+                    onClick={toggleMute}
+                    className="rounded-full p-1.5 text-white hover:bg-white/10 hover:text-primary-400 shrink-0"
+                    aria-label={isMuted ? 'Attiva audio' : 'Disattiva audio'}
+                  >
+                    {isMuted || volume === 0 ? (
+                      <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
+                    ) : (
+                      <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                    )}
+                  </button>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={volume}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      changeVolume(val - volume);
+                    }}
+                    className="w-14 hidden group-hover/vol:block md:hidden lg:block accent-primary-500 cursor-pointer"
+                  />
+                </div>
 
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={volume}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    changeVolume(val - volume);
-                  }}
-                  className="w-20 hidden sm:block"
-                />
-
-                <span className="whitespace-nowrap text-xs font-medium text-white sm:text-sm">
+                <span className="whitespace-nowrap text-[11px] font-medium text-white/90 sm:text-xs ml-1">
                   {formatDuration(currentTime)} / {formatDuration(duration)}
                 </span>
               </div>
 
-              <div className="flex shrink-0 items-center gap-1 sm:gap-3">
+              <div className="flex shrink-0 items-center gap-1">
                 {/* Settings Menu */}
                 <div className="relative">
                   <button
                     onClick={() => setShowSettings(!showSettings)}
-                    className="min-h-11 min-w-11 rounded-full p-2 text-white hover:bg-white/10 hover:text-primary-400"
+                    className={`rounded-full p-1.5 text-white hover:bg-white/10 hover:text-primary-400 ${showSettings ? 'text-primary-400 bg-white/10' : ''}`}
                     aria-label="Impostazioni video"
                   >
                     <Settings className="w-5 h-5" />
@@ -509,51 +526,56 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   {showSettings && (
                     <>
                       <div
-                        className="fixed inset-0 z-10"
+                        className="fixed inset-0 z-20"
                         onClick={() => setShowSettings(false)}
                       />
-                      <div className="absolute bottom-full right-0 mb-2 bg-black/90 rounded-lg p-2 min-w-[170px] z-20">
-                        <div className="text-white text-xs font-semibold mb-2 px-2">
-                          Playback Speed
+                      <div className="absolute bottom-full right-0 mb-2 bg-neutral-900/95 border border-white/15 rounded-xl p-2.5 min-w-[180px] max-h-[65vh] overflow-y-auto overscroll-contain shadow-2xl backdrop-blur-md z-30">
+                        {/* Qualità Video */}
+                        <div className="text-white text-xs font-semibold mb-1 px-2 flex items-center justify-between">
+                          <span>Qualità video</span>
                         </div>
-                        {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
-                          <button
-                            key={rate}
-                            onClick={() => changePlaybackRate(rate)}
-                            className={`w-full text-left px-3 py-1.5 rounded text-sm ${playbackRate === rate
-                              ? 'bg-primary-600 text-white'
-                              : 'text-white/80 hover:bg-white/10'
+                        {(availableQualities.length > 0 ? availableQualities : ['1080p', '720p', '480p', '360p']).map((q) => {
+                          const isSelected = quality === q || (!quality && (q === '1080p' || q === 'high'));
+                          return (
+                            <button
+                              key={q}
+                              onClick={() => handleQualitySelect(q as VideoQuality)}
+                              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                isSelected
+                                  ? 'bg-primary-600 text-white font-semibold shadow-sm'
+                                  : 'text-white/80 hover:bg-white/10 hover:text-white'
                               }`}
-                          >
-                            {rate}x
-                          </button>
-                        ))}
+                            >
+                              {QUALITY_LABELS[q] || q}
+                            </button>
+                          );
+                        })}
 
-                        {onQualityChange && availableQualities.length > 0 && (
-                          <>
-                            <div className="text-white text-xs font-semibold mt-3 mb-2 px-2 border-t border-white/10 pt-3">
-                              Qualità video
-                            </div>
-                            {availableQualities.map((q) => (
-                              <button
-                                key={q}
-                                onClick={() => handleQualitySelect(q as VideoQuality)}
-                                className={`w-full text-left px-3 py-1.5 rounded text-sm ${quality === q || (!quality && (q === '1080p' || q === 'high' || q === '720p'))
-                                  ? 'bg-primary-600 text-white'
+                        {/* Velocità di riproduzione */}
+                        <div className="text-white text-xs font-semibold mt-2.5 mb-1 px-2 border-t border-white/15 pt-2">
+                          Velocità
+                        </div>
+                        <div className="grid grid-cols-3 gap-1">
+                          {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
+                            <button
+                              key={rate}
+                              onClick={() => changePlaybackRate(rate)}
+                              className={`text-center py-1 rounded text-xs transition-colors ${
+                                playbackRate === rate
+                                  ? 'bg-primary-600 text-white font-semibold'
                                   : 'text-white/80 hover:bg-white/10'
-                                  }`}
-                              >
-                                {QUALITY_LABELS[q] || q}
-                              </button>
-                            ))}
-                          </>
-                        )}
+                              }`}
+                            >
+                              {rate}x
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </>
                   )}
                 </div>
 
-                <button onClick={toggleFullscreen} className="min-h-11 min-w-11 rounded-full p-2 text-white hover:bg-white/10 hover:text-primary-400" aria-label="Schermo intero">
+                <button onClick={toggleFullscreen} className="rounded-full p-1.5 text-white hover:bg-white/10 hover:text-primary-400" aria-label="Schermo intero">
                   <Maximize className="w-5 h-5" />
                 </button>
               </div>
