@@ -158,12 +158,27 @@ def get_user_item(user_id: str) -> dict[str, Any]:
     return response.get('Item') or {}
 
 
-def get_user_purchases(user_id: str) -> list[dict[str, Any]]:
-    return query_all(
+def get_user_purchases(user_id: str, email: Optional[str] = None) -> list[dict[str, Any]]:
+    if not user_id:
+        return []
+    purchases = query_all(
         purchases_table,
         IndexName='UserIndex',
         KeyConditionExpression=Key('user_id').eq(user_id),
     )
+    if not email:
+        user_item = get_user_item(user_id)
+        email = user_item.get('email')
+    if email:
+        pending_id = f"pending-{hashlib.sha256(email.strip().lower().encode('utf-8')).hexdigest()[:32]}"
+        if pending_id != user_id:
+            pending_purchases = query_all(
+                purchases_table,
+                IndexName='UserIndex',
+                KeyConditionExpression=Key('user_id').eq(pending_id),
+            )
+            purchases.extend(pending_purchases)
+    return purchases
 
 
 def user_has_global_access(user_item: dict[str, Any]) -> bool:

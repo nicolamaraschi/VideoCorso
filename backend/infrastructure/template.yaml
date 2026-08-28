@@ -848,6 +848,8 @@ Resources:
                 - cognito-idp:AdminGetUser
                 - cognito-idp:AdminCreateUser
                 - cognito-idp:AdminAddUserToGroup
+                - cognito-idp:AdminUpdateUserAttributes
+                - cognito-idp:AdminSetUserPassword
               Resource: !GetAtt UserPool.Arn
       Events:
         ProvisioningOutboxStream:
