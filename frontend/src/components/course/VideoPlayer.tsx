@@ -24,8 +24,12 @@ interface WebKitPlayerWrapper {
   getInternalPlayer?: () => WebKitVideoElement | null;
 }
 
-const QUALITY_LABELS: Record<VideoQuality, string> = {
-  high: 'Alta (720p)',
+const QUALITY_LABELS: Record<string, string> = {
+  '1080p': 'Full HD (1080p)',
+  '720p': 'Alta (720p)',
+  '480p': 'Media (480p)',
+  '360p': 'Bassa (360p)',
+  high: 'Full HD (1080p)',
   medium: 'Media (480p)',
   low: 'Bassa (360p)',
 };
@@ -530,22 +534,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                             <div className="text-white text-xs font-semibold mt-3 mb-2 px-2 border-t border-white/10 pt-3">
                               Qualità video
                             </div>
-                            {(['high', 'medium', 'low'] as VideoQuality[])
-                              .filter((q) => availableQualities.includes(
-                                q === 'high' ? '720p' : q === 'medium' ? '480p' : '360p'
-                              ))
-                              .map((q) => (
-                                <button
-                                  key={q}
-                                  onClick={() => handleQualitySelect(q)}
-                                  className={`w-full text-left px-3 py-1.5 rounded text-sm ${quality === q || (!quality && q === 'high')
-                                    ? 'bg-primary-600 text-white'
-                                    : 'text-white/80 hover:bg-white/10'
-                                    }`}
-                                >
-                                  {QUALITY_LABELS[q]}
-                                </button>
-                              ))}
+                            {availableQualities.map((q) => (
+                              <button
+                                key={q}
+                                onClick={() => handleQualitySelect(q as VideoQuality)}
+                                className={`w-full text-left px-3 py-1.5 rounded text-sm ${quality === q || (!quality && (q === '1080p' || q === 'high' || q === '720p'))
+                                  ? 'bg-primary-600 text-white'
+                                  : 'text-white/80 hover:bg-white/10'
+                                  }`}
+                              >
+                                {QUALITY_LABELS[q] || q}
+                              </button>
+                            ))}
                           </>
                         )}
                       </div>

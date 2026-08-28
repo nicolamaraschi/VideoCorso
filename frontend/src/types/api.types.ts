@@ -71,7 +71,7 @@ export interface GetVideoUrlResponse {
   available_qualities?: string[];
 }
 
-export type VideoQuality = 'high' | 'medium' | 'low';
+export type VideoQuality = '1080p' | '720p' | '480p' | '360p' | 'high' | 'medium' | 'low';
 
 // Progress API types
 export interface UpdateProgressRequest {

@@ -26,6 +26,14 @@ def mediaconvert_client():
 # Bitrates follow AWS's own QVBR reference points for each resolution tier.
 RENDITIONS = [
     {
+        'name_modifier': '_1080p',
+        'width': 1920,
+        'height': 1080,
+        'qvbr_quality_level': 8,
+        'max_bitrate': 4500000,
+        'audio_bitrate': 128000,
+    },
+    {
         'name_modifier': '_720p',
         'width': 1280,
         'height': 720,
@@ -55,6 +63,14 @@ RENDITIONS = [
 def get_renditions_for_orientation(is_portrait: bool) -> list[dict]:
     if is_portrait:
         return [
+            {
+                'name_modifier': '_1080p',
+                'width': 1080,
+                'height': 1920,
+                'qvbr_quality_level': 8,
+                'max_bitrate': 4500000,
+                'audio_bitrate': 128000,
+            },
             {
                 'name_modifier': '_720p',
                 'width': 720,

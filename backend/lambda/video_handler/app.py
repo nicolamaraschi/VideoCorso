@@ -93,11 +93,15 @@ def is_external_video_url(value: Any) -> bool:
 # a higher one, and only fall back to the legacy single "_1080p" output as
 # the last resort for videos transcoded before multi-quality support existed.
 FALLBACK_CHAINS = {
-    'high': ['720p', '480p', '360p', '1080p'],
-    'medium': ['480p', '360p', '720p', '1080p'],
+    '1080p': ['1080p', '720p', '480p', '360p'],
+    'high': ['1080p', '720p', '480p', '360p'],
+    '720p': ['720p', '1080p', '480p', '360p'],
+    'medium': ['480p', '720p', '360p', '1080p'],
+    '480p': ['480p', '720p', '360p', '1080p'],
     'low': ['360p', '480p', '720p', '1080p'],
+    '360p': ['360p', '480p', '720p', '1080p'],
 }
-DEFAULT_QUALITY_ORDER = ['720p', '480p', '360p', '1080p']
+DEFAULT_QUALITY_ORDER = ['1080p', '720p', '480p', '360p']
 _rendition_cache: dict[str, tuple[float, dict[str, str]]] = {}
 _RENDITION_CACHE_TTL_SECONDS = 30
 
