@@ -75,12 +75,14 @@ export const CourseDetailPage: React.FC = () => {
               <div className="space-y-3">
                 <p className="text-sm text-gray-600">Accesso lifetime attivo su questo corso.</p>
                 {courseProgress?.last_watched_lesson && (
-                  <Link to={`${courseRoute}/lessons/${courseProgress.last_watched_lesson.lesson_id}`}>
-                    <Button variant="primary" fullWidth>
-                      <Play className="w-4 h-4 mr-2" />
-                      Riprendi ultima lezione
-                    </Button>
-                  </Link>
+                  <Button
+                    variant="primary"
+                    fullWidth
+                    onClick={() => navigate(`${courseRoute}/lessons/${courseProgress.last_watched_lesson?.lesson_id}`)}
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Riprendi ultima lezione
+                  </Button>
                 )}
               </div>
             ) : (
@@ -89,9 +91,13 @@ export const CourseDetailPage: React.FC = () => {
                   <Lock className="w-4 h-4" />
                   Le lezioni premium restano bloccate fino all'acquisto
                 </div>
-                <Link to={`/checkout?courseId=${course.public_slug || course.course_id}`}>
-                  <Button variant="primary" fullWidth>Acquista corso</Button>
-                </Link>
+                <Button
+                  variant="primary"
+                  fullWidth
+                  onClick={() => navigate(`/checkout?courseId=${course.public_slug || course.course_id}`)}
+                >
+                  Acquista corso
+                </Button>
               </div>
             )}
           </div>

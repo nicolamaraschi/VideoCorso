@@ -72,12 +72,12 @@ export const ChapterList: React.FC<ChapterListProps> = ({
 
                 <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
                   {chapter.image_url && (
-                    <div className="w-full sm:w-64 flex-shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white">
+                    <div className="w-full sm:w-72 md:w-80 lg:w-96 flex-shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                       <img
                         src={chapter.image_url}
                         alt={`Copertina ${chapter.title}`}
                         loading="lazy"
-                        className="w-full aspect-video object-cover shadow-sm"
+                        className="w-full aspect-video object-cover"
                       />
                     </div>
                   )}

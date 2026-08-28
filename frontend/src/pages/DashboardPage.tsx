@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { BookOpen, Play, ShieldCheck } from 'lucide-react';
 import { useAuthContext } from '../components/auth/useAuthContext';
 import { Loading } from '../components/common/Loading';
@@ -11,6 +11,7 @@ import { getErrorMessage } from '../utils/errors';
 
 export const DashboardPage: React.FC = () => {
   const { isAdmin, user } = useAuthContext();
+  const navigate = useNavigate();
   const [ownedCourses, setOwnedCourses] = useState<CourseListItem[]>([]);
   const [catalogCourses, setCatalogCourses] = useState<CourseListItem[]>([]);
   const [progressMap, setProgressMap] = useState<Record<string, CourseProgress>>({});
@@ -175,19 +176,15 @@ export const DashboardPage: React.FC = () => {
               )}
 
               <div className="flex flex-wrap gap-3">
-                <Link to={getCourseRoute(course)}>
-                  <Button variant="primary">
-                    <BookOpen className="w-4 h-4 mr-2" />
-                    Apri corso
-                  </Button>
-                </Link>
+                <Button variant="primary" onClick={() => navigate(getCourseRoute(course))}>
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Apri corso
+                </Button>
                 {progress?.last_watched_lesson && (
-                  <Link to={`/courses/${course.course_id}/lessons/${progress.last_watched_lesson.lesson_id}`}>
-                    <Button variant="secondary">
-                      <Play className="w-4 h-4 mr-2" />
-                      Riprendi
-                    </Button>
-                  </Link>
+                  <Button variant="secondary" onClick={() => navigate(`/courses/${course.course_id}/lessons/${progress.last_watched_lesson.lesson_id}`)}>
+                    <Play className="w-4 h-4 mr-2" />
+                    Riprendi
+                  </Button>
                 )}
               </div>
               </div>
@@ -229,12 +226,12 @@ export const DashboardPage: React.FC = () => {
                   € {Number(course.price).toFixed(2)}
                 </span>
                 <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
-                  <Link to={getCourseRoute(course)}>
-                    <Button variant="secondary">Dettagli</Button>
-                  </Link>
-                  <Link to={getCheckoutRoute(course)}>
-                    <Button variant="primary">Acquista</Button>
-                  </Link>
+                  <Button variant="secondary" onClick={() => navigate(getCourseRoute(course))}>
+                    Dettagli
+                  </Button>
+                  <Button variant="primary" onClick={() => navigate(getCheckoutRoute(course))}>
+                    Acquista
+                  </Button>
                 </div>
               </div>
               </div>

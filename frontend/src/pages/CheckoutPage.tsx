@@ -91,6 +91,12 @@ export const CheckoutPage: React.FC = () => {
     void loadCourse();
   }, [loadCourse]);
 
+  useEffect(() => {
+    if (user?.email && !emailInput) {
+      setEmailInput(user.email);
+    }
+  }, [user?.email]);
+
   const verifyReturnedPayment = useCallback(async () => {
     if (paymentReturn !== 'success') return;
     if (!returnedSessionId) {
