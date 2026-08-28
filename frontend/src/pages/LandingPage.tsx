@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { courseService } from '../services/courseService';
 import type { CourseListItem } from '../types';
+import { TrustindexWidget } from '../components/common/TrustindexWidget';
 
 export const LandingPage: React.FC = () => {
   const [courses, setCourses] = useState<CourseListItem[]>([]);
@@ -477,60 +478,25 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section id="testimonianze" className="py-20 bg-white">
+      {/* Recensioni Reali & Garanzia Master */}
+      <section id="testimonianze" className="py-20 bg-white border-t border-primary-50">
         <div className="container mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900">Le nostre studentesse</h2>
-            <p className="mt-4 text-lg text-gray-600">Leggi i risultati di chi ha deciso di specializzarsi e cambiare carriera.</p>
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-50 border border-primary-100 text-primary-800 text-sm font-semibold mb-4 shadow-sm">
+              <svg className="w-4 h-4 text-amber-500 fill-current" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              <span>Recensioni Verificate da Google</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900">Cosa dicono del lavoro di Chiara Morocutti</h2>
+            <p className="mt-4 text-lg text-gray-600 leading-relaxed">
+              Prima ancora di insegnare, la tua Master è una professionista affermata sul campo: queste sono le recensioni reali e verificate delle clienti del suo studio di <strong>Microblading a Milano</strong>. Chi impara questo metodo impara da chi lavora ai massimi livelli ogni giorno.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                name: "Giulia M.",
-                role: "Dermopigmentista",
-                image: "/testimonial-1.png",
-                quote: "Facevo l'estetista base da 5 anni. Dopo questo corso ho finalmente inserito il PMU nel mio centro e ho raddoppiato le entrate. Spiegazioni cristalline e inquadrature perfette."
-              },
-              {
-                name: "Francesca T.",
-                role: "Titolare Beauty Salon",
-                image: "/testimonial-2.png",
-                quote: "Avevo già fatto un corso in aula pagato oro, ma mi sentivo insicura. Con questi video ho potuto rivedere i passaggi critici decine di volte. Lo consiglio a tutte."
-              },
-              {
-                name: "Elena C.",
-                role: "Make-up Artist",
-                image: "/testimonial-3.png",
-                quote: "La parte sulla colorimetria e lo studio dei fototipi è la più completa che abbia mai visto. Non ho più paura di causare viraggi di colore sulle mie clienti."
-              }
-            ].map((testimonial, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="bg-primary-50/50 rounded-2xl p-6 shadow-sm hover:shadow-md transition border border-primary-100 flex flex-col"
-              >
-                <div className="mb-6 rounded-xl overflow-hidden shadow-sm border border-primary-100 bg-white">
-                  <img className="w-full h-auto object-contain hover:scale-105 transition-transform duration-500" src={testimonial.image} alt="Prima e Dopo Microblading" loading="lazy" width={480} height={480} />
-                </div>
-                <div className="flex flex-col mb-4">
-                  <h3 className="text-lg font-serif font-semibold text-gray-900">{testimonial.name}</h3>
-                  <p className="text-primary-600 text-sm">{testimonial.role}</p>
-                </div>
-                <p className="text-gray-700 italic leading-relaxed">"{testimonial.quote}"</p>
-                <div className="mt-6 flex gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <svg key={star} className="h-5 w-5 text-primary-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                </div>
-              </motion.div>
-            ))}
+          {/* Trustindex Live Reviews Widget */}
+          <div className="max-w-6xl mx-auto bg-primary-50/40 rounded-3xl p-4 sm:p-8 border border-primary-100/80 shadow-sm">
+            <TrustindexWidget scriptSrc="https://cdn.trustindex.io/loader.js?6d4fbfe80b0925814246238f8e4" className="w-full" />
           </div>
         </div>
       </section>
