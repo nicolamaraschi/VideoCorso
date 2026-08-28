@@ -809,6 +809,25 @@ def get_chapter_lessons(chapter_id: str) -> list[dict[str, Any]]:
     return sorted(lessons, key=lambda item: int(item.get('order_number', 0)))
 
 
+def get_cached_catalog_metadata() -> dict[str, Any]:
+    all_courses = list_all_items(TABLES['COURSES'])
+    all_chapters = list_all_items(TABLES['CHAPTERS'])
+    all_lessons = list_all_items(TABLES['LESSONS'])
+
+    chapter_course_map = {ch['chapter_id']: ch.get('course_id') for ch in all_chapters if ch.get('chapter_id')}
+    course_lessons_map: dict[str, set[str]] = {}
+    for l in all_lessons:
+        ch_id = l.get('chapter_id')
+        c_id = chapter_course_map.get(ch_id)
+        if c_id and l.get('lesson_id'):
+            course_lessons_map.setdefault(c_id, set()).add(l['lesson_id'])
+
+    return {
+        'courses': all_courses,
+        'course_lessons_map': course_lessons_map,
+    }
+
+
 def get_course_lessons(course_id: str) -> list[dict[str, Any]]:
     lessons = []
     for chapter in get_course_chapters(course_id):
@@ -816,18 +835,20 @@ def get_course_lessons(course_id: str) -> list[dict[str, Any]]:
     return lessons
 
 
-def summarize_student(user_item: dict[str, Any]) -> dict[str, Any]:
+def summarize_student(user_item: dict[str, Any], catalog: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     purchases = get_user_purchases(user_item['user_id'])
     progress_items = get_user_progress_items(user_item['user_id'])
-    all_courses = list_all_items(TABLES['COURSES'])
+
+    if not catalog:
+        catalog = get_cached_catalog_metadata()
+
+    all_courses = catalog['courses']
+    course_lessons_map = catalog['course_lessons_map']
 
     accessible_courses = [course for course in all_courses if can_access_course(user_item, purchases, course['course_id'])]
-    course_lessons = set()
-    lessons_by_id = {}
+    course_lessons: set[str] = set()
     for course in accessible_courses:
-        for lesson in get_course_lessons(course['course_id']):
-            course_lessons.add(lesson['lesson_id'])
-            lessons_by_id[lesson['lesson_id']] = lesson
+        course_lessons.update(course_lessons_map.get(course['course_id'], set()))
 
     completed = 0
     total_watch_time = 0
@@ -1609,7 +1630,9 @@ def get_students(params: dict[str, Any] | None = None):
     total_pages = max(1, math.ceil(total / per_page))
     start = (page - 1) * per_page
     page_users = users[start:start + per_page]
-    items = [summarize_student(user) for user in page_users]
+    
+    catalog = get_cached_catalog_metadata()
+    items = [summarize_student(user, catalog=catalog) for user in page_users]
 
     return create_response(200, {
         'items': items,
@@ -1627,12 +1650,15 @@ def search_students(params):
 
     users = list_student_records()
     matches = []
+    catalog = get_cached_catalog_metadata()
     for user in users:
         email = str(user.get('email', '')).lower()
         full_name = str(user.get('full_name', '')).lower()
         if query in email or query in full_name:
-            matches.append(summarize_student(user))
-    return create_response(200, matches[:25])
+            matches.append(summarize_student(user, catalog=catalog))
+            if len(matches) >= 25:
+                break
+    return create_response(200, matches)
 
 
 def get_student_detail(student_id):
