@@ -1843,6 +1843,14 @@ def fetch_stripe_purchase_state(purchase: dict[str, Any]) -> dict[str, Any]:
     amount_refunded = 0
     is_disputed = False
     charge_id = normalized.get('stripe_charge_id')
+    latest_charge = payment_intent.get('latest_charge') if payment_intent else None
+    if isinstance(latest_charge, dict):
+        amount_refunded = max(amount_refunded, int(latest_charge.get('amount_refunded') or 0))
+        is_disputed = is_disputed or normalize_bool(latest_charge.get('disputed', False))
+        charge_id = charge_id or latest_charge.get('id')
+    elif isinstance(latest_charge, str):
+        charge_id = charge_id or latest_charge
+
     for charge in charges:
         amount_refunded = max(amount_refunded, int(charge.get('amount_refunded') or 0))
         is_disputed = is_disputed or normalize_bool(charge.get('disputed', False))
@@ -1891,28 +1899,34 @@ def refund_purchase(purchase_id: str, body: dict[str, Any]):
     if not normalized.get('stripe_payment_intent_id'):
         return create_response(400, {'error': 'Questo ordine non è associato a un pagamento Stripe rimborsabile'})
 
+    payment_intent_id = normalized['stripe_payment_intent_id']
     payment_intent = stripe.PaymentIntent.retrieve(
-        normalized['stripe_payment_intent_id'], expand=['latest_charge', 'charges'],
+        payment_intent_id, expand=['latest_charge', 'charges'],
     )
     charges = (((payment_intent or {}).get('charges') or {}).get('data')) or []
     charge_id = normalized.get('stripe_charge_id')
-    charge_amount = 0
+    charge_amount = int(payment_intent.get('amount_received') or payment_intent.get('amount') or 0)
     refunded_cents = 0
+
+    latest_charge = payment_intent.get('latest_charge') if payment_intent else None
+    if isinstance(latest_charge, dict):
+        charge_id = charge_id or latest_charge.get('id')
+        charge_amount = int(latest_charge.get('amount') or charge_amount)
+        refunded_cents = max(refunded_cents, int(latest_charge.get('amount_refunded') or 0))
+    elif isinstance(latest_charge, str):
+        charge_id = charge_id or latest_charge
+
     for charge in charges:
         if not charge_id or charge.get('id') == charge_id:
             charge_id = charge_id or charge.get('id')
-            charge_amount = int(charge.get('amount') or 0)
+            charge_amount = int(charge.get('amount') or charge_amount)
             refunded_cents = max(refunded_cents, int(charge.get('amount_refunded') or 0))
-    latest_charge = payment_intent.get('latest_charge') if payment_intent else None
-    if not charge_id and isinstance(latest_charge, dict):
-        charge_id = latest_charge.get('id')
-        charge_amount = int(latest_charge.get('amount') or 0)
-        refunded_cents = int(latest_charge.get('amount_refunded') or 0)
-    if not charge_id:
-        return create_response(400, {'error': 'Stripe non ha ancora reso disponibile l’addebito da rimborsare'})
+
+    if not charge_amount:
+        charge_amount = int((Decimal(str(normalized.get('amount_gross', 0))) * 100))
 
     remaining_cents = charge_amount - refunded_cents
-    if remaining_cents <= 0:
+    if remaining_cents <= 0 and charge_amount > 0 and refunded_cents >= charge_amount:
         # Stripe is the source of truth for refunds. If the local purchase is
         # stale, reconcile it before reporting the conflict so the admin UI
         # immediately stops offering a refund that cannot be issued.
@@ -1930,10 +1944,13 @@ def refund_purchase(purchase_id: str, body: dict[str, Any]):
 
     requested_amount = body.get('amount')
     refund_args: dict[str, Any] = {
-        'charge': charge_id,
         'reason': 'requested_by_customer',
         'metadata': {'purchase_id': purchase_id},
     }
+    if charge_id:
+        refund_args['charge'] = charge_id
+    elif payment_intent_id:
+        refund_args['payment_intent'] = payment_intent_id
     if requested_amount not in (None, ''):
         try:
             amount_cents = int((Decimal(str(requested_amount)).quantize(Decimal('0.01')) * 100))
