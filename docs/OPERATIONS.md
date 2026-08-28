@@ -214,6 +214,13 @@ Se un cliente segnala un problema:
 5. se l'addebito è confermato ma l'attivazione è in elaborazione, comunicare chiaramente lo stato e completare la riconciliazione secondo il flusso admin previsto;
 6. se risulta rimborso, contestazione o revoca, non riattivare l'accesso senza autorizzazione commerciale esplicita.
 
+### Evidenze per contestazioni
+
+- Dal checkout con termini `2026-08-10` ogni ordine conserva la versione dei termini, l'istante di accettazione e il consenso esplicito all'accesso immediato al contenuto digitale. La medesima versione e gli istanti sono presenti anche nei metadati della Checkout Session e del PaymentIntent Stripe.
+- Ogni URL protetto emesso per una lezione a pagamento genera una riga append-only in `*-videocorso-video-access-logs`: utente, ordine, corso, lezione, istante e hash di IP/User-Agent. Le righe scadono dopo due anni; non contengono IP o User-Agent in chiaro.
+- Per preparare una risposta a Stripe, esportare dalla scheda ordine l'acquisto, la versione/ora dei consensi, gli eventi di accesso video pertinenti e il progresso. Il progresso da solo non prova la visione: il client può dichiarare una posizione; gli eventi di URL emessi sono l'evidenza complementare.
+- Prima di pubblicare una nuova versione dei termini, aggiornare **insieme** la costante `TERMS_VERSION` nel checkout frontend e nel payment handler. Non cambiare la versione per ordini già conclusi.
+
 I prezzi sono espressi in euro. Prima di cambiare un prezzo o di pubblicare una variazione, fare confermare il valore commerciale: `2500` viene presentato dal checkout come € 2.500,00, non € 25,00.
 
 ## Corsi, video e operazioni admin

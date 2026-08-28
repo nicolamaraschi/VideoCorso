@@ -278,6 +278,11 @@ def lambda_handler(event, context):
         else:
             # Legacy uploads continue to work while they are gradually replaced.
             destination = f's3://{bucket}/streaming/{source_stem}/'
+            # ClientRequestToken is required below for both branches; the
+            # versioned branch derives one from lesson_id/asset_version, so
+            # legacy (non-versioned) uploads need their own deterministic
+            # token here too, or create_job() below raises NameError.
+            token = hashlib.sha256(f'{bucket}:{source_key}'.encode()).hexdigest()[:64]
         is_portrait = detect_video_portrait(bucket, source_key)
         response = client.create_job(
             Role=role,

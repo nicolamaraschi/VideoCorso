@@ -48,6 +48,7 @@ def install_stubs():
             if isinstance(value, (int, float)): return {"N": str(value)}
             if isinstance(value, str): return {"S": value}
             if isinstance(value, dict): return {"M": {k: self.serialize(v) for k, v in value.items()}}
+            if isinstance(value, list): return {"L": [self.serialize(v) for v in value]}
             raise TypeError(f"unsupported value: {value!r}")
 
     types_module.TypeSerializer = TypeSerializer
@@ -327,10 +328,35 @@ def test_checkout_without_stripe_key_is_controlled_error(configured_payment, mon
     })
     response = configured_payment.lambda_handler({
         "path": "/payment/create-checkout", "httpMethod": "POST",
-        "body": '{"course_id":"course-1","checkout_request_id":"req-test-no-stripe-key","success_url":"http://localhost:5173/ok","cancel_url":"http://localhost:5173/no"}',
+        "body": '{"course_id":"course-1","checkout_request_id":"req-test-no-stripe-key","success_url":"http://localhost:5173/ok","cancel_url":"http://localhost:5173/no","terms_accepted":true,"digital_content_consent":true,"terms_version":"2026-08-10"}',
     }, None)
+    # The response must be a controlled 500 without leaking the internal
+    # config/parameter name to the client; that detail is only ever printed
+    # server-side.
     assert response["statusCode"] == 500
-    assert "STRIPE_SECRET_KEY_PARAMETER" in response["body"]
+    assert "STRIPE_SECRET_KEY_PARAMETER" not in response["body"]
+    assert "Unable to create checkout session" in response["body"]
+
+
+def test_checkout_requires_versioned_explicit_digital_content_acceptance(configured_payment):
+    with pytest.raises(ValueError, match="Terms acceptance"):
+        configured_payment.checkout_acceptance({
+            "digital_content_consent": True,
+            "terms_version": configured_payment.TERMS_VERSION,
+        })
+    with pytest.raises(ValueError, match="Digital content consent"):
+        configured_payment.checkout_acceptance({
+            "terms_accepted": True,
+            "terms_version": configured_payment.TERMS_VERSION,
+        })
+    acceptance = configured_payment.checkout_acceptance({
+        "terms_accepted": True,
+        "digital_content_consent": True,
+        "terms_version": configured_payment.TERMS_VERSION,
+    })
+    assert acceptance["terms_accepted"] is True
+    assert acceptance["digital_content_consent"] is True
+    assert acceptance["terms_version"] == configured_payment.TERMS_VERSION
 
 
 def test_checkout_redirects_allow_only_the_configured_amplify_origins(configured_payment):

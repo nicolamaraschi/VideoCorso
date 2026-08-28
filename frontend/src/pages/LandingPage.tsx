@@ -338,7 +338,7 @@ export const LandingPage: React.FC = () => {
               className="lg:w-5/12 relative"
             >
               <div className="absolute inset-0 bg-primary-100 rounded-full transform translate-x-4 translate-y-4 -z-10"></div>
-              <img src="/chiara morocutti.webp" alt="Chiara Morocutti" className="rounded-full w-64 h-64 md:w-80 md:h-80 object-cover mx-auto border-4 border-white shadow-xl" />
+              <img src="/chiara morocutti.webp" alt="Chiara Morocutti" loading="lazy" width={320} height={320} className="rounded-full w-64 h-64 md:w-80 md:h-80 object-cover mx-auto border-4 border-white shadow-xl" />
             </motion.div>
             <motion.div 
               initial={{ opacity: 0, x: 20 }}
@@ -400,7 +400,7 @@ export const LandingPage: React.FC = () => {
                 >
                   <div className="relative h-56">
                     {course.cover_image_url ? (
-                      <img src={course.cover_image_url} alt={course.title} className="w-full h-full object-cover" />
+                      <img src={course.cover_image_url} alt={course.title} loading="lazy" width={400} height={224} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-primary-100 flex items-center justify-center text-primary-400 font-serif">
                         Corso Beauty
@@ -417,20 +417,50 @@ export const LandingPage: React.FC = () => {
                     <p className="text-gray-600 mb-8 flex-1 leading-relaxed">
                       {course.short_description || course.description || "Nessuna descrizione disponibile."}
                     </p>
+                    {course.packages && course.packages.length > 0 && (
+                      <ul className="mb-6 space-y-2">
+                        {[...course.packages]
+                          .sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999))
+                          .map((pkg) => (
+                            <li
+                              key={pkg.package_id}
+                              className="flex items-center justify-between gap-3 rounded-lg border border-primary-50 bg-primary-50/40 px-3 py-2 text-sm"
+                            >
+                              <span className="font-medium text-gray-800">{pkg.name}</span>
+                              <span className="font-semibold text-gray-900">
+                                € {Number(pkg.discounted_price ?? pkg.price).toFixed(2)}
+                              </span>
+                            </li>
+                          ))}
+                      </ul>
+                    )}
                     <div className="mt-auto flex flex-col items-start gap-3 border-t border-primary-50 pt-6 sm:flex-row sm:items-end sm:justify-between">
                       <div className="shrink-0 whitespace-nowrap">
-                        {course.discounted_price && Number(course.discounted_price) < Number(course.price) && (
-                          <span className="block text-sm text-gray-400 line-through mb-1">€ {Number(course.price).toFixed(2)}</span>
+                        {course.packages && course.packages.length > 0 ? (
+                          <>
+                            <span className="block text-sm text-gray-500 mb-1">A partire da</span>
+                            <span className="whitespace-nowrap text-3xl font-bold text-gray-900 font-serif">
+                              € {Math.min(
+                                ...course.packages.map((pkg) => Number(pkg.discounted_price ?? pkg.price))
+                              ).toFixed(2)}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            {course.discounted_price && Number(course.discounted_price) < Number(course.price) && (
+                              <span className="block text-sm text-gray-400 line-through mb-1">€ {Number(course.price).toFixed(2)}</span>
+                            )}
+                            <span className="whitespace-nowrap text-3xl font-bold text-gray-900 font-serif">
+                              € {Number(course.discounted_price ?? course.price).toFixed(2)}
+                            </span>
+                          </>
                         )}
-                        <span className="whitespace-nowrap text-3xl font-bold text-gray-900 font-serif">
-                          € {Number(course.discounted_price ?? course.price).toFixed(2)}
-                        </span>
                       </div>
                       <Link 
                         to={`/checkout?courseId=${course.public_slug || course.course_id}`} 
                         className="inline-flex min-h-11 w-full items-center justify-center whitespace-nowrap rounded-xl bg-primary-600 px-6 py-3 text-sm font-medium text-white shadow-md transition hover:bg-primary-700 hover:shadow-lg sm:w-auto"
                       >
-                        Acquista Ora
+                        {course.packages && course.packages.length > 0 ? 'Scegli il tuo pacchetto' : 'Acquista Ora'}
                       </Link>
                     </div>
                   </div>
@@ -485,7 +515,7 @@ export const LandingPage: React.FC = () => {
                 className="bg-primary-50/50 rounded-2xl p-6 shadow-sm hover:shadow-md transition border border-primary-100 flex flex-col"
               >
                 <div className="mb-6 rounded-xl overflow-hidden shadow-sm border border-primary-100 bg-white">
-                  <img className="w-full h-auto object-contain hover:scale-105 transition-transform duration-500" src={testimonial.image} alt="Prima e Dopo Microblading" />
+                  <img className="w-full h-auto object-contain hover:scale-105 transition-transform duration-500" src={testimonial.image} alt="Prima e Dopo Microblading" loading="lazy" width={480} height={480} />
                 </div>
                 <div className="flex flex-col mb-4">
                   <h3 className="text-lg font-serif font-semibold text-gray-900">{testimonial.name}</h3>

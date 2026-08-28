@@ -38,6 +38,16 @@ export const AdminPurchasesPage: React.FC = () => {
     email: '',
     origin: '',
   });
+  // The email box is free text, so it needs its own state debounced into
+  // `filters.email`; otherwise every keystroke fires a full purchases fetch.
+  const [emailInput, setEmailInput] = useState('');
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setFilters((prev) => (prev.email === emailInput ? prev : { ...prev, email: emailInput }));
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [emailInput]);
 
   const loadPurchases = useCallback(async () => {
     try {
@@ -127,8 +137,8 @@ export const AdminPurchasesPage: React.FC = () => {
           <input
             type="text"
             placeholder="Filtra per email"
-            value={filters.email}
-            onChange={(event) => setFilters((prev) => ({ ...prev, email: event.target.value }))}
+            value={emailInput}
+            onChange={(event) => setEmailInput(event.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg"
           />
 

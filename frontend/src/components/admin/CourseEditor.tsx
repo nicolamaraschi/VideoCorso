@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, GripVertical, Save, Play } from 'lucide-react';
+import { Plus, Edit, Trash2, GripVertical, Save, Play, ArrowUp, ArrowDown } from 'lucide-react';
 import { Reorder } from 'framer-motion';
 import type { Chapter, Lesson, VideoQuality } from '../../types';
 import { Button } from '../common/Button';
@@ -89,6 +89,37 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     onReorderLessons(updates);
   };
 
+  // Keyboard-accessible alternative to the drag handle above: reordering via
+  // pointer drag alone is unusable without a mouse/touch, so move up/down
+  // buttons give the same result via click or Enter/Space on a focused
+  // button.
+  const moveChapter = (chapterId: string, direction: -1 | 1) => {
+    const index = localChapters.findIndex((c) => c.chapter_id === chapterId);
+    const targetIndex = index + direction;
+    if (index === -1 || targetIndex < 0 || targetIndex >= localChapters.length) return;
+
+    const reordered = [...localChapters];
+    [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
+    const reindexed = reindexChapters(reordered);
+    setLocalChapters(reindexed);
+    onReorderChapters(reindexed.map((c, i) => ({ id: c.chapter_id, order_number: i + 1 })));
+  };
+
+  const moveLesson = (chapterId: string, lessonId: string, direction: -1 | 1) => {
+    const chapter = localChapters.find((c) => c.chapter_id === chapterId);
+    if (!chapter || !chapter.lessons) return;
+
+    const index = chapter.lessons.findIndex((l) => l.lesson_id === lessonId);
+    const targetIndex = index + direction;
+    if (index === -1 || targetIndex < 0 || targetIndex >= chapter.lessons.length) return;
+
+    const reordered = [...chapter.lessons];
+    [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
+    const reindexed = reindexLessons(reordered);
+    setLocalChapters((prev) => prev.map((c) => (c.chapter_id === chapterId ? { ...c, lessons: reindexed } : c)));
+    onReorderLessons(reindexed.map((l, i) => ({ id: l.lesson_id, order_number: i + 1 })));
+  };
+
 
   const [showChapterModal, setShowChapterModal] = useState(false);
   const [showLessonModal, setShowLessonModal] = useState(false);
@@ -97,6 +128,23 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
 
   // FIX: Aggiungi stato per il modale di anteprima
+  // Confirmation modal replacing native confirm() for delete actions, to
+  // stay consistent with the rest of the app's UI instead of the browser's
+  // built-in dialog.
+  const [confirmDelete, setConfirmDelete] = useState<
+    { type: 'chapter'; chapterId: string } | { type: 'lesson'; lessonId: string } | null
+  >(null);
+
+  const handleConfirmDelete = () => {
+    if (!confirmDelete) return;
+    if (confirmDelete.type === 'chapter') {
+      onDeleteChapter(confirmDelete.chapterId);
+    } else {
+      onDeleteLesson(confirmDelete.lessonId);
+    }
+    setConfirmDelete(null);
+  };
+
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
   const [previewLessonId, setPreviewLessonId] = useState<string | null>(null);
@@ -292,10 +340,33 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                   <div className="cursor-move p-1 hover:bg-gray-200 rounded">
                     <GripVertical className="w-5 h-5 text-gray-400" />
                   </div>
+                  <div className="flex flex-col">
+                    <button
+                      type="button"
+                      onClick={() => moveChapter(chapter.chapter_id, -1)}
+                      disabled={chapter.order_number <= 1}
+                      className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
+                      aria-label={`Sposta capitolo "${chapter.title}" su`}
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveChapter(chapter.chapter_id, 1)}
+                      disabled={chapter.order_number >= localChapters.length}
+                      className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
+                      aria-label={`Sposta capitolo "${chapter.title}" giù`}
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                   {chapter.image_url ? (
                     <img
                       src={chapter.image_url}
                       alt={chapter.title}
+                      loading="lazy"
+                      width={112}
+                      height={80}
                       className="h-14 w-20 sm:h-20 sm:w-28 rounded-lg border border-gray-200 object-cover bg-white"
                     />
                   ) : null}
@@ -323,11 +394,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => {
-                      if (confirm('Delete this chapter?')) {
-                        onDeleteChapter(chapter.chapter_id);
-                      }
-                    }}
+                    onClick={() => setConfirmDelete({ type: 'chapter', chapterId: chapter.chapter_id })}
                     className="p-2 text-gray-600 hover:text-red-600 pointer-events-auto"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -355,10 +422,33 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                           <div className="cursor-move p-1 hover:bg-gray-100 rounded text-gray-400 flex-shrink-0">
                             <GripVertical className="w-4 h-4" />
                           </div>
+                          <div className="flex flex-shrink-0 flex-col">
+                            <button
+                              type="button"
+                              onClick={() => moveLesson(chapter.chapter_id, lesson.lesson_id, -1)}
+                              disabled={lesson.order_number <= 1}
+                              className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
+                              aria-label={`Sposta lezione "${lesson.title}" su`}
+                            >
+                              <ArrowUp className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveLesson(chapter.chapter_id, lesson.lesson_id, 1)}
+                              disabled={lesson.order_number >= (chapter.lessons?.length || 0)}
+                              className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
+                              aria-label={`Sposta lezione "${lesson.title}" giù`}
+                            >
+                              <ArrowDown className="w-3 h-3" />
+                            </button>
+                          </div>
                           {lesson.thumbnail_url ? (
                             <img
                               src={lesson.thumbnail_url}
                               alt={lesson.title}
+                              loading="lazy"
+                              width={96}
+                              height={64}
                               className="h-12 w-16 sm:h-16 sm:w-24 rounded-lg border border-gray-200 object-cover bg-gray-50 flex-shrink-0"
                             />
                           ) : (
@@ -406,11 +496,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                             <Edit className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => {
-                              if (confirm('Delete this lesson?')) {
-                                onDeleteLesson(lesson.lesson_id);
-                              }
-                            }}
+                            onClick={() => setConfirmDelete({ type: 'lesson', lessonId: lesson.lesson_id })}
                             className="p-2 sm:p-1.5 text-gray-500 hover:text-red-600 rounded hover:bg-red-50 transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -478,6 +564,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               <img
                 src={chapterForm.image_url}
                 alt="Anteprima immagine capitolo"
+                width={400}
+                height={160}
                 className="max-h-40 w-auto rounded-lg border border-gray-200 object-contain mx-auto"
               />
             )}
@@ -593,6 +681,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                 <img
                   src={lessonForm.thumbnail_url}
                   alt="Anteprima copertina lezione"
+                  width={400}
+                  height={160}
                   className="max-h-40 w-auto rounded-lg border border-gray-200 object-contain mx-auto"
                 />
                 <Button type="button" size="sm" variant="secondary" onClick={() => setReplacingThumbnail(true)}>
@@ -647,6 +737,31 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             <Save className="w-4 h-4 mr-2" />
             {isSubmitting ? 'Saving...' : (editingLesson ? 'Update Lesson' : 'Create Lesson')}
           </Button>
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        title={confirmDelete?.type === 'chapter' ? 'Delete chapter?' : 'Delete lesson?'}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            {confirmDelete?.type === 'chapter'
+              ? 'This will permanently delete the chapter and all its lessons. This action cannot be undone.'
+              : 'This will permanently delete the lesson. This action cannot be undone.'}
+          </p>
+          <div className="flex gap-3">
+            <Button variant="secondary" fullWidth onClick={() => setConfirmDelete(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" fullWidth onClick={handleConfirmDelete}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </Button>
+          </div>
         </div>
       </Modal>
 

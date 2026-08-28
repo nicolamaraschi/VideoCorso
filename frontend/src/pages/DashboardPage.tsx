@@ -14,6 +14,10 @@ export const DashboardPage: React.FC = () => {
   const [ownedCourses, setOwnedCourses] = useState<CourseListItem[]>([]);
   const [catalogCourses, setCatalogCourses] = useState<CourseListItem[]>([]);
   const [progressMap, setProgressMap] = useState<Record<string, CourseProgress>>({});
+  // Tracks course ids whose progress fetch actually failed (as opposed to a
+  // course that legitimately has 0% progress), so we can show an
+  // "unavailable" state instead of silently rendering 0%.
+  const [failedProgressCourseIds, setFailedProgressCourseIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,21 +38,27 @@ export const DashboardPage: React.FC = () => {
       setCatalogCourses(catalog);
       setOwnedCourses(mine);
 
-      const progressEntries = await Promise.all(
-        mine.map(async (course) => {
-          try {
-            const progress = await courseService.getCourseProgress(course.course_id);
-            return [course.course_id, progress] as const;
-          } catch {
-            return [course.course_id, null] as const;
-          }
-        })
-      );
+      const progressEntries: Array<{ courseId: string; progress: CourseProgress | null; failed: boolean }> =
+        await Promise.all(
+          mine.map(async (course) => {
+            try {
+              const progress = await courseService.getCourseProgress(course.course_id);
+              return { courseId: course.course_id, progress, failed: false };
+            } catch {
+              return { courseId: course.course_id, progress: null, failed: true };
+            }
+          })
+        );
 
       setProgressMap(
         Object.fromEntries(
-          progressEntries.filter((entry): entry is readonly [string, CourseProgress] => entry[1] !== null)
+          progressEntries
+            .filter((entry) => entry.progress !== null)
+            .map((entry) => [entry.courseId, entry.progress as CourseProgress])
         )
+      );
+      setFailedProgressCourseIds(
+        new Set(progressEntries.filter((entry) => entry.failed).map((entry) => entry.courseId))
       );
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to load dashboard'));
@@ -103,6 +113,7 @@ export const DashboardPage: React.FC = () => {
 
         {ownedCourses.map((course) => {
           const progress = progressMap[course.course_id];
+          const progressUnavailable = failedProgressCourseIds.has(course.course_id);
           return (
             <div key={course.course_id} className="overflow-hidden bg-white rounded-lg border border-gray-200">
               <div className="aspect-[16/7] bg-gray-100 border-b border-gray-200">
@@ -110,6 +121,9 @@ export const DashboardPage: React.FC = () => {
                   <img
                     src={course.cover_image_url}
                     alt={`Copertina ${course.title}`}
+                    loading="lazy"
+                    width={640}
+                    height={280}
                     className="w-full h-full object-contain"
                   />
                 ) : (
@@ -133,19 +147,32 @@ export const DashboardPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3 mb-5 sm:grid-cols-3">
                 <div className="rounded-lg bg-gray-50 p-3">
                   <p className="text-xs uppercase tracking-wide text-gray-500">Progresso</p>
-                  <p className="text-lg font-semibold text-gray-900">{Math.round(progress?.percentage || 0)}%</p>
+                  {progressUnavailable ? (
+                    <p className="text-sm font-medium text-amber-700">Non disponibile</p>
+                  ) : (
+                    <p className="text-lg font-semibold text-gray-900">{Math.round(progress?.percentage || 0)}%</p>
+                  )}
                 </div>
                 <div className="rounded-lg bg-gray-50 p-3">
                   <p className="text-xs uppercase tracking-wide text-gray-500">Completate</p>
-                  <p className="text-lg font-semibold text-gray-900">
-                    {progress?.completed_lessons || 0}/{progress?.total_lessons || 0}
-                  </p>
+                  {progressUnavailable ? (
+                    <p className="text-sm font-medium text-amber-700">Non disponibile</p>
+                  ) : (
+                    <p className="text-lg font-semibold text-gray-900">
+                      {progress?.completed_lessons || 0}/{progress?.total_lessons || 0}
+                    </p>
+                  )}
                 </div>
                 <div className="rounded-lg bg-gray-50 p-3">
                   <p className="text-xs uppercase tracking-wide text-gray-500">Accesso</p>
                   <p className="text-lg font-semibold text-gray-900">A vita</p>
                 </div>
               </div>
+              {progressUnavailable && (
+                <p className="mb-5 text-xs text-amber-700">
+                  Non siamo riusciti a caricare l’avanzamento di questo corso. Riprova più tardi o aggiorna la pagina.
+                </p>
+              )}
 
               <div className="flex flex-wrap gap-3">
                 <Link to={getCourseRoute(course)}>
@@ -185,6 +212,9 @@ export const DashboardPage: React.FC = () => {
                   <img
                     src={course.cover_image_url}
                     alt={`Copertina ${course.title}`}
+                    loading="lazy"
+                    width={640}
+                    height={280}
                     className="w-full h-full object-contain"
                   />
                 ) : (

@@ -132,14 +132,26 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, [seekToSeconds, clearSeekTo]);
 
-  // Handle unmount save
+  // Keep the latest playback position in refs so the unmount-save effect
+  // below can read current values without re-running (and thus re-firing
+  // its cleanup) on every timeupdate tick.
+  const currentTimeRef = useRef(currentTime);
+  const durationRef = useRef(duration);
+  currentTimeRef.current = currentTime;
+  durationRef.current = duration;
+
+  // Handle unmount save. Empty dependency array is intentional: this effect
+  // must mount/cleanup exactly once (on mount / on unmount), not on every
+  // currentTime update - otherwise the cleanup fires on every tick and saves
+  // progress far more often than intended.
   useEffect(() => {
     return () => {
-      if (trackProgress && currentTime > 0 && duration > 0) {
-        saveProgress(currentTime, duration);
+      if (trackProgress && currentTimeRef.current > 0 && durationRef.current > 0) {
+        saveProgress(currentTimeRef.current, durationRef.current);
       }
     };
-  }, [currentTime, duration, saveProgress, trackProgress]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const togglePlay = useCallback(() => {
     if (!playerRef.current) return;
@@ -249,12 +261,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           e.preventDefault();
           toggleFullscreen();
           break;
+        case 'Escape':
+          if (showSettings) {
+            e.preventDefault();
+            setShowSettings(false);
+          }
+          break;
       }
     };
 
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [changeVolume, skip, toggleFullscreen, toggleMute, togglePlay]);
+  }, [changeVolume, skip, toggleFullscreen, toggleMute, togglePlay, showSettings]);
 
   // Auto-hide controls
   useEffect(() => {
@@ -434,6 +452,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   }}
                   className="hidden min-h-11 min-w-11 rounded-full p-2 text-white hover:bg-white/10 hover:text-primary-400 sm:block"
                   title="Restart"
+                  aria-label="Riavvia dall'inizio"
                 >
                   <RotateCcw className="w-5 h-5" />
                 </button>

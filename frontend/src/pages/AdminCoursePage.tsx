@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ListTree, Save, Settings } from 'lucide-react';
+import { ListTree, Plus, Save, Settings, Trash2 } from 'lucide-react';
 import { CourseEditor } from '../components/admin/CourseEditor';
 import { ImageUploader } from '../components/admin/ImageUploader';
 import { useCourse } from '../hooks/useCourse';
@@ -7,9 +7,27 @@ import { adminService } from '../services/adminService';
 import { Loading } from '../components/common/Loading';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import { Button } from '../components/common/Button';
-import type { AdminCourseRequest, Chapter, Course, Lesson } from '../types';
+import type { AdminCourseRequest, Chapter, Course, CoursePackage, Lesson } from '../types';
 import { getErrorMessage } from '../utils/errors';
 import { useAdminOperationBanner } from '../components/common/AdminOperationBanner';
+
+let packageIdCounter = 0;
+const makePackageId = () => `pkg-${Date.now()}-${packageIdCounter++}`;
+
+const emptyPackage = (): CoursePackage => ({
+  package_id: makePackageId(),
+  name: '',
+  price: 0,
+  discounted_price: null,
+  display_order: 999,
+  benefits: [],
+  includes_kit: false,
+  includes_ebook: false,
+  includes_whatsapp_support: false,
+  whatsapp_support_months: null,
+  includes_community: false,
+  live_meetings_count: 0,
+});
 
 type LessonEditorPayload = Omit<Pick<Lesson, 'title' | 'description' | 'duration_seconds' | 'video_s3_key' | 'thumbnail_url'>, 'thumbnail_url'> & {
   thumbnail_url?: string;
@@ -31,6 +49,7 @@ const emptyCourseForm: AdminCourseRequest = {
   public_slug: '',
   display_order: 999,
   badge: '',
+  packages: [],
 };
 
 export const AdminCoursePage: React.FC = () => {
@@ -62,6 +81,7 @@ export const AdminCoursePage: React.FC = () => {
       public_slug: course.public_slug || course.course_id,
       display_order: course.display_order ?? 999,
       badge: course.badge || '',
+      packages: course.packages || [],
     });
   };
 
@@ -90,6 +110,32 @@ export const AdminCoursePage: React.FC = () => {
 
   const updateCourseField = <K extends keyof AdminCourseRequest>(key: K, value: AdminCourseRequest[K]) => {
     setCourseForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const addPackage = () => {
+    setCourseForm((prev) => ({
+      ...prev,
+      packages: [...(prev.packages || []), { ...emptyPackage(), display_order: (prev.packages?.length || 0) + 1 }],
+    }));
+  };
+
+  const updatePackage = (packageId: string, patch: Partial<CoursePackage>) => {
+    setCourseForm((prev) => ({
+      ...prev,
+      packages: (prev.packages || []).map((pkg) => (pkg.package_id === packageId ? { ...pkg, ...patch } : pkg)),
+    }));
+  };
+
+  const removePackage = (packageId: string) => {
+    setCourseForm((prev) => ({
+      ...prev,
+      packages: (prev.packages || []).filter((pkg) => pkg.package_id !== packageId),
+    }));
+  };
+
+  const updatePackageBenefits = (packageId: string, benefitsText: string) => {
+    const benefits = benefitsText.split('\n').map((line) => line.trim()).filter(Boolean);
+    updatePackage(packageId, { benefits });
   };
 
   const handleSaveCourse = async () => {
@@ -523,6 +569,8 @@ export const AdminCoursePage: React.FC = () => {
                 <img
                   src={courseForm.cover_image_url}
                   alt="Anteprima copertina corso"
+                  width={640}
+                  height={256}
                   className="max-h-64 w-auto rounded-lg border border-gray-200 object-contain mx-auto"
                 />
               )}
@@ -627,6 +675,170 @@ export const AdminCoursePage: React.FC = () => {
               <p><strong className="text-gray-800">Flag tecnico attivo</strong>: e interno e segue lo stato del corso, non serve usarlo a mano.</p>
               <p><strong className="text-gray-800">Regola pratica</strong>: `published` + `acquistabile` mette il corso in vetrina e nel checkout pubblico.</p>
             </div>
+        </div>
+      </section>
+
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-gray-800">Pacchetti (Basic / Intermedio / Avanzato)</h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Tutti i pacchetti danno accesso allo stesso identico corso: cambiano solo prezzo e benefit inclusi.
+              Se non crei nessun pacchetto, il corso usa il prezzo unico impostato sopra.
+            </p>
+          </div>
+          <Button type="button" variant="secondary" size="sm" onClick={addPackage}>
+            <Plus className="w-4 h-4 mr-1.5" /> Aggiungi pacchetto
+          </Button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {(courseForm.packages || []).length === 0 && (
+            <p className="text-sm text-gray-500 italic">Nessun pacchetto configurato: il corso usa il prezzo unico.</p>
+          )}
+          {(courseForm.packages || []).map((pkg) => (
+            <div key={pkg.package_id} className="rounded-lg border border-gray-200 p-4 space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <input
+                  type="text"
+                  value={pkg.name}
+                  onChange={(e) => updatePackage(pkg.package_id, { name: e.target.value })}
+                  placeholder="Nome pacchetto (es. Basic)"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg font-semibold"
+                />
+                <button
+                  type="button"
+                  onClick={() => removePackage(pkg.package_id)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                  aria-label={`Rimuovi pacchetto ${pkg.name || ''}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-gray-700">Prezzo pieno (€)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={pkg.price || ''}
+                    onChange={(e) => updatePackage(pkg.package_id, { price: e.target.value === '' ? 0 : Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-gray-700">Prezzo scontato (€)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={pkg.discounted_price ?? ''}
+                    onChange={(e) => updatePackage(pkg.package_id, { discounted_price: e.target.value === '' ? null : Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Opzionale"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-gray-700">Ordine visualizzazione</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={pkg.display_order ?? 999}
+                    onChange={(e) => updatePackage(pkg.package_id, { display_order: e.target.value === '' ? 999 : Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-gray-700">Benefit inclusi (uno per riga)</label>
+                <textarea
+                  value={pkg.benefits.join('\n')}
+                  onChange={(e) => updatePackageBenefits(pkg.package_id, e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[90px]"
+                  placeholder={'Ebook digitale\nKit Microblading incluso\nSupporto WhatsApp Chat 1:1'}
+                />
+                <p className="text-xs text-gray-500">Questo testo è quello mostrato al cliente in checkout, riga per riga.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-wrap gap-4 text-sm text-gray-700">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={pkg.includes_kit}
+                      onChange={(e) => updatePackage(pkg.package_id, { includes_kit: e.target.checked })}
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    Include kit fisico
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={pkg.includes_ebook}
+                      onChange={(e) => updatePackage(pkg.package_id, { includes_ebook: e.target.checked })}
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    Include ebook
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={pkg.includes_community}
+                      onChange={(e) => updatePackage(pkg.package_id, { includes_community: e.target.checked })}
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    Include community
+                  </label>
+                </div>
+                <div className="flex flex-wrap items-end gap-4">
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={pkg.includes_whatsapp_support}
+                      onChange={(e) => updatePackage(pkg.package_id, {
+                        includes_whatsapp_support: e.target.checked,
+                        whatsapp_support_months: e.target.checked ? pkg.whatsapp_support_months : null,
+                      })}
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    Supporto WhatsApp
+                  </label>
+                  {pkg.includes_whatsapp_support && (
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-gray-700">Durata (mesi, lascia vuoto se non definita)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={pkg.whatsapp_support_months ?? ''}
+                        onChange={(e) => updatePackage(pkg.package_id, {
+                          whatsapp_support_months: e.target.value === '' ? null : Number(e.target.value),
+                        })}
+                        className="w-32 px-3 py-2 border border-gray-300 rounded-lg"
+                        placeholder="Non definita"
+                      />
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-gray-700">Incontri live 1:1</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={pkg.live_meetings_count || ''}
+                      onChange={(e) => updatePackage(pkg.package_id, { live_meetings_count: e.target.value === '' ? 0 : Number(e.target.value) })}
+                      className="w-32 px-3 py-2 border border-gray-300 rounded-lg"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

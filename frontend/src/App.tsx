@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
@@ -8,19 +8,24 @@ import { Loading } from './components/common/Loading';
 import { useAuthContext } from './components/auth/useAuthContext';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
-import { CheckoutPage } from './pages/CheckoutPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { CourseDetailPage } from './pages/CourseDetailPage';
-import { VideoPlayerPage } from './pages/VideoPlayerPage';
-import { AdminDashboardPage } from './pages/AdminDashboardPage';
-import { AdminCoursePage } from './pages/AdminCoursePage';
-import { AdminStudentsPage } from './pages/AdminStudentsPage';
-import { AdminStudentDetailPage } from './pages/AdminStudentDetailPage';
-import { AdminPurchasesPage } from './pages/AdminPurchasesPage';
-import { AdminAccountsPage } from './pages/AdminAccountsPage';
-import { AdminPurchaseDetailPage } from './pages/AdminPurchaseDetailPage';
-import { AdminCouponsPage } from './pages/AdminCouponsPage';
 import { AdminOperationBannerProvider } from './components/common/AdminOperationBanner';
+
+// Route-level code splitting: only the landing/login pages (the first thing
+// an anonymous visitor sees) are bundled eagerly. Everything else - the
+// checkout flow, the authenticated client area, and the entire admin panel -
+// is loaded on demand so public visitors never download admin-only code.
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })));
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
+const CourseDetailPage = lazy(() => import('./pages/CourseDetailPage').then((m) => ({ default: m.CourseDetailPage })));
+const VideoPlayerPage = lazy(() => import('./pages/VideoPlayerPage').then((m) => ({ default: m.VideoPlayerPage })));
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })));
+const AdminCoursePage = lazy(() => import('./pages/AdminCoursePage').then((m) => ({ default: m.AdminCoursePage })));
+const AdminStudentsPage = lazy(() => import('./pages/AdminStudentsPage').then((m) => ({ default: m.AdminStudentsPage })));
+const AdminStudentDetailPage = lazy(() => import('./pages/AdminStudentDetailPage').then((m) => ({ default: m.AdminStudentDetailPage })));
+const AdminPurchasesPage = lazy(() => import('./pages/AdminPurchasesPage').then((m) => ({ default: m.AdminPurchasesPage })));
+const AdminAccountsPage = lazy(() => import('./pages/AdminAccountsPage').then((m) => ({ default: m.AdminAccountsPage })));
+const AdminPurchaseDetailPage = lazy(() => import('./pages/AdminPurchaseDetailPage').then((m) => ({ default: m.AdminPurchaseDetailPage })));
+const AdminCouponsPage = lazy(() => import('./pages/AdminCouponsPage').then((m) => ({ default: m.AdminCouponsPage })));
 
 const ScrollToPageStart = () => {
   const { pathname } = useLocation();
@@ -68,6 +73,7 @@ function App() {
           <Sidebar isAdmin={isAdmin} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
           <main data-app-scroll className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain relative">
+            <Suspense fallback={<Loading fullScreen text="Loading..." />}>
             <Routes>
               <Route
                 path="/dashboard"
@@ -165,6 +171,7 @@ function App() {
               />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </Suspense>
           </main>
         </div>
       </div>
@@ -180,12 +187,14 @@ function App() {
 
       <div className="flex flex-1 w-full max-w-full">
         <main className="flex-1 w-full min-w-0">
+          <Suspense fallback={<Loading fullScreen text="Loading..." />}>
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </Suspense>
         </main>
       </div>
 
