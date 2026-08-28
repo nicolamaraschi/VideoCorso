@@ -487,25 +487,60 @@ export const CheckoutPage: React.FC = () => {
             Riepilogo Ordine
           </h2>
 
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-800">
-              {course.title}
-              {selectedPackage && ` - ${selectedPackage.name}`}
-            </h3>
-            <p className="text-gray-600">{course.short_description || course.description}</p>
-          </div>
+          {selectedPackage ? (
+            <div className="mb-6 rounded-2xl bg-primary-50/70 border-2 border-primary-200 p-5">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <span className="inline-flex px-3 py-1 rounded-full bg-primary-950 text-white text-xs font-bold uppercase tracking-wider">
+                  Piano Selezionato
+                </span>
+                {selectedPackage.discounted_price && Number(selectedPackage.discounted_price) < Number(selectedPackage.price) && (
+                  <span className="inline-flex px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-950 text-xs font-extrabold uppercase tracking-wide">
+                    Offerta Lancio -500€
+                  </span>
+                )}
+              </div>
+              <h3 className="text-xl font-serif font-bold text-gray-900">
+                {selectedPackage.name}
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                {selectedPackage.description || course.title}
+              </p>
 
-          <ul className="space-y-4 mb-8">
-            {benefits.map((item) => {
-              const Icon = item.icon;
-              return (
-                <li key={item.text} className="flex items-center gap-3">
-                  <Icon className="w-5 h-5 text-primary-600 flex-shrink-0" />
-                  <span className="text-gray-700">{item.text}</span>
-                </li>
-              );
-            })}
-          </ul>
+              <div className="mt-4 pt-4 border-t border-primary-200/60">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-primary-900 mb-3">
+                  Cosa include il tuo piano:
+                </h4>
+                <ul className="space-y-2.5 text-sm text-gray-800">
+                  {selectedPackage.benefits.map((benefit, idx) => (
+                    <li key={idx} className="flex items-start gap-2.5">
+                      <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <span className="leading-snug">{benefit}</span>
+                    </li>
+                  ))}
+                  <li className="flex items-start gap-2.5 text-primary-900 font-medium">
+                    <Video className="w-4 h-4 text-primary-600 shrink-0 mt-0.5" />
+                    <span>Accesso illimitato e a vita ai 10 moduli on demand</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-800">{course.title}</h3>
+              <p className="text-gray-600">{course.short_description || course.description}</p>
+              <ul className="space-y-4 my-6">
+                {benefits.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <li key={item.text} className="flex items-center gap-3">
+                      <Icon className="w-5 h-5 text-primary-600 flex-shrink-0" />
+                      <span className="text-gray-700">{item.text}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
 
           {requiresShippingAddress && (
             <div className="mb-8 rounded-xl border border-gray-200 bg-gray-50 p-4 sm:p-6">
@@ -620,10 +655,32 @@ export const CheckoutPage: React.FC = () => {
         <div className="h-fit rounded-2xl border border-primary-100 bg-white p-5 shadow-soft sm:p-8">
           <h2 className="text-2xl font-serif font-bold text-gray-900 mb-6">Pagamento Sicuro</h2>
 
-          <div className="space-y-3 mb-6">
-            <div className="flex flex-col gap-1 text-gray-600 sm:flex-row sm:justify-between sm:gap-4">
-              <span>Corso selezionato</span>
-              <span className="break-words text-right sm:max-w-[55%]">{course.title}</span>
+          <div className="space-y-4 mb-6">
+            <div className="rounded-xl bg-gray-50 border border-gray-200 p-4 space-y-2.5 text-sm">
+              <div className="flex justify-between items-center text-gray-600">
+                <span>Corso:</span>
+                <span className="font-semibold text-gray-900 text-right">{course.title}</span>
+              </div>
+              {selectedPackage && (
+                <div className="flex justify-between items-center text-gray-600 pt-2 border-t border-gray-200/60">
+                  <span>Pacchetto:</span>
+                  <span className="font-bold text-primary-950 bg-primary-100/70 px-2.5 py-0.5 rounded-md text-right">
+                    {selectedPackage.name}
+                  </span>
+                </div>
+              )}
+              {selectedPackage && selectedPackage.discounted_price && Number(selectedPackage.discounted_price) < Number(selectedPackage.price) && (
+                <div className="flex justify-between items-center text-gray-500 pt-1">
+                  <span>Prezzo di listino:</span>
+                  <span className="line-through">€ {Number(selectedPackage.price).toFixed(2)}</span>
+                </div>
+              )}
+              {selectedPackage && selectedPackage.discounted_price && Number(selectedPackage.discounted_price) < Number(selectedPackage.price) && (
+                <div className="flex justify-between items-center text-emerald-700 font-medium">
+                  <span>Sconto Lancio:</span>
+                  <span>- € {(Number(selectedPackage.price) - Number(selectedPackage.discounted_price)).toFixed(2)}</span>
+                </div>
+              )}
             </div>
             
             {!user && (
@@ -667,13 +724,19 @@ export const CheckoutPage: React.FC = () => {
                 )}
               </div>
             </div>
-            <div className="flex justify-between text-2xl font-bold text-gray-900 pt-3 border-t">
-              <span>Totale</span>
+
+            <div className="flex justify-between items-baseline text-2xl font-bold text-gray-900 pt-3 border-t">
+              <div>
+                <span>Totale</span>
+                {selectedPackage && (
+                  <span className="block text-xs font-normal text-gray-500">+ IVA inclusa ove applicabile</span>
+                )}
+              </div>
               <div className="text-right">
                 {couponQuote && checkoutTotal < baseTotal && (
                   <span className="mr-2 text-base font-normal text-gray-400 line-through">€ {baseTotal.toFixed(2)}</span>
                 )}
-                <span>€ {checkoutTotal.toFixed(2)}</span>
+                <span className="text-primary-950 font-serif font-bold text-3xl">€ {checkoutTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -692,10 +755,12 @@ export const CheckoutPage: React.FC = () => {
             <Loading text="Stiamo reindirizzando al pagamento sicuro..." />
           ) : (
             <>
-              <Button onClick={handleCheckout} variant="primary" fullWidth size="lg" className="transform hover:scale-105">
+              <Button onClick={handleCheckout} variant="primary" fullWidth size="lg" className="transform hover:scale-[1.02] shadow-lg py-4 text-base font-semibold">
                 {checkoutTotal === 0
                   ? 'Accedi Gratis' 
-                  : `Paga € ${checkoutTotal.toFixed(2)}`}
+                  : selectedPackage
+                    ? `Paga € ${checkoutTotal.toFixed(2)} • ${selectedPackage.name}`
+                    : `Paga € ${checkoutTotal.toFixed(2)}`}
               </Button>
               <div className="mt-5 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-left text-sm text-gray-700">
                 <label className="flex cursor-pointer items-start gap-3">

@@ -1,6 +1,7 @@
 export interface CoursePackage {
   package_id: string;
   name: string;
+  description?: string;
   price: number;
   discounted_price?: number | null;
   display_order?: number;
