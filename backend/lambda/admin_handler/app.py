@@ -2401,34 +2401,39 @@ def delete_admin_account(event, email):
 
 
 def resend_admin_invite(email):
-    username = (email or '').strip().lower()
-    if not username:
-        return create_response(400, {'error': 'Admin username is required'})
+    param = (email or '').strip().lower()
+    if not param:
+        return create_response(400, {'error': 'Admin identifier is required'})
+
+    target_email = param
+    try:
+        user_info = cognito_client.admin_get_user(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Username=param,
+        )
+        attributes = {item['Name']: item['Value'] for item in user_info.get('UserAttributes', [])}
+        target_email = attributes.get('email', param)
+    except Exception as exc:
+        print(f'Admin user fetch warning: {exc}')
 
     try:
         cognito_client.admin_create_user(
             UserPoolId=COGNITO_USER_POOL_ID,
-            Username=username,
+            Username=target_email,
             MessageAction='RESEND',
             DesiredDeliveryMediums=['EMAIL'],
         )
         return create_response(200, {'success': True, 'message': 'Email di invito inviata con successo'})
     except Exception as exc:
         print(f'Admin resend through Cognito RESEND warning: {exc}')
-        response = cognito_client.admin_get_user(
-            UserPoolId=COGNITO_USER_POOL_ID,
-            Username=username,
-        )
-        attributes = {item['Name']: item['Value'] for item in response.get('UserAttributes', [])}
         temp_password = generate_temp_password()
-
         cognito_client.admin_set_user_password(
             UserPoolId=COGNITO_USER_POOL_ID,
-            Username=username,
+            Username=param,
             Password=temp_password,
             Permanent=False,
         )
-        send_admin_welcome_email(attributes.get('email', username), temp_password)
+        send_admin_welcome_email(target_email, temp_password)
         return create_response(200, {'success': True, 'message': 'Email di invito inviata con successo'})
 
 

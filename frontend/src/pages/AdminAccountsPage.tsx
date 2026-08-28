@@ -100,7 +100,7 @@ export const AdminAccountsPage: React.FC = () => {
 
   const handleResendInvite = async (account: AdminAccount) => {
     try {
-      await adminService.resendAdminInvite(account.username);
+      await adminService.resendAdminInvite(account.email || account.username);
       showSuccess('Invito reinviato', `Una nuova password temporanea è stata inviata a ${account.email}.`);
     } catch (err) {
       showError('Invito non reinviato', getErrorMessage(err, 'L’invito non è stato reinviato.'));
