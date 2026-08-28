@@ -248,31 +248,87 @@ def generate_temp_password(length: int = 12) -> str:
     return ''.join(secrets.choice(alphabet) for _ in range(length)) + 'A1!'
 
 
+def render_academy_email_html(
+    title: str,
+    subtitle: str,
+    paragraphs: list[str],
+    email: Optional[str] = None,
+    temp_password: Optional[str] = None,
+    cta_url: Optional[str] = None,
+    cta_text: Optional[str] = None,
+    note: Optional[str] = None,
+) -> str:
+    paragraphs_html = ''.join(
+        f'<p style="color: #374151; font-size: 15px; line-height: 1.6; margin: 0 0 14px 0;">{p}</p>'
+        for p in paragraphs
+    )
+
+    credentials_html = ''
+    if email or temp_password:
+        email_row = f'<p style="margin: 0 0 12px 0; color: #4b5563; font-size: 14px;"><strong style="color: #111827;">Email / Username:</strong><br><span style="color: #4a0e2e; font-size: 15px; font-weight: 600;">{email}</span></p>' if email else ''
+        pass_row = f'<p style="margin: 0; color: #4b5563; font-size: 14px;"><strong style="color: #111827;">Password temporanea:</strong></p><div style="font-family: monospace; font-size: 18px; font-weight: bold; color: #4a0e2e; background-color: #ffffff; padding: 12px 16px; border-radius: 8px; border: 1px dashed #d1a4b1; margin-top: 6px; letter-spacing: 1px; display: inline-block;">{temp_password}</div>' if temp_password else ''
+        credentials_html = f'''
+        <div style="background-color: #faf5f7; border: 1px solid #f3dce3; border-radius: 12px; padding: 20px; margin: 24px 0;">
+            {email_row}
+            {pass_row}
+        </div>
+        '''
+
+    cta_html = ''
+    if cta_url and cta_text:
+        cta_html = f'''
+        <div style="text-align: center; margin: 32px 0 24px 0;">
+            <a href="{cta_url}" style="background-color: #4a0e2e; color: #ffffff; padding: 14px 36px; text-decoration: none; border-radius: 50px; font-weight: 600; font-size: 15px; display: inline-block; box-shadow: 0 4px 10px rgba(74, 14, 46, 0.25);">{cta_text}</a>
+        </div>
+        '''
+
+    note_html = f'<p style="color: #6b7280; font-size: 13px; line-height: 1.5; margin-bottom: 24px;">{note}</p>' if note else ''
+
+    return f'''
+    <div style="font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff; border: 1px solid #f0e6eb; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <h1 style="color: #4a0e2e; font-size: 24px; font-weight: bold; margin: 0;">Chiara Morocutti Academy</h1>
+            <p style="color: #9c7178; font-size: 13px; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px;">{subtitle}</p>
+        </div>
+        <h2 style="color: #111827; font-size: 18px; font-weight: 600; margin-bottom: 16px;">{title}</h2>
+        {paragraphs_html}
+        {credentials_html}
+        {note_html}
+        {cta_html}
+        <p style="color: #9ca3af; font-size: 12px; margin-top: 32px; border-top: 1px solid #f3f4f6; padding-top: 16px; text-align: center;">Chiara Morocutti Academy • Tutti i diritti riservati</p>
+    </div>
+    '''
+
+
 def send_welcome_email(email: str, temp_password: str, password_reset: bool = False):
     if not resend or not getattr(resend, 'api_key', None):
         print('Welcome email skipped: Resend not configured.')
         return
 
     try:
+        subject = (
+            'Password reimpostata - Chiara Morocutti Academy'
+            if password_reset else 'Benvenuta nella Chiara Morocutti Academy - Le tue credenziali'
+        )
+        paragraphs = [
+            'Ti è stata assegnata una nuova password per accedere alla piattaforma.'
+            if password_reset else 'Benvenuta nella Masterclass! Il tuo account è stato creato con successo e l’accesso al corso è attivo.'
+        ]
+        html_body = render_academy_email_html(
+            title='Password Aggiornata' if password_reset else 'Accesso Masterclass Attivato',
+            subtitle='Formazione d’Eccellenza Microblading',
+            paragraphs=paragraphs,
+            email=email,
+            temp_password=temp_password,
+            cta_url='https://main.d26u0xz2smmxfz.amplifyapp.com/login',
+            cta_text='Accedi alla Masterclass',
+            note='👉 Al tuo primo accesso ti verrà richiesto di confermare questa password temporanea e sceglierne una tua personale e definitiva.',
+        )
         resend.Emails.send({
-            'from': 'Team VideoCorso <onboarding@resend.dev>',
+            'from': 'Chiara Morocutti Academy <onboarding@resend.dev>',
             'to': email,
-            'subject': (
-                'Password reimpostata - Chiara Morocutti Academy'
-                if password_reset else 'Accesso piattaforma corsi - Chiara Morocutti Academy'
-            ),
-            'html': (
-                '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 8px;">'
-                f'<h2 style="color: #c2697b; text-align: center;">{("Password reimpostata" if password_reset else "Benvenuta in Chiara Morocutti Academy!")}</h2>'
-                f'<p style="font-size: 16px; color: #333;">{("Ti è stata assegnata una nuova password temporanea per accedere alla piattaforma." if password_reset else "Il tuo account per accedere alla piattaforma corsi è stato creato con successo.")}</p>'
-                '<div style="background-color: #f9f9f9; padding: 15px; border-radius: 6px; margin: 20px 0;">'
-                f'<p style="margin: 0; font-size: 15px;"><strong>Email:</strong> {email}</p>'
-                f'<p style="margin: 10px 0 0 0; font-size: 15px;"><strong>Password temporanea:</strong> <span style="font-family: monospace; background: #eee; padding: 2px 6px; border-radius: 4px;">{temp_password}</span></p>'
-                '</div>'
-                '<p style="font-size: 14px; color: #666;">Al tuo primo accesso ti verrà richiesto di impostare una nuova password personalizzata in modo da mantenere il tuo account sicuro.</p>'
-                '<p style="font-size: 14px; color: #666; margin-top: 30px;">A presto,<br>Il Team di Chiara Morocutti</p>'
-                '</div>'
-            ),
+            'subject': subject,
+            'html': html_body,
         })
     except Exception as exc:
         print(f'Email send failed: {exc}')
@@ -284,21 +340,23 @@ def send_admin_welcome_email(email: str, temp_password: str):
         return
 
     try:
+        html_body = render_academy_email_html(
+            title='Accesso Amministratore Attivato',
+            subtitle='Pannello di Controllo e Gestione',
+            paragraphs=[
+                'Il tuo account amministratore per la gestione della piattaforma Chiara Morocutti Academy è stato creato con successo.'
+            ],
+            email=email,
+            temp_password=temp_password,
+            cta_url='https://main.d26u0xz2smmxfz.amplifyapp.com/login',
+            cta_text='Accedi al Pannello Admin',
+            note='👉 Al tuo primo accesso ti verrà richiesto di confermare la password temporanea e sceglierne una tua personale.',
+        )
         resend.Emails.send({
-            'from': 'Team VideoCorso <onboarding@resend.dev>',
+            'from': 'Chiara Morocutti Academy <onboarding@resend.dev>',
             'to': email,
-            'subject': 'Accesso amministratore piattaforma',
-            'html': (
-                '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 8px;">'
-                '<h2 style="color: #333; text-align: center;">Accesso Admin Attivato</h2>'
-                '<p style="font-size: 16px; color: #333;">Il tuo account amministratore è stato creato con successo.</p>'
-                '<div style="background-color: #f9f9f9; padding: 15px; border-radius: 6px; margin: 20px 0;">'
-                f'<p style="margin: 0; font-size: 15px;"><strong>Email:</strong> {email}</p>'
-                f'<p style="margin: 10px 0 0 0; font-size: 15px;"><strong>Password temporanea:</strong> <span style="font-family: monospace; background: #eee; padding: 2px 6px; border-radius: 4px;">{temp_password}</span></p>'
-                '</div>'
-                '<p style="font-size: 14px; color: #666;">Al tuo primo accesso ti verrà richiesto di cambiare password.</p>'
-                '</div>'
-            ),
+            'subject': 'Accesso Amministratore - Chiara Morocutti Academy',
+            'html': html_body,
         })
     except Exception as exc:
         print(f'Admin email send failed: {exc}')
@@ -1466,7 +1524,6 @@ def ensure_cognito_student(email: str, full_name: str):
                 {'Name': 'custom:subscription_status', 'Value': 'active'},
             ],
             DesiredDeliveryMediums=['EMAIL'],
-            MessageAction='SUPPRESS',
         )
         try:
             cognito_client.admin_add_user_to_group(
@@ -2276,7 +2333,6 @@ def create_admin_account(body):
                 {'Name': 'custom:full_name', 'Value': full_name},
             ],
             DesiredDeliveryMediums=['EMAIL'],
-            MessageAction='SUPPRESS',
         )
         cognito_client.admin_add_user_to_group(
             UserPoolId=COGNITO_USER_POOL_ID,
@@ -2349,21 +2405,31 @@ def resend_admin_invite(email):
     if not username:
         return create_response(400, {'error': 'Admin username is required'})
 
-    response = cognito_client.admin_get_user(
-        UserPoolId=COGNITO_USER_POOL_ID,
-        Username=username,
-    )
-    attributes = {item['Name']: item['Value'] for item in response.get('UserAttributes', [])}
-    temp_password = generate_temp_password()
+    try:
+        cognito_client.admin_create_user(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Username=username,
+            MessageAction='RESEND',
+            DesiredDeliveryMediums=['EMAIL'],
+        )
+        return create_response(200, {'success': True, 'message': 'Email di invito inviata con successo'})
+    except Exception as exc:
+        print(f'Admin resend through Cognito RESEND warning: {exc}')
+        response = cognito_client.admin_get_user(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Username=username,
+        )
+        attributes = {item['Name']: item['Value'] for item in response.get('UserAttributes', [])}
+        temp_password = generate_temp_password()
 
-    cognito_client.admin_set_user_password(
-        UserPoolId=COGNITO_USER_POOL_ID,
-        Username=username,
-        Password=temp_password,
-        Permanent=False,
-    )
-    send_admin_welcome_email(attributes.get('email', username), temp_password)
-    return create_response(200, {'success': True, 'message': 'Admin invite resent'})
+        cognito_client.admin_set_user_password(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Username=username,
+            Password=temp_password,
+            Permanent=False,
+        )
+        send_admin_welcome_email(attributes.get('email', username), temp_password)
+        return create_response(200, {'success': True, 'message': 'Email di invito inviata con successo'})
 
 
 def get_stats():
@@ -2672,15 +2738,25 @@ def lambda_handler(event, context):
             student = get_user_item(path_parameters.get('studentId'))
             if not student:
                 return create_response(404, {'error': 'Student not found'})
-            temp_password = generate_temp_password()
-            cognito_client.admin_set_user_password(
-                UserPoolId=COGNITO_USER_POOL_ID,
-                Username=student['email'],
-                Password=temp_password,
-                Permanent=False,
-            )
-            send_welcome_email(student['email'], temp_password)
-            return create_response(200, {'success': True, 'message': 'Invite resent'})
+            try:
+                cognito_client.admin_create_user(
+                    UserPoolId=COGNITO_USER_POOL_ID,
+                    Username=student['email'],
+                    MessageAction='RESEND',
+                    DesiredDeliveryMediums=['EMAIL'],
+                )
+                return create_response(200, {'success': True, 'message': 'Email di invito inviata con successo'})
+            except Exception as exc:
+                print(f'Student resend through Cognito RESEND warning: {exc}')
+                temp_password = generate_temp_password()
+                cognito_client.admin_set_user_password(
+                    UserPoolId=COGNITO_USER_POOL_ID,
+                    Username=student['email'],
+                    Password=temp_password,
+                    Permanent=False,
+                )
+                send_welcome_email(student['email'], temp_password)
+                return create_response(200, {'success': True, 'message': 'Email di invito inviata con successo'})
         if path.startswith('/admin/student/') and path.endswith('/grant-course') and http_method == 'POST':
             return grant_course_to_student(path_parameters.get('studentId'), body)
         if path.startswith('/admin/student/') and path.endswith('/reset-password') and http_method == 'POST':
