@@ -103,6 +103,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showControls, setShowControls] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [hoverPosition, setHoverPosition] = useState<number | null>(null);
+  const [hoverTime, setHoverTime] = useState<number>(0);
+  const [isBuffering, setIsBuffering] = useState(false);
   // Start with 16:9 to avoid layout shift, then use the uploaded video's
   // native dimensions as soon as its metadata is available.
   const [aspectRatio, setAspectRatio] = useState(16 / 9);
@@ -115,6 +119,24 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     seekToSeconds,
     clearSeekTo
   } = useVideoProgress({ lessonId, enabled: trackProgress });
+
+  // Instant optimistic seeking on the video element
+  const seekToTime = useCallback((targetTime: number) => {
+    const video = playerRef.current;
+    const boundedTime = Math.max(0, Math.min(targetTime, duration || 0));
+    setCurrentTime(boundedTime); // Instant UI feedback without waiting for network
+    if (video) {
+      if (typeof (video as any).fastSeek === 'function') {
+        try {
+          (video as any).fastSeek(boundedTime);
+        } catch {
+          video.currentTime = boundedTime;
+        }
+      } else {
+        video.currentTime = boundedTime;
+      }
+    }
+  }, [duration]);
 
   // When the user switches quality, the parent fetches a new presigned URL for
   // the same lesson. We keep track of where playback was so switching quality
@@ -131,10 +153,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Handle seeking from progress load
   useEffect(() => {
     if (seekToSeconds !== null && playerRef.current) {
-      playerRef.current.currentTime = seekToSeconds;
+      seekToTime(seekToSeconds);
       clearSeekTo();
     }
-  }, [seekToSeconds, clearSeekTo]);
+  }, [seekToSeconds, clearSeekTo, seekToTime]);
 
   // Keep the latest playback position in refs so the unmount-save effect
   // below can read current values without re-running (and thus re-firing
@@ -168,18 +190,53 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [isPlaying, currentTime, duration, saveProgress, trackProgress]);
 
   const skip = useCallback((seconds: number) => {
-    if (!playerRef.current) return;
-    const newTime = Math.max(0, Math.min(currentTime + seconds, duration));
-    playerRef.current.currentTime = newTime;
-  }, [currentTime, duration]);
+    seekToTime(currentTime + seconds);
+  }, [currentTime, seekToTime]);
 
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!playerRef.current || !progressBarRef.current) return;
-
+  const calculateTimeFromEvent = useCallback((clientX: number) => {
+    if (!progressBarRef.current || duration <= 0) return 0;
     const rect = progressBarRef.current.getBoundingClientRect();
-    const pos = (e.clientX - rect.left) / rect.width;
-    playerRef.current.currentTime = pos * duration;
+    const ratio = Math.max(0, Math.min((clientX - rect.left) / rect.width, 1));
+    return ratio * duration;
+  }, [duration]);
+
+  const handleProgressBarMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsScrubbing(true);
+    const target = calculateTimeFromEvent(e.clientX);
+    seekToTime(target);
   };
+
+  const handleProgressBarMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!progressBarRef.current || duration <= 0) return;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min((e.clientX - rect.left) / rect.width, 1));
+    setHoverPosition(ratio * 100);
+    setHoverTime(ratio * duration);
+
+    if (isScrubbing) {
+      seekToTime(ratio * duration);
+    }
+  };
+
+  const handleProgressBarMouseLeave = () => {
+    setHoverPosition(null);
+  };
+
+  // Global mouseup/touchend to smoothly stop scrubbing anywhere on the page
+  useEffect(() => {
+    const handleGlobalRelease = () => {
+      if (isScrubbing) {
+        setIsScrubbing(false);
+      }
+    };
+    window.addEventListener('mouseup', handleGlobalRelease);
+    window.addEventListener('touchend', handleGlobalRelease);
+    return () => {
+      window.removeEventListener('mouseup', handleGlobalRelease);
+      window.removeEventListener('touchend', handleGlobalRelease);
+    };
+  }, [isScrubbing]);
 
   const changeVolume = useCallback((delta: number) => {
     const newVolume = Math.max(0, Math.min(1, volume + delta));
@@ -360,10 +417,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           volume={volume}
           muted={isMuted}
           playbackRate={playbackRate}
-          preload="metadata"
+          preload="auto"
+          onWaiting={() => setIsBuffering(true)}
+          onPlaying={() => setIsBuffering(false)}
+          onCanPlay={() => setIsBuffering(false)}
           onTimeUpdate={(event) => {
             const playedSeconds = event.currentTarget.currentTime;
-            setCurrentTime(playedSeconds);
+            if (!isScrubbing) {
+              setCurrentTime(playedSeconds);
+            }
             handleTimeUpdate(playedSeconds, duration);
           }}
           onDurationChange={(event) => setDuration(event.currentTarget.duration)}
@@ -394,6 +456,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         />
       </div>
 
+      {/* Buffering Indicator */}
+      {isBuffering && isPlaying && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+          <div className="w-14 h-14 border-4 border-white/20 border-t-primary-500 rounded-full animate-spin backdrop-blur-xs" />
+        </div>
+      )}
+
       {/* Controls Overlay */}
       <div 
         className="absolute inset-0 z-10" 
@@ -408,18 +477,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }}
       >
         <div
-          className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none transition-opacity duration-300 ${showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
+          className={`absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none transition-opacity duration-300 ${showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
             }`}
         >
           {/* Center Play Button */}
-          {!isPlaying && (
+          {!isPlaying && !isBuffering && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   togglePlay();
                 }}
-                className="w-20 h-20 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all backdrop-blur-sm pointer-events-auto"
+                className="w-20 h-20 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all backdrop-blur-sm pointer-events-auto shadow-2xl hover:scale-105"
               >
                 <Play className="w-10 h-10 text-white ml-1" />
               </button>
@@ -427,19 +496,50 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           )}
 
           {/* Bottom Controls */}
-          <div className="absolute bottom-0 left-0 right-0 space-y-2 p-2.5 sm:p-4 pointer-events-auto">
-            {/* Progress Bar */}
+          <div className="absolute bottom-0 left-0 right-0 space-y-1.5 p-2.5 sm:p-4 pointer-events-auto">
+            {/* Smooth Scrubbable Progress Bar with Enlarged Hit Area and Hover Tooltip */}
             <div
               ref={progressBarRef}
-              onClick={handleProgressClick}
-              className="w-full h-1 bg-white/30 rounded-full cursor-pointer hover:h-2 transition-all"
+              onMouseDown={handleProgressBarMouseDown}
+              onMouseMove={handleProgressBarMouseMove}
+              onMouseLeave={handleProgressBarMouseLeave}
+              onTouchStart={(e) => {
+                setIsScrubbing(true);
+                const touch = e.touches[0];
+                if (touch) seekToTime(calculateTimeFromEvent(touch.clientX));
+              }}
+              onTouchMove={(e) => {
+                const touch = e.touches[0];
+                if (touch && isScrubbing) seekToTime(calculateTimeFromEvent(touch.clientX));
+              }}
+              className="relative w-full py-2 cursor-pointer group/progress select-none"
             >
-              <div
-                className="h-full bg-primary-600 rounded-full relative"
-                style={{ width: `${progressPercentage}%` }}
-              >
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100" />
+              {/* Background Track */}
+              <div className="w-full h-1.5 group-hover/progress:h-2 bg-white/25 rounded-full overflow-hidden transition-all duration-150 relative">
+                {/* Progress Fill */}
+                <div
+                  className="h-full bg-gradient-to-r from-primary-600 to-primary-400 rounded-full transition-all duration-75"
+                  style={{ width: `${progressPercentage}%` }}
+                />
               </div>
+
+              {/* Scrub Handle (Thumb) */}
+              <div
+                className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-lg transition-transform duration-100 pointer-events-none border border-primary-500 ${
+                  isScrubbing ? 'scale-125' : 'scale-0 group-hover/progress:scale-100'
+                }`}
+                style={{ left: `${progressPercentage}%` }}
+              />
+
+              {/* Hover Time Tooltip */}
+              {hoverPosition !== null && duration > 0 && (
+                <div
+                  className="absolute -top-7 -translate-x-1/2 px-2 py-0.5 bg-neutral-900/95 border border-white/10 text-white text-xs rounded font-mono shadow-xl pointer-events-none backdrop-blur-xs"
+                  style={{ left: `${Math.max(4, Math.min(hoverPosition, 96))}%` }}
+                >
+                  {formatDuration(hoverTime)}
+                </div>
+              )}
             </div>
 
             {/* Control Buttons */}
