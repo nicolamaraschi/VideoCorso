@@ -365,16 +365,16 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                       src={chapter.image_url}
                       alt={chapter.title}
                       loading="lazy"
-                      width={112}
-                      height={80}
-                      className="h-14 w-20 sm:h-20 sm:w-28 rounded-lg border border-gray-200 object-cover bg-white"
+                      width={192}
+                      height={108}
+                      className="h-20 w-32 sm:h-28 sm:w-48 rounded-xl border border-gray-200 object-cover bg-white shadow-sm flex-shrink-0"
                     />
                   ) : null}
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-gray-900 truncate">
+                    <h3 className="font-semibold text-gray-900 truncate text-base sm:text-lg">
                       Chapter {chapter.order_number}: {chapter.title}
                     </h3>
-                    <p className="text-sm text-gray-600 truncate">{chapter.description}</p>
+                    <p className="text-sm text-gray-600 truncate mt-0.5">{chapter.description}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-end sm:justify-start">
@@ -409,16 +409,16 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                     axis="y"
                     values={chapter.lessons}
                     onReorder={(newLessons) => handleReorderLessonsLocal(chapter.chapter_id, newLessons)}
-                    className="space-y-2"
+                    className="space-y-3"
                   >
                     {chapter.lessons.map((lesson) => (
                       <Reorder.Item
                         key={lesson.lesson_id}
                         value={lesson}
                         onDragEnd={() => handleSaveLessonOrder(chapter.chapter_id)}
-                        className="flex flex-col items-stretch gap-2 p-2.5 sm:flex-row sm:items-center sm:justify-between sm:p-3 bg-white rounded border border-gray-200 shadow-sm"
+                        className="flex flex-col items-stretch gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
                       >
-                        <div className="flex min-w-0 items-center gap-2 sm:gap-3 flex-1">
+                        <div className="flex min-w-0 items-center gap-3 sm:gap-4 flex-1">
                           <div className="cursor-move p-1 hover:bg-gray-100 rounded text-gray-400 flex-shrink-0">
                             <GripVertical className="w-4 h-4" />
                           </div>
@@ -430,7 +430,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                               className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
                               aria-label={`Sposta lezione "${lesson.title}" su`}
                             >
-                              <ArrowUp className="w-3 h-3" />
+                              <ArrowUp className="w-3.5 h-3.5" />
                             </button>
                             <button
                               type="button"
@@ -439,7 +439,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                               className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
                               aria-label={`Sposta lezione "${lesson.title}" giù`}
                             >
-                              <ArrowDown className="w-3 h-3" />
+                              <ArrowDown className="w-3.5 h-3.5" />
                             </button>
                           </div>
                           {lesson.thumbnail_url ? (
@@ -447,12 +447,12 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                               src={lesson.thumbnail_url}
                               alt={lesson.title}
                               loading="lazy"
-                              width={96}
-                              height={64}
-                              className="h-12 w-16 sm:h-16 sm:w-24 rounded-lg border border-gray-200 object-cover bg-gray-50 flex-shrink-0"
+                              width={192}
+                              height={108}
+                              className="h-20 w-32 sm:h-24 sm:w-44 md:h-28 md:w-52 rounded-xl border border-gray-200 object-cover bg-gray-50 flex-shrink-0 shadow-sm"
                             />
                           ) : (
-                            <div className="flex h-12 w-16 sm:h-16 sm:w-24 flex-shrink-0 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-[10px] sm:text-[11px] font-medium text-gray-400">
+                            <div className="flex h-20 w-32 sm:h-24 sm:w-44 md:h-28 md:w-52 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-xs font-medium text-gray-400">
                               No cover
                             </div>
                           )}
