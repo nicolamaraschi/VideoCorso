@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Video } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, Video } from 'lucide-react';
 import { VideoPlayer } from '../components/course/VideoPlayer';
 import { Button } from '../components/common/Button';
 import { Loading } from '../components/common/Loading';

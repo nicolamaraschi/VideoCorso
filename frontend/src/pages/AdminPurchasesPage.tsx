@@ -89,9 +89,9 @@ export const AdminPurchasesPage: React.FC = () => {
       setDeletingId(purchaseId);
       await adminService.deleteStripeTestPurchase(purchaseId);
       setPurchases((prev) => prev.filter((p) => p.purchase_id !== purchaseId));
-      showSuccess('Acquisto eliminato con successo');
+      showSuccess('Acquisto eliminato', 'L’acquisto è stato rimosso dallo storico.');
     } catch (err) {
-      showError(getErrorMessage(err, 'Impossibile eliminare l’acquisto'));
+      showError('Errore eliminazione', getErrorMessage(err, 'Impossibile eliminare l’acquisto'));
     } finally {
       setDeletingId(null);
     }
