@@ -473,6 +473,27 @@ Resources:
       UserPoolName: !Sub "${Environment}-videocorso-users"
       AdminCreateUserConfig:
         UnusedAccountValidityDays: 365
+        InviteMessageTemplate:
+          EmailSubject: "Benvenuta nella Chiara Morocutti Academy - Le tue credenziali"
+          EmailMessage: |
+            Gentile studentessa,
+
+            Benvenuta nella Masterclass di Chiara Morocutti Academy!
+            Il tuo account è pronto e il corso è stato sbloccato.
+
+            Ecco le tue credenziali per accedere:
+
+            • Email: {username}
+            • Password temporanea:
+            {####}
+
+            👉 Accedi qui per impostare la tua password definitiva:
+            https://main.d26u0xz2smmxfz.amplifyapp.com/login
+
+            (Al primo accesso ti verrà chiesto di inserire questa password temporanea e sceglierne una tua personale definitiva).
+
+            Un caro saluto,
+            Chiara Morocutti Academy
       UsernameAttributes:
         - email
       AutoVerifiedAttributes:

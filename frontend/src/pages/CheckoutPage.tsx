@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertCircle, Award, CheckCircle, Clock3, RefreshCw, Shield, Video } from 'lucide-react';
+import { AlertCircle, Award, CheckCircle, RefreshCw, Shield, Video } from 'lucide-react';
 import { useAuthContext } from '../components/auth/useAuthContext';
 import { paymentService } from '../services/paymentService';
 import { courseService } from '../services/courseService';
@@ -266,8 +266,6 @@ export const CheckoutPage: React.FC = () => {
   if (paymentReturn === 'success') {
     const title = paymentVerification?.course_title || course.title;
     const isPaid = paymentVerification?.payment_state === 'paid';
-    const accessIsActive = paymentVerification?.access_state === 'active';
-    const isProcessing = isPaid && paymentVerification?.access_state === 'processing';
     const isExpired = paymentVerification?.payment_state === 'expired';
 
     return (
@@ -285,22 +283,48 @@ export const CheckoutPage: React.FC = () => {
             </>
           )}
           {!checkingPayment && !paymentVerificationError && paymentVerification && isPaid && (
-            <>
-              {accessIsActive ? <CheckCircle className="w-12 h-12 mx-auto text-emerald-600" /> : <Clock3 className="w-12 h-12 mx-auto text-amber-600" />}
-              <h1 className="mt-4 text-2xl font-serif font-bold text-gray-900">Pagamento confermato</h1>
-              <p className="mt-3 text-gray-600">Il pagamento per <strong>{title}</strong> è stato confermato da Stripe.</p>
-              {accessIsActive ? (
-                <p className="mt-2 text-emerald-700">L’accesso al corso è attivo. Accedi con l’email usata per l’acquisto.</p>
-              ) : isProcessing ? (
-                <p className="mt-2 text-amber-800">Stiamo attivando il tuo account e l’accesso al corso. Riceverai le credenziali via email: non devi pagare di nuovo.</p>
-              ) : (
-                <p className="mt-2 text-amber-800">Il pagamento è confermato ma l’accesso richiede una verifica. Non effettuare un secondo pagamento; contatta l’assistenza.</p>
-              )}
-              <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-                <Button className="w-full sm:w-auto" variant="primary" onClick={() => navigate('/login')}>Vai al login</Button>
-                {isProcessing && <Button className="w-full sm:w-auto" variant="secondary" onClick={() => void verifyReturnedPayment()}><RefreshCw className="w-4 h-4 mr-2" /> Aggiorna accesso</Button>}
+            <div className="text-left sm:text-center">
+              <div className="flex justify-center mb-2">
+                <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center shadow-sm">
+                  <CheckCircle className="w-10 h-10 text-emerald-600" />
+                </div>
               </div>
-            </>
+              <h1 className="mt-3 text-2xl sm:text-3xl font-serif font-bold text-gray-900">
+                Pagamento Confermato 🎉
+              </h1>
+              <p className="mt-2 text-gray-600 text-base">
+                Grazie per il tuo acquisto! Il tuo ordine per <strong>{title}</strong> è andato a buon fine.
+              </p>
+
+              <div className="my-6 rounded-2xl bg-primary-50/70 border border-primary-100 p-5 text-left text-sm text-gray-800 space-y-3">
+                <h3 className="font-semibold text-primary-950 flex items-center gap-2">
+                  <span>📬</span> Come accedere subito al tuo corso:
+                </h3>
+                <ol className="list-decimal list-inside space-y-2 text-gray-700">
+                  <li>
+                    Controlla la tua casella email (anche nella cartella <em>Spam / Promozioni</em>).
+                  </li>
+                  <li>
+                    Troverai un'email con la tua <strong>password temporanea</strong> di primo accesso.
+                  </li>
+                  <li>
+                    Clicca su <strong>Vai al Login</strong> qui sotto, inserisci la tua email e la password temporanea ricevuta.
+                  </li>
+                  <li>
+                    Al primo accesso ti verrà chiesto di impostare la tua <strong>nuova password personale e definitiva</strong>.
+                  </li>
+                </ol>
+                <div className="pt-2 border-t border-primary-200/60 text-xs text-primary-800 italic">
+                  💡 Fatto questo, sarai subito dentro la tua area riservata con tutti i moduli e video sbloccati.
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+                <Button className="w-full sm:w-auto px-8 py-3.5 shadow-md" variant="primary" onClick={() => navigate('/login')}>
+                  Vai al Login e Accedi al Corso
+                </Button>
+              </div>
+            </div>
           )}
           {!checkingPayment && !paymentVerificationError && paymentVerification && !isPaid && (
             <>

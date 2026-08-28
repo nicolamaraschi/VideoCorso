@@ -32,21 +32,22 @@ export const LoginPage: React.FC = () => {
           </div>
 
           {showSuccess && (
-            <div className="mb-8 bg-green-50 border border-green-200 rounded-xl p-5 shadow-sm animate-fade-in">
+            <div className="mb-8 bg-emerald-50 border border-emerald-200 rounded-2xl p-5 shadow-sm animate-fade-in">
               <div className="flex items-start gap-4">
-                <div className="bg-green-100 p-2 rounded-full">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
+                <div className="bg-emerald-100 p-2.5 rounded-full shrink-0">
+                  <CheckCircle className="w-6 h-6 text-emerald-700" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-green-900 mb-1">
-                    Accesso in attivazione 🎉
+                  <h3 className="font-semibold text-emerald-950 text-base mb-1">
+                    Accesso Masterclass Attivato 🎉
                   </h3>
-                  <p className="text-green-800 text-sm leading-relaxed">
-                    Il tuo accesso è stato registrato. Ti invieremo un’email con una <strong>password temporanea</strong> non appena l’account sarà pronto.
-                    Al primo accesso ti verrà chiesto di scegliere la password definitiva.
+                  <p className="text-emerald-900 text-sm leading-relaxed">
+                    Ti abbiamo inviato un’email con la tua <strong>password temporanea</strong>.
+                    <br className="mb-1" />
+                    Inserisci la tua email e la password temporanea ricevuta: al primo accesso potrai impostare la tua password personale e definitiva per entrare subito nella tua area riservata.
                     <br/><br/>
-                    <span className="text-green-700 text-xs italic">
-                      (Se non la trovi, controlla anche nella casella Spam)
+                    <span className="text-emerald-800 text-xs font-medium bg-emerald-100/70 px-2.5 py-1 rounded-md">
+                      💡 Non trovi l'email? Controlla anche nella cartella Spam o Promozioni.
                     </span>
                   </p>
                 </div>
