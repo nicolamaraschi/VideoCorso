@@ -1774,15 +1774,16 @@ def get_purchase_detail(purchase_id):
 def delete_stripe_test_purchase(purchase_id):
     purchase = TABLES['PURCHASES'].get_item(Key={'purchase_id': purchase_id}).get('Item')
     if not purchase:
-        return create_response(404, {'error': 'Purchase not found'})
-
-    # Stripe Checkout IDs explicitly distinguish test and live transactions.
-    # This keeps real sales immutable in the application database.
-    if not str(purchase.get('stripe_session_id') or '').startswith('cs_test_'):
-        return create_response(403, {'error': 'Only Stripe test purchases can be deleted'})
+        return create_response(404, {'error': 'Ordine non trovato'})
 
     TABLES['PURCHASES'].delete_item(Key={'purchase_id': purchase_id})
-    return create_response(200, {'success': True, 'deleted_purchase_id': purchase_id})
+    record_audit_log('delete_purchase', 'purchase', purchase_id, {
+        'user_id': purchase.get('user_id'),
+        'customer_email': purchase.get('customer_email') or purchase.get('user_email'),
+        'course_id': purchase.get('course_id'),
+        'amount': str(purchase.get('amount', 0)),
+    })
+    return create_response(200, {'success': True, 'deleted_purchase_id': purchase_id, 'message': 'Acquisto eliminato con successo'})
 
 
 def fetch_stripe_purchase_state(purchase: dict[str, Any]) -> dict[str, Any]:
