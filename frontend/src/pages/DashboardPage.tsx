@@ -116,15 +116,15 @@ export const DashboardPage: React.FC = () => {
           const progressUnavailable = failedProgressCourseIds.has(course.course_id);
           return (
             <div key={course.course_id} className="overflow-hidden bg-white rounded-lg border border-gray-200">
-              <div className="aspect-[16/7] bg-gray-100 border-b border-gray-200">
+              <div className="aspect-video bg-gray-100 border-b border-gray-200 overflow-hidden">
                 {course.cover_image_url ? (
                   <img
                     src={course.cover_image_url}
                     alt={`Copertina ${course.title}`}
                     loading="lazy"
                     width={640}
-                    height={280}
-                    className="w-full h-full object-contain"
+                    height={360}
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-slate-100 via-white to-slate-200" />
@@ -207,15 +207,15 @@ export const DashboardPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {availableCourses.map((course) => (
             <div key={course.course_id} className="overflow-hidden bg-white rounded-lg border border-gray-200">
-              <div className="aspect-[16/7] bg-gray-100 border-b border-gray-200">
+              <div className="aspect-video bg-gray-100 border-b border-gray-200 overflow-hidden">
                 {course.cover_image_url ? (
                   <img
                     src={course.cover_image_url}
                     alt={`Copertina ${course.title}`}
                     loading="lazy"
                     width={640}
-                    height={280}
-                    className="w-full h-full object-contain"
+                    height={360}
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-gray-100 via-white to-gray-200" />
