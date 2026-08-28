@@ -568,6 +568,11 @@ def normalize_purchase(purchase: dict[str, Any]) -> dict[str, Any]:
     normalized['updated_at'] = normalized.get('updated_at') or normalized['created_at']
     normalized['is_stripe_test_purchase'] = str(normalized.get('stripe_session_id') or '').startswith('cs_test_')
     normalized['version'] = int(normalized.get('version', 0) or 0)
+    normalized['package_id'] = normalized.get('package_id')
+    normalized['package_name'] = normalized.get('package_name')
+    normalized['package_benefits_snapshot'] = normalized.get('package_benefits_snapshot') or []
+    normalized['shipping_address'] = normalized.get('shipping_address')
+    normalized['shipping_status'] = normalized.get('shipping_status') or ('pending' if normalized.get('shipping_address') else None)
     return normalized
 
 
