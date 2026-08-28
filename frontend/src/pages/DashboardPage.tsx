@@ -181,7 +181,14 @@ export const DashboardPage: React.FC = () => {
                   Apri corso
                 </Button>
                 {progress?.last_watched_lesson && (
-                  <Button variant="secondary" onClick={() => navigate(`/courses/${course.course_id}/lessons/${progress.last_watched_lesson.lesson_id}`)}>
+                  <Button 
+                    variant="secondary" 
+                    onClick={() => {
+                      if (progress?.last_watched_lesson?.lesson_id) {
+                        navigate(`/courses/${course.course_id}/lessons/${progress.last_watched_lesson.lesson_id}`);
+                      }
+                    }}
+                  >
                     <Play className="w-4 h-4 mr-2" />
                     Riprendi
                   </Button>

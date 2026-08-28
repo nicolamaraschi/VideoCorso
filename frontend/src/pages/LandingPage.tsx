@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -6,31 +6,11 @@ import {
   ArrowRight, 
   ShieldCheck, 
   Check, 
-  Award, 
-  Video
+  Award
 } from 'lucide-react';
-import { courseService } from '../services/courseService';
-import type { CourseListItem } from '../types';
 import { TrustindexWidget } from '../components/common/TrustindexWidget';
 
 export const LandingPage: React.FC = () => {
-  const [courses, setCourses] = useState<CourseListItem[]>([]);
-  const [loadingCourses, setLoadingCourses] = useState(true);
-
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const data = await courseService.getCatalog();
-        setCourses(data.filter(c => c.is_purchasable !== false));
-      } catch (err) {
-        console.error("Failed to load catalog", err);
-      } finally {
-        setLoadingCourses(false);
-      }
-    };
-    fetchCourses();
-  }, []);
-
   return (
     <div className="bg-gradient-to-b from-primary-50/60 via-white to-primary-50/40 min-h-screen text-gray-800">
       

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Lock, Play } from 'lucide-react';
 import { useCourse } from '../hooks/useCourse';
 import { Loading } from '../components/common/Loading';
