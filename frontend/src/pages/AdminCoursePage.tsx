@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ListTree, Plus, Save, Settings, Trash2 } from 'lucide-react';
+import { Layers, ListTree, Plus, Save, Settings, Trash2 } from 'lucide-react';
 import { CourseEditor } from '../components/admin/CourseEditor';
 import { ImageUploader } from '../components/admin/ImageUploader';
 import { useCourse } from '../hooks/useCourse';
@@ -9,6 +9,7 @@ import { ErrorMessage } from '../components/common/ErrorMessage';
 import { Button } from '../components/common/Button';
 import type { AdminCourseRequest, Chapter, Course, CoursePackage, Lesson } from '../types';
 import { getErrorMessage } from '../utils/errors';
+import { formatCurrency } from '../utils/formatters';
 import { useAdminOperationBanner } from '../components/common/AdminOperationBanner';
 
 let packageIdCounter = 0;
@@ -112,25 +113,44 @@ export const AdminCoursePage: React.FC = () => {
     setCourseForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const syncBasePriceWithPackages = (packages: CoursePackage[], fallbackPrice: number): number => {
+    if (!packages || packages.length === 0) return fallbackPrice;
+    const sorted = [...packages].sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999));
+    const firstOrLowest = sorted[0]?.price ?? Math.min(...packages.map((p) => p.price || 0));
+    return firstOrLowest > 0 ? firstOrLowest : fallbackPrice;
+  };
+
   const addPackage = () => {
-    setCourseForm((prev) => ({
-      ...prev,
-      packages: [...(prev.packages || []), { ...emptyPackage(), display_order: (prev.packages?.length || 0) + 1 }],
-    }));
+    setCourseForm((prev) => {
+      const updatedPackages = [...(prev.packages || []), { ...emptyPackage(), display_order: (prev.packages?.length || 0) + 1 }];
+      return {
+        ...prev,
+        packages: updatedPackages,
+        price: syncBasePriceWithPackages(updatedPackages, prev.price),
+      };
+    });
   };
 
   const updatePackage = (packageId: string, patch: Partial<CoursePackage>) => {
-    setCourseForm((prev) => ({
-      ...prev,
-      packages: (prev.packages || []).map((pkg) => (pkg.package_id === packageId ? { ...pkg, ...patch } : pkg)),
-    }));
+    setCourseForm((prev) => {
+      const updatedPackages = (prev.packages || []).map((pkg) => (pkg.package_id === packageId ? { ...pkg, ...patch } : pkg));
+      return {
+        ...prev,
+        packages: updatedPackages,
+        price: syncBasePriceWithPackages(updatedPackages, prev.price),
+      };
+    });
   };
 
   const removePackage = (packageId: string) => {
-    setCourseForm((prev) => ({
-      ...prev,
-      packages: (prev.packages || []).filter((pkg) => pkg.package_id !== packageId),
-    }));
+    setCourseForm((prev) => {
+      const updatedPackages = (prev.packages || []).filter((pkg) => pkg.package_id !== packageId);
+      return {
+        ...prev,
+        packages: updatedPackages,
+        price: syncBasePriceWithPackages(updatedPackages, prev.price),
+      };
+    });
   };
 
   const updatePackageBenefits = (packageId: string, benefitsText: string) => {
@@ -474,36 +494,51 @@ export const AdminCoursePage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Prezzo pieno</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={courseForm.price || ''}
-                  onChange={(event) => updateCourseField('price', event.target.value === '' ? 0 : Number(event.target.value))}
-                  className="px-3 py-2 border border-gray-300 rounded-lg w-full"
-                  placeholder="Es. 1000 (Lascia vuoto per 0)"
-                />
-                <p className="text-xs text-gray-500">
-                  E il prezzo base del corso. Se non hai uno sconto attivo, e questo che viene usato.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Prezzo scontato</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={courseForm.discounted_price ?? ''}
-                  onChange={(event) => updateCourseField('discounted_price', event.target.value === '' ? null : Number(event.target.value))}
-                  className="px-3 py-2 border border-gray-300 rounded-lg w-full"
-                  placeholder="Prezzo promo opzionale"
-                />
-                <p className="text-xs text-gray-500">
-                  Se lo compili e piu basso del prezzo pieno, il corso viene mostrato come in offerta.
-                </p>
-              </div>
+              {(courseForm.packages || []).length > 0 ? (
+                <div className="col-span-1 md:col-span-2 rounded-lg border border-emerald-200 bg-emerald-50/70 p-4">
+                  <div className="flex items-center gap-2 font-semibold text-emerald-900">
+                    <Layers className="w-4 h-4 text-emerald-600" />
+                    <span>Prezzo gestito tramite Pacchetti ({courseForm.packages?.length} livelli)</span>
+                  </div>
+                  <p className="mt-1 text-xs text-emerald-800 leading-relaxed">
+                    Il prezzo di partenza per la vetrina è sincronizzato automaticamente a <strong>{formatCurrency(courseForm.price)}</strong> (dal pacchetto <em>{courseForm.packages?.[0]?.name || 'Basic'}</em>).
+                    Puoi modificare i prezzi e i benefit direttamente nella sezione <strong>Pacchetti</strong> qui sotto.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Prezzo pieno</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={courseForm.price || ''}
+                      onChange={(event) => updateCourseField('price', event.target.value === '' ? 0 : Number(event.target.value))}
+                      className="px-3 py-2 border border-gray-300 rounded-lg w-full"
+                      placeholder="Es. 1000 (Lascia vuoto per 0)"
+                    />
+                    <p className="text-xs text-gray-500">
+                      È il prezzo base del corso. Se non hai pacchetti o sconti attivi, è questo che viene usato.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Prezzo scontato</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={courseForm.discounted_price ?? ''}
+                      onChange={(event) => updateCourseField('discounted_price', event.target.value === '' ? null : Number(event.target.value))}
+                      className="px-3 py-2 border border-gray-300 rounded-lg w-full"
+                      placeholder="Prezzo promo opzionale"
+                    />
+                    <p className="text-xs text-gray-500">
+                      Se lo compili ed è più basso del prezzo pieno, il corso viene mostrato in offerta.
+                    </p>
+                  </div>
+                </>
+              )}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">Posizione vetrina</label>
                 <input
@@ -516,7 +551,7 @@ export const AdminCoursePage: React.FC = () => {
                   placeholder="Lascia vuoto per la fine"
                 />
                 <p className="text-xs text-gray-500">
-                  Numero piu basso = corso mostrato prima. `1` va in alto, `999` va in fondo.
+                  Numero più basso = corso mostrato prima. `1` va in alto, `999` va in fondo.
                 </p>
               </div>
             </div>
