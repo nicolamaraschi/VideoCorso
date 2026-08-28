@@ -5,6 +5,7 @@ export interface AuthActionResult {
   success: boolean;
   error?: string;
   user?: AuthUser | null;
+  isNewPasswordRequired?: boolean;
 }
 
 export interface AuthContextType {

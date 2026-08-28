@@ -90,7 +90,7 @@ export const useAuth = () => {
       if (isNewPasswordRequired) {
         setNewPasswordRequired(true);
         setTempUser(true);
-        return { success: true }; 
+        return { success: true, isNewPasswordRequired: true }; 
       }
 
       const loggedUser = await checkUser();

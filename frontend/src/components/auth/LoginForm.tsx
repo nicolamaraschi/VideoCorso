@@ -36,9 +36,9 @@ export const LoginForm: React.FC = () => {
 
   const handleRedirect = (user?: AuthUser | null) => {
     if (user?.isAdmin) {
-      navigate('/admin');
+      navigate('/admin', { replace: true });
     } else {
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     }
   };
 
@@ -64,17 +64,27 @@ export const LoginForm: React.FC = () => {
         
         const result = await login(email, password);
         
-        if (result.success && !newPasswordRequired) { 
-          handleRedirect(result.user); 
-        } else if (!result.success) {
-          // FIX: Assicuriamoci che l'errore venga settato
-          // Se result.error è vuoto, mettiamo un messaggio di default
+        if (result.success) {
+          if (result.isNewPasswordRequired) {
+            // Non reindirizzare: l'utente deve prima inserire la nuova password
+            return;
+          }
+          if (result.user) {
+            handleRedirect(result.user);
+          }
+        } else {
           setError(result.error || 'Credenziali non valide. Riprova.');
         }
 
       } else {
         if (!newPassword || !confirmNewPassword) {
           setError('Per favore inserisci e conferma la tua nuova password');
+          setLoading(false);
+          return;
+        }
+
+        if (newPassword.length < 8) {
+          setError('La password deve contenere almeno 8 caratteri');
           setLoading(false);
           return;
         }
