@@ -474,15 +474,15 @@ Resources:
       AdminCreateUserConfig:
         UnusedAccountValidityDays: 365
         InviteMessageTemplate:
-          EmailSubject: "Benvenuta nella Chiara Morocutti Academy - Le tue credenziali"
+          EmailSubject: "Benvenuta in Chiara Morocutti Academy - Le tue credenziali di accesso"
           EmailMessage: |
             <div style="font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff; border: 1px solid #f0e6eb; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
               <div style="text-align: center; margin-bottom: 24px;">
                 <h1 style="color: #4a0e2e; font-size: 24px; font-weight: bold; margin: 0;">Chiara Morocutti Academy</h1>
                 <p style="color: #9c7178; font-size: 13px; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px;">Formazione d’Eccellenza Microblading</p>
               </div>
-              <p style="color: #374151; font-size: 15px; line-height: 1.6;">Gentile studentessa,</p>
-              <p style="color: #374151; font-size: 15px; line-height: 1.6;">Benvenuta nella Masterclass! Il tuo account è stato creato con successo e l’accesso al corso è attivo.</p>
+              <p style="color: #374151; font-size: 15px; line-height: 1.6;">Ti diamo il benvenuto in <strong>Chiara Morocutti Academy</strong>!</p>
+              <p style="color: #374151; font-size: 15px; line-height: 1.6;">Il tuo account è stato creato con successo e l’accesso alla piattaforma è ora attivo.</p>
               <div style="background-color: #faf5f7; border: 1px solid #f3dce3; border-radius: 12px; padding: 20px; margin: 24px 0;">
                 <p style="margin: 0 0 12px 0; color: #4b5563; font-size: 14px;"><strong style="color: #111827;">Email / Username:</strong><br><span style="color: #4a0e2e; font-size: 15px; font-weight: 600;">{username}</span></p>
                 <p style="margin: 0; color: #4b5563; font-size: 14px;"><strong style="color: #111827;">Password temporanea:</strong></p>
@@ -490,7 +490,7 @@ Resources:
               </div>
               <p style="color: #6b7280; font-size: 13px; line-height: 1.5; margin-bottom: 24px;">👉 Al tuo primo accesso ti verrà richiesto di confermare questa password temporanea e sceglierne una tua personale e definitiva.</p>
               <div style="text-align: center; margin: 32px 0 24px 0;">
-                <a href="https://main.d26u0xz2smmxfz.amplifyapp.com/login" style="background-color: #4a0e2e; color: #ffffff; padding: 14px 36px; text-decoration: none; border-radius: 50px; font-weight: 600; font-size: 15px; display: inline-block; box-shadow: 0 4px 10px rgba(74, 14, 46, 0.25);">Accedi alla Masterclass</a>
+                <a href="https://main.d26u0xz2smmxfz.amplifyapp.com/login" style="background-color: #4a0e2e; color: #ffffff; padding: 14px 36px; text-decoration: none; border-radius: 50px; font-weight: 600; font-size: 15px; display: inline-block; box-shadow: 0 4px 10px rgba(74, 14, 46, 0.25);">Accedi alla Piattaforma</a>
               </div>
               <p style="color: #9ca3af; font-size: 12px; margin-top: 32px; border-top: 1px solid #f3f4f6; padding-top: 16px; text-align: center;">Chiara Morocutti Academy • Tutti i diritti riservati</p>
             </div>
