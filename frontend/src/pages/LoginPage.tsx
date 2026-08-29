@@ -3,8 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { LoginForm } from '../components/auth/LoginForm';
 import { CheckCircle, Sparkles, Star } from 'lucide-react';
 
-const logoUrl = "https://assets.cdn.filesafe.space/ceYe4VnMXLjh1ENSEbH0/media/64107bc74d97b25219e10bcf.png";
-
 export const LoginPage: React.FC = () => {
   const location = useLocation();
   const [showSuccess, setShowSuccess] = useState(false);
@@ -18,56 +16,45 @@ export const LoginPage: React.FC = () => {
   }, [location]);
 
   return (
-    <div className="min-h-screen flex bg-white">
-      {/* Left Column: Form (full width on mobile, 50% on iPad & Desktop) */}
-      <div className="w-full md:w-1/2 flex flex-col justify-center px-6 sm:px-12 md:px-8 lg:px-16 xl:px-24 py-12 bg-white">
+    <div className="min-h-[calc(100vh-4rem)] flex bg-white">
+      {/* Left Column: Form (54% on iPad/tablet for generous breathing room, 50% on desktop) */}
+      <div className="w-full md:w-[54%] lg:w-1/2 flex flex-col justify-center px-6 sm:px-12 md:px-8 lg:px-16 xl:px-24 py-8 lg:py-12 bg-white">
         <div className="w-full max-w-md mx-auto">
           
-          {/* Academy Brand Badge */}
-          <div className="mb-6 flex items-center gap-3">
-            <img 
-              src={logoUrl} 
-              alt="Chiara Morocutti" 
-              width={40}
-              height={40}
-              className="h-10 w-10 rounded-full object-cover shadow-sm"
-            />
-            <div>
-              <span className="text-sm font-bold text-primary-600 leading-tight block" style={{ fontFamily: 'Abhaya Libre, serif' }}>
-                Chiara Morocutti Academy
-              </span>
-              <span className="text-[10px] text-gray-500 leading-none block" style={{ fontFamily: 'Abhaya Libre, serif' }}>
-                Area Riservata Studenti
-              </span>
-            </div>
+          {/* Subtle Category Badge (No duplicate logo) */}
+          <div className="mb-4">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-50 border border-primary-200/80 text-primary-800 text-xs font-semibold tracking-wide uppercase">
+              <Sparkles className="w-3.5 h-3.5 text-primary-600" />
+              <span>Area Riservata Corsiste</span>
+            </span>
           </div>
 
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl sm:text-4xl font-serif font-bold text-gray-900 mb-2">
+          <div className="mb-7">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-gray-900 leading-tight">
               Bentornata
             </h1>
-            <p className="text-gray-500 text-sm sm:text-base">
-              Accedi per continuare il tuo percorso formativo nella Masterclass.
+            <p className="mt-2 text-sm sm:text-base text-gray-500 font-light leading-relaxed">
+              Inserisci le tue credenziali per accedere alle tue video-lezioni della Masterclass.
             </p>
           </div>
 
           {showSuccess && (
-            <div className="mb-8 bg-emerald-50 border border-emerald-200 rounded-2xl p-5 shadow-sm animate-fade-in">
-              <div className="flex items-start gap-4">
-                <div className="bg-emerald-100 p-2.5 rounded-full shrink-0">
-                  <CheckCircle className="w-6 h-6 text-emerald-700" />
+            <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 sm:p-5 shadow-sm animate-fade-in">
+              <div className="flex items-start gap-3.5">
+                <div className="bg-emerald-100 p-2 rounded-full shrink-0">
+                  <CheckCircle className="w-5 h-5 text-emerald-700" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-emerald-950 text-base mb-1">
+                  <h3 className="font-semibold text-emerald-950 text-sm sm:text-base mb-1">
                     Accesso Masterclass Attivato 🎉
                   </h3>
-                  <p className="text-emerald-900 text-sm leading-relaxed">
+                  <p className="text-emerald-900 text-xs sm:text-sm leading-relaxed">
                     Ti abbiamo inviato un’email con la tua <strong>password temporanea</strong>.
                     <br className="mb-1" />
-                    Inserisci la tua email e la password temporanea ricevuta: al primo accesso potrai impostare la tua password personale e definitiva per entrare subito nella tua area riservata.
+                    Inserisci la tua email e la password provvisoria: al primo accesso potrai impostare subito la tua password definitiva.
                     <br/><br/>
-                    <span className="text-emerald-800 text-xs font-medium bg-emerald-100/70 px-2.5 py-1 rounded-md">
+                    <span className="text-emerald-800 text-[11px] font-medium bg-emerald-100/70 px-2 py-0.5 rounded">
                       💡 Non trovi l'email? Controlla anche nella cartella Spam o Promozioni.
                     </span>
                   </p>
@@ -80,7 +67,7 @@ export const LoginPage: React.FC = () => {
           <LoginForm />
 
           {/* Footer */}
-          <div className="mt-8 text-center sm:text-left">
+          <div className="mt-8 text-center sm:text-left pt-2 border-t border-gray-100">
             <p className="text-sm text-gray-600">
               Non hai ancora un account?{' '}
               <Link
@@ -94,36 +81,36 @@ export const LoginPage: React.FC = () => {
         </div>
       </div>
       
-      {/* Right Column: Luxury Image & Quote (Visible on iPad, Tablet and Desktop: md:block) */}
-      <div className="hidden md:block md:w-1/2 relative bg-primary-950 overflow-hidden">
+      {/* Right Column: Luxury Image & Quote (46% on iPad/tablet, 50% on desktop) */}
+      <div className="hidden md:block md:w-[46%] lg:w-1/2 relative bg-primary-950 overflow-hidden min-h-[calc(100vh-4rem)]">
         <img 
           src="/login-beauty.webp" 
           alt="Microblading Masterclass" 
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover object-[center_20%]"
         />
         {/* Luxury Vignette Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-primary-950/30 to-black/20"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-primary-950/20 to-black/25"></div>
 
         {/* Floating Quote Card */}
-        <div className="absolute bottom-10 left-8 right-8 lg:left-12 lg:right-12">
-          <div className="rounded-2xl border border-white/20 bg-black/40 p-6 backdrop-blur-md shadow-2xl">
+        <div className="absolute bottom-6 left-6 right-6 lg:bottom-10 lg:left-10 lg:right-10">
+          <div className="rounded-2xl border border-white/20 bg-black/45 p-5 lg:p-6 backdrop-blur-md shadow-2xl">
             <div className="flex items-center gap-1 text-amber-400 mb-2">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-current" />
+                <Star key={i} className="w-3.5 h-3.5 fill-current" />
               ))}
-              <span className="ml-2 text-xs font-bold text-white tracking-wide uppercase">Formazione d'Eccellenza</span>
+              <span className="ml-2 text-[11px] font-bold text-white tracking-wider uppercase">Formazione d'Eccellenza</span>
             </div>
             
-            <p className="text-white text-sm lg:text-base font-serif italic leading-relaxed">
+            <p className="text-white text-xs sm:text-sm lg:text-base font-serif italic leading-relaxed">
               "Il microblading non è solo una tecnica: è l'abilità di creare naturalezza assoluta e costruire un business che ti dà libertà e autorevolezza."
             </p>
 
-            <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+            <div className="mt-3.5 pt-3 border-t border-white/15 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-300" />
                 <span className="text-xs font-semibold text-primary-200">Chiara Morocutti</span>
               </div>
-              <span className="text-[11px] text-gray-400">Masterclass Ufficiale</span>
+              <span className="text-[11px] text-gray-300">Masterclass Ufficiale</span>
             </div>
           </div>
         </div>
