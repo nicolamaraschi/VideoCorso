@@ -145,42 +145,49 @@ La cliente ha registrato alcuni video con lo smartphone in verticale e altri in 
 
 ---
 
-## 🛠️ 4. Procedura di Caricamento per l'Agente AI
+## 🛠️ 4. Procedura di Caricamento Nuove Lezioni Mancanti
 
-Quando l'utente aggiunge nuovi file video sull'SSD e chiede di caricarli:
+Quando la cliente registra e consegna i file delle lezioni mancanti:
 
-1. **Leggere la durata del file video con `ffprobe`:**
+1. **Lettura durata con `ffprobe` e generazione hash versione:**
    ```python
-   import subprocess, json
+   import subprocess, json, uuid, boto3
+
+   # 1. Calcolo durata esatta
    cmd = ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', filepath]
    res = subprocess.run(cmd, capture_output=True, text=True)
    duration = int(float(json.loads(res.stdout)['format'].get('duration', 0)))
-   ```
-2. **Generare la chiave S3 univoca:**
-   ```python
+
+   # 2. Generazione chiave versione univoca
    asset_version = uuid.uuid4().hex
    s3_key = f"videos/{lesson_id}/{asset_version}/source.mp4"
-   ```
-3. **Eseguire l'upload su S3 (`prod-videocorso-content`):**
-   ```python
-   s3.upload_file(
-       Filename=filepath,
-       Bucket='prod-videocorso-content',
-       Key=s3_key,
-       ExtraArgs={'ContentType': 'video/mp4'}
-   )
-   ```
-4. **Aggiornare il record su DynamoDB (`prod-videocorso-lessons`):**
-   ```python
+
+   # 3. Upload S3
+   s3 = boto3.client('s3')
+   s3.upload_file(Filename=filepath, Bucket='prod-videocorso-content', Key=s3_key, ExtraArgs={'ContentType': 'video/mp4'})
+
+   # 4. Registrazione DynamoDB
+   dynamodb = boto3.resource('dynamodb')
+   lessons_table = dynamodb.Table('prod-videocorso-lessons')
    lessons_table.update_item(
        Key={'lesson_id': lesson_id},
        UpdateExpression='SET pending_asset_version = :av, pending_video_s3_key = :key, pending_transcode_status = :status, duration_seconds = :dur',
-       ExpressionAttributeValues={
-           ':av': asset_version,
-           ':key': s3_key,
-           ':status': 'PENDING_UPLOAD',
-           ':dur': duration
-       }
+       ExpressionAttributeValues={':av': asset_version, ':key': s3_key, ':status': 'PENDING_UPLOAD', ':dur': duration}
    )
    ```
-5. AWS EventBridge + MediaConvert avvierà automaticamente il transcoding in Full HD 1080p, 720p, 480p e 360p e promuoverà la lezione a `COMPLETE`.
+2. AWS EventBridge + MediaConvert transcodificherà il video a 1080p, 720p, 480p e 360p impostando lo stato a `COMPLETE`.
+
+---
+
+## 🔄 5. Procedura di Aggiornamento / Sostituzione Video Editato (Hot-Swap Zero Downtime)
+
+Quando la cliente invia un **video ri-editato, corretto o migliorato** per sostituire una lezione già pubblicata:
+
+1. **Nessun Downtime per le Corsiste**:
+   Grazie all'architettura a due fasi (`pending_asset_version` → `asset_version`), mentre AWS MediaConvert elabora il nuovo video in background, le corsiste continuano a vedere la versione precedente senza interruzioni o schermate nere.
+2. **Promozione Atomica**:
+   Non appena la transcodifica delle 4 risoluzioni (1080p, 720p, 480p, 360p) termina con successo (`COMPLETE`), la Lambda `video_transcode_handler` promuove atomicamente il nuovo video come attivo ed elimina automaticamente i vecchi file obsoleti da S3 per non occupare spazio inutile.
+3. **Come Eseguirlo**:
+   Basta eseguire la stessa procedura del punto 4 passando il nuovo file: il sistema assegnerà un nuovo `asset_version`, farà il rendering HD e sostituirà il video vecchio in modo trasparente.
+
+
