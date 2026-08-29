@@ -305,6 +305,7 @@ def build_pdf(filename="Relazione_Opere_Chiara_Morocutti_Academy.pdf"):
 
     works_sales = [
         "<b>Integrazione Sicura con Stripe (Circuito Bancario Ufficiale):</b> Ricezione pagamenti con Carte di Credito, Debito, Prepagate, Apple Pay e Google Pay nel rispetto delle normative europee PSD2 e <b>autenticazione a due fattori 3D Secure</b>.",
+        "<b>Supporto Pagamenti a Rate (Klarna / Scalapay / Afterpay):</b> La rateizzazione è già supportata nativamente da Stripe: le tue clienti possono pagare in 3 o 4 rate comode, ma <b>tu incassi il 100% del prezzo subito al momento dell'acquisto</b> senza alcun rischio di insolvenza (il rischio di credito è interamente a carico di Klarna/Stripe).",
         "<b>Gestione Avanzata Coupon & Codici Sconto:</b> Sistema per creare sconti promozionali a percentuale (es. 20%) o a importo fisso (es. 100€), con controllo automatico delle date di scadenza e del limite massimo di utilizzi.",
         "<b>Creazione Automatica Istantanea dell'Account:</b> Non appena il pagamento va a buon fine, il server crea l'utente in background in frazioni di secondo senza richiedere alcun intervento manuale da parte dello staff.",
         "<b>Invio Automatico Credenziali via Email:</b> La cliente riceve all'istante l'email di benvenuto ufficiale con username, password temporanea e link di accesso diretto alla Masterclass.",
