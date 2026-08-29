@@ -23,7 +23,6 @@ import type {
   CreateChapterRequest,
   CreateLessonRequest,
   User,
-  AuditLogEntry,
   AuditLogsResponse,
 } from '../types';
 
