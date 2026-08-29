@@ -1206,6 +1206,12 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /admin/stats
             Method: GET
+        GetAuditLogs:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/audit-logs
+            Method: GET
         GetStudents:
           Type: Api
           Properties:

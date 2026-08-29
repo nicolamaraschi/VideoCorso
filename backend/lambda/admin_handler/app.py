@@ -2918,6 +2918,8 @@ def lambda_handler(event, context):
         if path.startswith('/admin/purchase/') and http_method == 'GET':
             return get_purchase_detail(path_parameters.get('purchaseId'))
         if path == '/admin/stats' and http_method == 'GET':
+            if str(params.get('logs', '')).lower() == 'true' or str(params.get('include_logs', '')).lower() == 'true':
+                return list_audit_logs(event)
             return get_stats()
         if path == '/admin/audit-logs' and http_method == 'GET':
             return list_audit_logs(event)

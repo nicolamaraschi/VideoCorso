@@ -249,11 +249,16 @@ export const adminService = {
 
   async getAuditLogs(params?: { level?: string; source?: string; search?: string; limit?: number }): Promise<AuditLogsResponse> {
     const query = new URLSearchParams();
+    query.set('logs', 'true');
     if (params?.level) query.set('level', params.level);
     if (params?.source) query.set('source', params.source);
     if (params?.search) query.set('search', params.search);
     if (params?.limit) query.set('limit', String(params.limit));
-    const qs = query.toString() ? `?${query.toString()}` : '';
-    return apiClient.get<AuditLogsResponse>(`/admin/audit-logs${qs}`);
+    const qs = query.toString();
+    try {
+      return await apiClient.get<AuditLogsResponse>(`/admin/stats?${qs}`);
+    } catch {
+      return await apiClient.get<AuditLogsResponse>(`/admin/audit-logs?${qs}`);
+    }
   },
 };
