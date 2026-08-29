@@ -11,6 +11,11 @@ from botocore.exceptions import ClientError
 
 # ---------------------------------------------------------------------------
 from shared.purchase_access import purchase_grants_access
+try:
+    from shared.audit_logger import record_audit_log
+except Exception:
+    def record_audit_log(*args, **kwargs):
+        pass
 
 
 LEGACY_COURSE_ID = 'legacy-default-course'
@@ -433,15 +438,31 @@ def lambda_handler(event, context):
     if http_method == 'OPTIONS':
         return create_response(200, {})
 
-    if path == '/course/structure' and http_method == 'GET':
-        return get_course_structure_legacy(event)
-    if path == '/course/previews' and http_method == 'GET':
-        return get_free_previews()
-    if path == '/courses' and http_method == 'GET':
-        return get_courses_catalog(event)
-    if path == '/me/courses' and http_method == 'GET':
-        return get_my_courses(event)
-    if path.startswith('/courses/') and http_method == 'GET':
-        return get_course_details(event, path_parameters.get('courseId'))
+    try:
+        if path == '/course/structure' and http_method == 'GET':
+            return get_course_structure_legacy(event)
+        if path == '/course/previews' and http_method == 'GET':
+            return get_free_previews()
+        if path == '/courses' and http_method == 'GET':
+            return get_courses_catalog(event)
+        if path == '/me/courses' and http_method == 'GET':
+            return get_my_courses(event)
+        if path.startswith('/courses/') and http_method == 'GET':
+            return get_course_details(event, path_parameters.get('courseId'))
 
-    return create_response(404, {'error': 'Not found'})
+        return create_response(404, {'error': 'Not found'})
+    except Exception as exc:
+        import traceback
+        trace = traceback.format_exc()
+        print(f'Unhandled error in course_handler: {exc}')
+        record_audit_log(
+            action='course_handler_error',
+            target_type='endpoint',
+            target_id=path,
+            details={'error': str(exc)},
+            level='ERROR',
+            source='course_handler',
+            error_message=str(exc),
+            stack_trace=trace,
+        )
+        return create_response(500, {'error': 'Internal server error'})

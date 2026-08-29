@@ -13,6 +13,11 @@ from botocore.exceptions import ClientError
 
 # ---------------------------------------------------------------------------
 from shared.purchase_access import purchase_grants_access
+try:
+    from shared.audit_logger import record_audit_log
+except Exception:
+    def record_audit_log(*args, **kwargs):
+        pass
 
 
 LEGACY_COURSE_ID = 'legacy-default-course'
@@ -281,6 +286,15 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requ
     if not is_free_preview and not admin_bypass:
         access_granted, access_purchase = get_course_access(user_id, course_id)
         if not access_granted:
+            record_audit_log(
+                action='video_access_unauthorized',
+                target_type='lesson',
+                target_id=lesson_id,
+                details={'course_id': course_id, 'chapter_id': lesson.get('chapter_id'), 'user_id': user_id},
+                level='WARNING',
+                source='video_handler',
+                actor=user_id,
+            )
             return create_response(403, {'error': 'Course access required'})
 
     video_s3_key = lesson.get('video_s3_key')
@@ -361,9 +375,18 @@ def lambda_handler(event, context):
 
         return create_response(404, {'error': 'Not found'})
     except Exception as exc:  # noqa: BLE001 - last-resort guard, see below
-        # Without this, any unexpected error (e.g. an S3/DynamoDB throttling
-        # exception not already caught locally) becomes a raw Lambda failure
-        # instead of a controlled JSON response. Log server-side, keep the
-        # client-facing message generic.
+        import traceback
+        trace = traceback.format_exc()
         print(f'Unhandled error in video_handler: {exc}')
+        record_audit_log(
+            action='video_handler_error',
+            target_type='endpoint',
+            target_id=path,
+            details={'error': str(exc), 'user_id': user_id},
+            level='ERROR',
+            source='video_handler',
+            actor=user_id or 'unknown',
+            error_message=str(exc),
+            stack_trace=trace,
+        )
         return create_response(500, {'error': 'Internal server error'})

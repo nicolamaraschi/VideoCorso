@@ -2,11 +2,18 @@
 
 import os
 import time
+import traceback
 
 import boto3
 from boto3.dynamodb.types import TypeSerializer
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
+
+try:
+    from shared.audit_logger import record_audit_log
+except Exception:
+    def record_audit_log(*args, **kwargs):
+        pass
 
 
 dynamodb = boto3.resource('dynamodb')
@@ -49,9 +56,33 @@ def release(reservation: dict, now_epoch: int) -> bool:
 def lambda_handler(event, context):
     del event, context
     now_epoch = int(time.time())
-    response = reservations.query(
-        IndexName='StatusExpiryIndex',
-        KeyConditionExpression=Key('status').eq('RESERVED') & Key('expires_at_epoch').lte(now_epoch),
-    )
-    released = sum(1 for reservation in response.get('Items', []) if release(reservation, now_epoch))
-    return {'released': released}
+    try:
+        response = reservations.query(
+            IndexName='StatusExpiryIndex',
+            KeyConditionExpression=Key('status').eq('RESERVED') & Key('expires_at_epoch').lte(now_epoch),
+        )
+        released = sum(1 for reservation in response.get('Items', []) if release(reservation, now_epoch))
+        if released > 0:
+            record_audit_log(
+                action='coupon_reservations_recovered',
+                target_type='cron',
+                target_id='coupon_recovery',
+                details={'released_count': released},
+                level='INFO',
+                source='coupon_recovery_cron',
+            )
+        return {'released': released}
+    except Exception as exc:
+        trace = traceback.format_exc()
+        print(f'coupon recovery cron error: {exc}')
+        record_audit_log(
+            action='coupon_recovery_error',
+            target_type='cron',
+            target_id='coupon_recovery',
+            details={'error': str(exc)},
+            level='ERROR',
+            source='coupon_recovery_cron',
+            error_message=str(exc),
+            stack_trace=trace,
+        )
+        raise

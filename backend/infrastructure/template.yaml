@@ -604,6 +604,8 @@ Resources:
             TableName: !Ref ProvisioningOutboxTable
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditLogsTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -685,6 +687,8 @@ Resources:
             TableName: !Ref PurchasesTable
         - DynamoDBReadPolicy:
             TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditLogsTable
       Events:
         GetCourseStructure:
           Type: Api
@@ -743,6 +747,8 @@ Resources:
             TableName: !Ref PurchasesTable
         - DynamoDBReadPolicy:
             TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditLogsTable
         # Evidence rows are write-only for this handler: it can append a URL
         # issuance record but cannot edit or delete historical evidence.
         - Version: "2012-10-17"
@@ -801,6 +807,8 @@ Resources:
             BucketName: !Ref VideoBucket
         - DynamoDBCrudPolicy:
             TableName: !Ref LessonsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditLogsTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -862,6 +870,8 @@ Resources:
             TableName: !Ref PurchasesTable
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditLogsTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -906,6 +916,8 @@ Resources:
             TableName: !Ref CouponReservationsTable
         - DynamoDBCrudPolicy:
             TableName: !Ref CouponsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditLogsTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -1052,6 +1064,8 @@ Resources:
             TableName: !Ref UsersTable
         - DynamoDBReadPolicy:
             TableName: !Ref CoursesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditLogsTable
       Events:
         UpdateProgress:
           Type: Api

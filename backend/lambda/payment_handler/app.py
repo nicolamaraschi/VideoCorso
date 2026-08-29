@@ -22,6 +22,11 @@ from shared.purchase_access import (
     purchase_grants_access as _shared_purchase_grants_access,
     sync_purchase_access as _shared_sync_purchase_access,
 )
+try:
+    from shared.audit_logger import record_audit_log
+except Exception:
+    def record_audit_log(*args, **kwargs):
+        pass
 
 # ---------------------------------------------------------------------------
 # Fields that a Stripe webhook is allowed to update on an existing purchase.
@@ -1536,6 +1541,25 @@ def save_checkout_completion(session: dict[str, Any], event_type: str = 'checkou
                 coupon_reservation=checkout_reservation if not existing else None,
             ):
                 return create_response(200, {'message': 'Webhook already processed', 'purchase_id': candidate['purchase_id']})
+            record_audit_log(
+                action='stripe_payment_paid',
+                target_type='purchase',
+                target_id=candidate['purchase_id'],
+                details={
+                    'email': customer_email,
+                    'full_name': full_name,
+                    'amount': float(amount_gross),
+                    'course_id': course['course_id'],
+                    'course_title': course.get('title'),
+                    'coupon': coupon.get('code') if coupon else None,
+                    'package_id': (package or {}).get('package_id'),
+                    'stripe_session_id': stripe_session_id,
+                    'is_free_access': amount_gross == 0,
+                },
+                level='INFO',
+                source='stripe_webhook',
+                actor=customer_email,
+            )
             return create_response(200, {'message': 'Webhook processed', 'purchase_id': candidate['purchase_id']})
         except PurchaseVersionConflict:
             if attempt == 2:
@@ -2014,6 +2038,21 @@ def create_checkout_session(event):
             print(f'checkout session lease release warning: {release_exc}')
         raise
     stored = finish_checkout_session_claim(checkout_request_id, fingerprint, claim['claim_token'], session)
+    record_audit_log(
+        action='stripe_checkout_initiated',
+        target_type='course',
+        target_id=course['course_id'],
+        details={
+            'email': email,
+            'total_amount': float(total),
+            'coupon': coupon.get('code') if coupon else None,
+            'package_id': package.get('package_id') if package else None,
+            'session_id': session.id,
+        },
+        level='INFO',
+        source='payment_handler',
+        actor=email or 'guest_customer',
+    )
     return create_response(200, {'session_id': stored['stripe_session_id'], 'checkout_url': stored['checkout_url']})
 
 
@@ -2144,14 +2183,31 @@ def lambda_handler(event, context):
         try:
             return create_checkout_session(event)
         except CouponValidationError as exc:
+            record_audit_log(
+                action='coupon_validation_failed',
+                target_type='coupon',
+                target_id=exc.code,
+                details={'error': str(exc)},
+                level='WARNING',
+                source='payment_handler',
+            )
             return create_response(409, {'error': str(exc), 'code': exc.code, 'quote_invalidated': True})
         except ValueError as exc:
             return create_response(400, {'error': str(exc)})
         except Exception as exc:
-            # Never return the raw exception text: it can be a Stripe API
-            # error or a boto3 ClientError, both of which may include
-            # internal detail (table names, ARNs, Stripe account internals).
+            import traceback
+            trace = traceback.format_exc()
             print(f'create-checkout error: {exc}')
+            record_audit_log(
+                action='create_checkout_error',
+                target_type='endpoint',
+                target_id=path,
+                details={'error': str(exc)},
+                level='ERROR',
+                source='payment_handler',
+                error_message=str(exc),
+                stack_trace=trace,
+            )
             return create_response(500, {'error': 'Unable to create checkout session'})
 
     if path == '/payment/quote' and http_method == 'POST':
@@ -2176,7 +2232,19 @@ def lambda_handler(event, context):
         try:
             return handle_webhook(event)
         except Exception as exc:
+            import traceback
+            trace = traceback.format_exc()
             print(f'webhook error: {exc}')
+            record_audit_log(
+                action='stripe_webhook_error',
+                target_type='webhook',
+                target_id='stripe',
+                details={'error': str(exc)},
+                level='ERROR',
+                source='stripe_webhook',
+                error_message=str(exc),
+                stack_trace=trace,
+            )
             return create_response(500, {'error': 'Webhook processing failed'})
 
     return create_response(404, {'error': 'Not found'})

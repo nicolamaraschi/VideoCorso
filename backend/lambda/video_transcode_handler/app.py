@@ -7,6 +7,12 @@ from urllib.parse import unquote_plus
 import boto3
 from botocore.exceptions import ClientError
 
+try:
+    from shared.audit_logger import record_audit_log
+except Exception:
+    def record_audit_log(*args, **kwargs):
+        pass
+
 
 VIDEO_EXTENSIONS = ('.mp4', '.mov', '.m4v')
 TERMINAL_STATUSES = {'COMPLETE', 'ERROR', 'CANCELED'}
@@ -233,6 +239,14 @@ def mark_job_completion(detail: dict, bucket: str) -> None:
                     ':version': asset_version, ':job_id': job_id,
                 },
             )
+            record_audit_log(
+                action='video_transcode_complete',
+                target_type='lesson',
+                target_id=lesson_id,
+                details={'job_id': job_id, 'asset_version': asset_version},
+                level='INFO',
+                source='video_transcode',
+            )
         except ClientError as exc:
             if exc.response.get('Error', {}).get('Code') == 'ConditionalCheckFailedException':
                 delete_prefix(bucket, prefix)
@@ -244,6 +258,15 @@ def mark_job_completion(detail: dict, bucket: str) -> None:
             UpdateExpression='SET transcode_status=:status, transcode_completed_at=:now, transcode_error_message=:error',
             ConditionExpression='pending_asset_version=:version AND transcode_job_id=:job_id',
             ExpressionAttributeValues={':status':status, ':now':detail.get('timestamp') or '', ':error':str(detail.get('errorMessage') or ''), ':version':asset_version, ':job_id':job_id})
+        record_audit_log(
+            action='video_transcode_failed',
+            target_type='lesson',
+            target_id=lesson_id,
+            details={'job_id': job_id, 'asset_version': asset_version, 'status': status, 'error': detail.get('errorMessage')},
+            level='ERROR',
+            source='video_transcode',
+            error_message=str(detail.get('errorMessage') or ''),
+        )
         delete_prefix(bucket, prefix)
 
 
@@ -332,6 +355,19 @@ def lambda_handler(event, context):
                     continue
                 raise
         print(f"Started MediaConvert job {response['Job']['Id']} for {source_key}")
+        record_audit_log(
+            action='video_transcode_job_started',
+            target_type='lesson',
+            target_id=lesson_id or source_key,
+            details={
+                'job_id': response['Job']['Id'],
+                'source_key': source_key,
+                'lesson_id': lesson_id,
+                'asset_version': asset_version,
+            },
+            level='INFO',
+            source='video_transcode',
+        )
 
     return {'statusCode': 200}
 

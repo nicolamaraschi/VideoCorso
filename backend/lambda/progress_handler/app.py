@@ -11,6 +11,11 @@ from botocore.exceptions import ClientError
 
 # ---------------------------------------------------------------------------
 from shared.purchase_access import purchase_grants_access
+try:
+    from shared.audit_logger import record_audit_log
+except Exception:
+    def record_audit_log(*args, **kwargs):
+        pass
 
 
 LEGACY_COURSE_ID = 'legacy-default-course'
@@ -574,7 +579,18 @@ def lambda_handler(event, context):
             body = json.loads(event.get('body') or '{}')
             body['completed'] = True
             body['watched_seconds'] = body.get('watched_seconds', body.get('total_seconds', 0))
-            return update_progress(user_id, body, admin_status)
+            res = update_progress(user_id, body, admin_status)
+            if res.get('statusCode') == 200:
+                record_audit_log(
+                    action='lesson_completed',
+                    target_type='lesson',
+                    target_id=body.get('lesson_id', ''),
+                    details={'user_id': user_id, 'course_id': body.get('course_id')},
+                    level='INFO',
+                    source='progress_handler',
+                    actor=user_id,
+                )
+            return res
 
         if path == '/progress/reset' and http_method == 'POST':
             return reset_progress(user_id, json.loads(event.get('body') or '{}'), admin_status)
@@ -589,9 +605,18 @@ def lambda_handler(event, context):
     except json.JSONDecodeError:
         return create_response(400, {'error': 'Invalid JSON body'})
     except Exception as exc:  # noqa: BLE001 - last-resort guard, see below
-        # Never let an unexpected error (bad input shape, transient AWS
-        # error, etc.) surface as a raw Lambda failure / API Gateway 502.
-        # Log the real exception server-side, return a generic 500 to the
-        # client so no internal detail (table names, stack traces) leaks.
+        import traceback
+        trace = traceback.format_exc()
         print(f'Unhandled error in progress_handler: {exc}')
+        record_audit_log(
+            action='progress_handler_error',
+            target_type='endpoint',
+            target_id=path,
+            details={'error': str(exc), 'user_id': user_id},
+            level='ERROR',
+            source='progress_handler',
+            actor=user_id or 'unknown',
+            error_message=str(exc),
+            stack_trace=trace,
+        )
         return create_response(500, {'error': 'Internal server error'})
