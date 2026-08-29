@@ -217,12 +217,17 @@ def get_current_admin_email(event) -> str:
     return str(claims.get('email', '')).strip().lower()
 
 
-def get_current_admin_username(event) -> str:
-    claims = get_claims(event)
-    return str(claims.get('cognito:username', '')).strip()
-
-
-def record_audit_log(action: str, target_type: str, target_id: str, details: Optional[dict[str, Any]] = None):
+def record_audit_log(
+    action: str,
+    target_type: str = 'system',
+    target_id: str = '',
+    details: Optional[dict[str, Any]] = None,
+    level: str = 'INFO',
+    source: str = 'admin_handler',
+    actor: Optional[str] = None,
+    error_message: Optional[str] = None,
+    stack_trace: Optional[str] = None,
+):
     table = TABLES.get('AUDIT_LOGS')
     if not table:
         return
@@ -232,15 +237,29 @@ def record_audit_log(action: str, target_type: str, target_id: str, details: Opt
             safe_details = json.loads(json.dumps(details, default=str), parse_float=Decimal)
         except Exception:
             safe_details = {k: str(v) for k, v in details.items()}
-    table.put_item(Item={
+
+    admin_actor = actor or current_admin_email or 'system'
+    item = {
         'audit_id': str(uuid.uuid4()),
         'created_at': now_iso(),
-        'admin_email': current_admin_email or 'admin',
+        'level': str(level).upper(),
+        'source': str(source),
+        'admin_email': admin_actor,
+        'actor': admin_actor,
         'action': action,
-        'target_type': target_type,
-        'target_id': str(target_id),
+        'target_type': str(target_type),
+        'target_id': str(target_id or ''),
         'details': safe_details,
-    })
+    }
+    if error_message:
+        item['error_message'] = str(error_message)
+    if stack_trace:
+        item['stack_trace'] = str(stack_trace)
+
+    try:
+        table.put_item(Item=item)
+    except Exception as exc:
+        print(f'Error recording audit log: {exc}')
 
 
 def generate_temp_password(length: int = 12) -> str:
@@ -2437,6 +2456,85 @@ def resend_admin_invite(email):
         return create_response(200, {'success': True, 'message': 'Email di invito inviata con successo'})
 
 
+def list_audit_logs(event):
+    table = TABLES.get('AUDIT_LOGS')
+    if not table:
+        return create_response(200, {'items': [], 'total': 0})
+
+    query_params = event.get('queryStringParameters') or {}
+    level_filter = (query_params.get('level') or '').strip().upper()
+    source_filter = (query_params.get('source') or '').strip().lower()
+    search_term = (query_params.get('search') or '').strip().lower()
+    limit = int(query_params.get('limit') or 250)
+
+    raw_items = list_all_items(table)
+
+    # Sort descending by created_at
+    raw_items.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+
+    filtered = []
+    for item in raw_items:
+        item_level = str(item.get('level') or 'INFO').upper()
+        item_source = str(item.get('source') or 'admin_handler').lower()
+        item_action = str(item.get('action') or '').lower()
+        item_actor = str(item.get('actor') or item.get('admin_email') or '').lower()
+        item_target_id = str(item.get('target_id') or '').lower()
+        item_target_type = str(item.get('target_type') or '').lower()
+        item_error = str(item.get('error_message') or '').lower()
+        item_details = item.get('details') or {}
+        item_details_str = json.dumps(item_details, default=str).lower()
+
+        # Severity filter
+        if level_filter and level_filter != 'ALL':
+            if level_filter == 'ERROR_OR_CRITICAL':
+                if item_level not in ['ERROR', 'CRITICAL']:
+                    continue
+            elif item_level != level_filter:
+                continue
+
+        # Source filter
+        if source_filter and source_filter != 'all':
+            if source_filter not in item_source:
+                continue
+
+        # Search term filter
+        if search_term:
+            match = (
+                search_term in item_action or
+                search_term in item_actor or
+                search_term in item_target_id or
+                search_term in item_target_type or
+                search_term in item_error or
+                search_term in item_details_str
+            )
+            if not match:
+                continue
+
+        # Format item for JSON response
+        filtered.append({
+            'audit_id': item.get('audit_id', ''),
+            'created_at': item.get('created_at', ''),
+            'level': item_level,
+            'source': item.get('source', 'admin_handler'),
+            'admin_email': item.get('admin_email', ''),
+            'actor': item.get('actor', item.get('admin_email', 'system')),
+            'action': item.get('action', ''),
+            'target_type': item.get('target_type', ''),
+            'target_id': item.get('target_id', ''),
+            'error_message': item.get('error_message', ''),
+            'stack_trace': item.get('stack_trace', ''),
+            'details': item_details,
+        })
+        if len(filtered) >= limit:
+            break
+
+    return create_response(200, {
+        'items': filtered,
+        'total': len(filtered),
+        'server_time': now_iso(),
+    })
+
+
 def get_stats():
     users = list_all_items(TABLES['USERS'])
     purchases = list_all_items(TABLES['PURCHASES'])
@@ -2821,6 +2919,8 @@ def lambda_handler(event, context):
             return get_purchase_detail(path_parameters.get('purchaseId'))
         if path == '/admin/stats' and http_method == 'GET':
             return get_stats()
+        if path == '/admin/audit-logs' and http_method == 'GET':
+            return list_audit_logs(event)
 
         if path == '/admin/video/upload' and http_method == 'POST':
             return get_presigned_upload_url(body)
@@ -2835,12 +2935,22 @@ def lambda_handler(event, context):
     except PurchaseVersionConflict as exc:
         return create_response(409, {'error': str(exc), 'code': 'stale_version'})
     except ValueError as exc:
-        # A plain ValueError is normal input/business-rule validation
-        # (e.g. "Cannot grant access to a refunded purchase") raised by any
-        # handler function - it must not be mislabeled as a version conflict.
         return create_response(400, {'error': str(exc)})
     except Exception as exc:
-        # Never leak the raw exception text: it can be a boto3 ClientError or
-        # a Cognito error carrying internal AWS resource identifiers.
-        print(f'admin handler error: {exc}')
+        trace = traceback.format_exc()
+        print(f'admin handler error: {exc}\n{trace}')
+        try:
+            record_audit_log(
+                action='internal_server_error',
+                target_type='system',
+                target_id=str(path or ''),
+                details={'path': path, 'method': http_method, 'error': str(exc)},
+                level='ERROR',
+                source='admin_handler',
+                actor=get_current_admin_email(event) or 'unknown',
+                error_message=str(exc),
+                stack_trace=trace,
+            )
+        except Exception:
+            pass
         return create_response(500, {'error': 'Internal server error'})

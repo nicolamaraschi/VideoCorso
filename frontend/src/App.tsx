@@ -49,6 +49,7 @@ const AdminPurchasesPage = lazyWithRetry(() => import('./pages/AdminPurchasesPag
 const AdminAccountsPage = lazyWithRetry(() => import('./pages/AdminAccountsPage').then((m) => ({ default: m.AdminAccountsPage })));
 const AdminPurchaseDetailPage = lazyWithRetry(() => import('./pages/AdminPurchaseDetailPage').then((m) => ({ default: m.AdminPurchaseDetailPage })));
 const AdminCouponsPage = lazyWithRetry(() => import('./pages/AdminCouponsPage').then((m) => ({ default: m.AdminCouponsPage })));
+const AdminSystemLogsPage = lazyWithRetry(() => import('./pages/AdminSystemLogsPage').then((m) => ({ default: m.AdminSystemLogsPage })));
 
 const ScrollToPageStart = () => {
   const { pathname } = useLocation();
@@ -185,6 +186,14 @@ function App() {
                     element={(
                       <ProtectedRoute requireAdmin>
                         <AdminCouponsPage />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/admin/system-logs"
+                    element={(
+                      <ProtectedRoute requireAdmin>
+                        <AdminSystemLogsPage />
                       </ProtectedRoute>
                     )}
                   />

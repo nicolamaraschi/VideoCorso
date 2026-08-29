@@ -23,6 +23,8 @@ import type {
   CreateChapterRequest,
   CreateLessonRequest,
   User,
+  AuditLogEntry,
+  AuditLogsResponse,
 } from '../types';
 
 export const adminService = {
@@ -244,5 +246,15 @@ export const adminService = {
       video_s3_key: videoKey,
       timestamp,
     });
+  },
+
+  async getAuditLogs(params?: { level?: string; source?: string; search?: string; limit?: number }): Promise<AuditLogsResponse> {
+    const query = new URLSearchParams();
+    if (params?.level) query.set('level', params.level);
+    if (params?.source) query.set('source', params.source);
+    if (params?.search) query.set('search', params.search);
+    if (params?.limit) query.set('limit', String(params.limit));
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return apiClient.get<AuditLogsResponse>(`/admin/audit-logs${qs}`);
   },
 };

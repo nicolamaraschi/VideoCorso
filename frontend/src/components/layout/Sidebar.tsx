@@ -12,6 +12,7 @@ import {
   TicketPercent,
   User,
   LogOut,
+  Terminal,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -41,6 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false, mobileMenuOpe
     { to: '/admin/purchases', icon: CreditCard, label: 'Purchases' },
     { to: '/admin/coupons', icon: TicketPercent, label: 'Coupons' },
     { to: '/admin/accounts', icon: Shield, label: 'Admin Accounts' },
+    { to: '/admin/system-logs', icon: Terminal, label: 'Pannello Tecnico' },
   ];
 
   const links = isAdmin ? adminLinks : studentLinks;

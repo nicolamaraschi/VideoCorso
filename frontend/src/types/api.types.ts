@@ -219,3 +219,25 @@ export interface CouponRequest {
   is_active: boolean;
   is_free_access: boolean;
 }
+
+export interface AuditLogEntry {
+  audit_id: string;
+  created_at: string;
+  level: 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
+  source?: string;
+  admin_email?: string;
+  actor?: string;
+  action: string;
+  target_type?: string;
+  target_id?: string;
+  error_message?: string;
+  stack_trace?: string;
+  details?: Record<string, unknown>;
+}
+
+export interface AuditLogsResponse {
+  items: AuditLogEntry[];
+  total: number;
+  server_time?: string;
+}
+
