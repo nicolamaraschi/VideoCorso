@@ -365,13 +365,14 @@ export const CheckoutPage: React.FC = () => {
               </p>
             </div>
 
-            {/* 3-Column Responsive Grid on Tablet/iPad & Desktop */}
+            {/* 3-Column Perfectly Symmetrical Grid on Tablet/iPad & Desktop */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 items-stretch">
               {course.packages!.map((pkg) => {
                 const isSelected = selectedPackage?.package_id === pkg.package_id;
                 const pkgPrice = Number(pkg.discounted_price ?? pkg.price);
                 const hasDiscount = pkg.discounted_price && Number(pkg.discounted_price) < Number(pkg.price);
                 const isPlus = pkg.name.toLowerCase().includes('plus') || pkg.name.toLowerCase().includes('intermedio');
+                const isBase = pkg.name.toLowerCase().includes('base');
 
                 return (
                   <div
@@ -379,66 +380,67 @@ export const CheckoutPage: React.FC = () => {
                     onClick={() => handleSelectPackage(pkg)}
                     className={`relative flex flex-col justify-between rounded-2xl border-2 p-5 sm:p-6 cursor-pointer transition-all duration-200 ${
                       isSelected
-                        ? 'border-primary-600 bg-gradient-to-b from-primary-50/70 via-white to-primary-50/30 shadow-xl ring-2 ring-primary-500/20 scale-[1.02]'
+                        ? 'border-primary-600 bg-gradient-to-b from-primary-50/60 via-white to-primary-50/20 shadow-xl ring-2 ring-primary-500/20'
                         : 'border-gray-200 bg-white hover:border-primary-200 hover:shadow-md'
                     }`}
                   >
-                    {/* Popular / Promo Badge */}
-                    {isPlus && !hasDiscount && (
-                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                        <span className="inline-flex px-3 py-1 rounded-full bg-primary-950 text-white text-[11px] font-bold uppercase tracking-wider shadow-md">
-                          Più Richiesto
-                        </span>
-                      </div>
-                    )}
-                    {hasDiscount && (
-                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                        <span className="inline-flex px-3 py-1 rounded-full bg-amber-400 text-gray-950 text-[11px] font-extrabold uppercase tracking-wider shadow-md">
-                          Offerta Lancio -500€
-                        </span>
-                      </div>
-                    )}
-
-                    <div>
-                      {/* Package Name */}
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <h2 className="text-xl font-serif font-bold text-gray-900">
-                          {pkg.name}
-                        </h2>
+                    {/* Top Tier Structure */}
+                    <div className="flex flex-col flex-1">
+                      
+                      {/* 1. Badge Row (Uniform Height across all cards) */}
+                      <div className="h-7 mb-3 flex items-center justify-between">
+                        {isBase && (
+                          <span className="inline-flex px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 text-[11px] font-semibold uppercase tracking-wider">
+                            Autonomia
+                          </span>
+                        )}
+                        {isPlus && (
+                          <span className="inline-flex px-3 py-1 rounded-full bg-primary-950 text-white text-[11px] font-bold uppercase tracking-wider shadow-sm">
+                            ★ Più Richiesto
+                          </span>
+                        )}
+                        {!isBase && !isPlus && hasDiscount && (
+                          <span className="inline-flex px-3 py-1 rounded-full bg-amber-400 text-gray-950 text-[11px] font-extrabold uppercase tracking-wider shadow-sm">
+                            💎 Lancio -500€
+                          </span>
+                        )}
+                        
                         {isSelected && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary-600 text-white text-[10px] font-bold uppercase tracking-wider">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary-600 text-white text-[10px] font-bold uppercase tracking-wider ml-auto">
                             Attivo
                           </span>
                         )}
                       </div>
 
-                      {/* Description if present */}
-                      {pkg.description && (
-                        <p className="text-xs text-gray-500 mb-4 line-clamp-2">
-                          {pkg.description}
-                        </p>
-                      )}
+                      {/* 2. Package Title */}
+                      <h2 className="text-2xl font-serif font-bold text-gray-900 leading-tight mb-3">
+                        {pkg.name}
+                      </h2>
 
-                      {/* Price Box */}
-                      <div className="my-4 py-3 px-4 rounded-xl bg-gray-50/90 border border-gray-100">
-                        {hasDiscount && (
-                          <span className="block text-xs font-semibold text-gray-400 line-through">
+                      {/* 3. Normalized Price Box (Identical Height & Baseline on all 3 cards) */}
+                      <div className="mb-5 p-4 rounded-xl bg-gray-50/90 border border-gray-100 min-h-[108px] flex flex-col justify-center">
+                        {hasDiscount ? (
+                          <span className="block text-xs font-semibold text-gray-400 line-through leading-tight">
                             € {Number(pkg.price).toFixed(2)}
                           </span>
+                        ) : (
+                          <span className="block text-xs text-transparent select-none leading-tight" aria-hidden="true">
+                            € 0.00
+                          </span>
                         )}
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-3xl font-serif font-bold text-gray-900">
+                        <div className="flex items-baseline gap-1 mt-0.5">
+                          <span className="text-3xl font-serif font-bold text-gray-900 leading-none">
                             € {pkgPrice.toFixed(2)}
                           </span>
                         </div>
-                        <span className="block text-[11px] text-gray-500 mt-0.5">
+                        <span className="block text-[11px] text-gray-500 mt-1.5 leading-tight">
                           + IVA • rateizzabile con Klarna/Scalapay
                         </span>
                       </div>
 
-                      {/* Benefits Checklist */}
-                      <div className="space-y-2.5 pt-2">
-                        <p className="text-xs font-bold uppercase tracking-wider text-gray-700">
+                      {/* 4. Benefits Checklist (Aligned across all cards) */}
+                      <div className="space-y-2.5 flex-1">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-gray-800">
                           Cosa include:
                         </p>
                         <ul className="space-y-2 text-xs sm:text-sm text-gray-700">
@@ -452,15 +454,15 @@ export const CheckoutPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Bottom Action Indicator */}
+                    {/* 5. Symmetrical Bottom Action Button */}
                     <div className="mt-6 pt-4 border-t border-gray-100">
                       {isSelected ? (
-                        <div className="w-full py-2.5 rounded-xl bg-primary-950 text-white text-center text-xs sm:text-sm font-bold shadow-md flex items-center justify-center gap-1.5">
+                        <div className="w-full h-11 rounded-xl bg-primary-950 text-white text-center text-xs sm:text-sm font-bold shadow-md flex items-center justify-center gap-1.5">
                           <Check className="w-4 h-4 text-emerald-400" />
                           <span>Pacchetto Selezionato</span>
                         </div>
                       ) : (
-                        <div className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-700 text-center text-xs sm:text-sm font-semibold hover:bg-primary-100 hover:text-primary-900 transition-colors">
+                        <div className="w-full h-11 rounded-xl bg-gray-100 text-gray-700 text-center text-xs sm:text-sm font-semibold hover:bg-primary-100 hover:text-primary-900 transition-colors flex items-center justify-center">
                           Seleziona questo piano
                         </div>
                       )}
