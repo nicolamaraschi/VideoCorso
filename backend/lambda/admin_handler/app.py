@@ -2265,6 +2265,12 @@ def create_coupon(body):
     }
     try:
         TABLES['COUPONS'].put_item(Item=item, ConditionExpression='attribute_not_exists(coupon_id)')
+        record_audit_log('create_coupon', 'coupon', code, {
+            'discount_type': item['discount_type'],
+            'discount_value': str(item['discount_value']),
+            'is_free_access': item['is_free_access'],
+            'max_redemptions': item['max_redemptions'],
+        })
     except ClientError as exc:
         if exc.response.get('Error', {}).get('Code') == 'ConditionalCheckFailedException':
             return create_response(409, {'error': 'Esiste già un coupon con questo codice'})
@@ -2300,6 +2306,14 @@ def update_coupon(coupon_id, body):
     if updated['coupon_id'] != coupon_id:
         TABLES['COUPONS'].delete_item(Key={'coupon_id': coupon_id})
     TABLES['COUPONS'].put_item(Item=updated)
+    record_audit_log('update_coupon', 'coupon', updated['coupon_id'], {
+        'old_coupon_id': coupon_id,
+        'discount_type': updated.get('discount_type'),
+        'discount_value': str(updated.get('discount_value', 0)),
+        'is_active': updated.get('is_active'),
+        'is_free_access': updated.get('is_free_access'),
+        'max_redemptions': updated.get('max_redemptions'),
+    })
     return create_response(200, {'success': True, 'data': updated})
 
 
@@ -2308,6 +2322,7 @@ def delete_coupon(coupon_id):
     if not coupon:
         return create_response(404, {'error': 'Coupon not found'})
     TABLES['COUPONS'].delete_item(Key={'coupon_id': coupon['coupon_id']})
+    record_audit_log('delete_coupon', 'coupon', coupon['coupon_id'], {'code': coupon.get('code')})
     return create_response(200, {'success': True})
 
 
