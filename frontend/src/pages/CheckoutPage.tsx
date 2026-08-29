@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertCircle, Award, CheckCircle, RefreshCw, Shield, Video } from 'lucide-react';
+import { AlertCircle, Award, Check, CheckCircle, RefreshCw, Shield, Sparkles, Video } from 'lucide-react';
 import { useAuthContext } from '../components/auth/useAuthContext';
 import { paymentService } from '../services/paymentService';
 import { courseService } from '../services/courseService';
@@ -214,10 +214,6 @@ export const CheckoutPage: React.FC = () => {
     }
   };
 
-  const selectedCourseIndex = useMemo(
-    () => catalog.findIndex((item) => item.course_id === course?.course_id),
-    [catalog, course]
-  );
   const hasPackages = !!(course?.packages && course.packages.length > 0);
   const baseTotal = hasPackages
     ? Number(selectedPackage?.discounted_price ?? selectedPackage?.price ?? 0)
@@ -353,127 +349,159 @@ export const CheckoutPage: React.FC = () => {
             Il pagamento è stato annullato: Stripe non ha confermato alcun acquisto. Puoi riprovare quando vuoi.
           </div>
         )}
-        <section className="rounded-2xl border border-primary-100 bg-white p-5 shadow-soft sm:p-8">
-          <div className="mb-8 flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-6">
-            <div className="min-w-0">
-              <h1 className="mb-2 text-3xl font-serif font-bold text-gray-900 md:text-4xl">Scegli la tua Masterclass</h1>
-              <p className="text-gray-500">
-                Seleziona il percorso formativo più adatto alle tue esigenze.
+        {/* 1. Header & Course / Package Selection */}
+        {hasPackages && (
+          <section className="rounded-3xl border border-primary-100 bg-white p-5 sm:p-8 shadow-sm">
+            <div className="text-center max-w-3xl mx-auto mb-8">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-50 border border-primary-200/80 text-primary-800 text-xs font-semibold tracking-wide uppercase mb-3">
+                <Sparkles className="w-3.5 h-3.5 text-primary-600" />
+                <span>{course.title}</span>
+              </span>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold text-gray-900 leading-tight">
+                Scegli il tuo pacchetto
+              </h1>
+              <p className="mt-2 text-sm sm:text-base text-gray-500 font-light">
+                Tutti i pacchetti danno accesso allo stesso corso completo con 10 moduli e 54 video-lezioni: cambiano i servizi di tutoraggio e la pratica in presenza.
               </p>
             </div>
-            <div className="text-sm text-gray-500">
-              {catalog.length} {catalog.length === 1 ? 'corso disponibile' : 'corsi disponibili'}
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {catalog.map((item, index) => {
-              const isSelected = item.course_id === course?.course_id;
-              return (
-                <button
-                  key={item.course_id}
-                  type="button"
-                  onClick={() => handleSelectCourse(item)}
-                  className={`text-left rounded-xl border p-5 transition-all ${
-                    isSelected
-                      ? 'border-primary-400 bg-primary-50 shadow-md ring-1 ring-primary-400'
-                      : 'border-gray-200 bg-white hover:border-primary-200 hover:shadow-sm'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3 mb-3">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Corso {index + 1}
-                    </span>
-                    {isSelected && (
-                      <span className="inline-flex px-2.5 py-1 rounded-full bg-primary-600 text-white text-xs font-medium">
-                        Selezionato
-                      </span>
-                    )}
-                  </div>
-
-                  <h2 className="text-lg font-semibold text-gray-900">{item.title}</h2>
-                  <p className="text-sm text-gray-600 mt-2 line-clamp-3">{item.short_description || item.description}</p>
-                  <div className="mt-4 flex items-end justify-between gap-3">
-                    <div>
-                      {item.packages && item.packages.length > 0 ? (
-                        // The exact price depends on which package is chosen below,
-                        // so showing a number here would just repeat (and risk
-                        // looking inconsistent with) the package price shown in
-                        // the "Scegli il tuo pacchetto" section.
-                        <span className="text-sm font-medium text-gray-600">
-                          {item.packages.length} pacchetti disponibili
-                        </span>
-                      ) : (
-                        <>
-                          {item.discounted_price && Number(item.discounted_price) < Number(item.price) && (
-                            <span className="block text-sm text-gray-400 line-through">€ {Number(item.price).toFixed(2)}</span>
-                          )}
-                          <span className="text-2xl font-bold text-gray-900">
-                            € {Number(item.discounted_price ?? item.price).toFixed(2)}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                    <span className={`text-sm font-medium ${isSelected ? 'text-primary-700' : 'text-gray-500'}`}>
-                      {selectedCourseIndex === index ? 'Pronto al checkout' : 'Seleziona'}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {hasPackages && (
-          <section className="rounded-2xl border border-primary-100 bg-white p-5 shadow-soft sm:p-8">
-            <h2 className="mb-2 text-2xl font-serif font-bold text-gray-900">Scegli il tuo pacchetto</h2>
-            <p className="mb-6 text-gray-500">
-              Tutti i pacchetti danno accesso allo stesso corso completo: cambiano solo i servizi e i benefit aggiuntivi inclusi.
-            </p>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            {/* 3-Column Responsive Grid on Tablet/iPad & Desktop */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 items-stretch">
               {course.packages!.map((pkg) => {
                 const isSelected = selectedPackage?.package_id === pkg.package_id;
                 const pkgPrice = Number(pkg.discounted_price ?? pkg.price);
+                const hasDiscount = pkg.discounted_price && Number(pkg.discounted_price) < Number(pkg.price);
+                const isPlus = pkg.name.toLowerCase().includes('plus') || pkg.name.toLowerCase().includes('intermedio');
+
+                return (
+                  <div
+                    key={pkg.package_id}
+                    onClick={() => handleSelectPackage(pkg)}
+                    className={`relative flex flex-col justify-between rounded-2xl border-2 p-5 sm:p-6 cursor-pointer transition-all duration-200 ${
+                      isSelected
+                        ? 'border-primary-600 bg-gradient-to-b from-primary-50/70 via-white to-primary-50/30 shadow-xl ring-2 ring-primary-500/20 scale-[1.02]'
+                        : 'border-gray-200 bg-white hover:border-primary-200 hover:shadow-md'
+                    }`}
+                  >
+                    {/* Popular / Promo Badge */}
+                    {isPlus && !hasDiscount && (
+                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                        <span className="inline-flex px-3 py-1 rounded-full bg-primary-950 text-white text-[11px] font-bold uppercase tracking-wider shadow-md">
+                          Più Richiesto
+                        </span>
+                      </div>
+                    )}
+                    {hasDiscount && (
+                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                        <span className="inline-flex px-3 py-1 rounded-full bg-amber-400 text-gray-950 text-[11px] font-extrabold uppercase tracking-wider shadow-md">
+                          Offerta Lancio -500€
+                        </span>
+                      </div>
+                    )}
+
+                    <div>
+                      {/* Package Name */}
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <h2 className="text-xl font-serif font-bold text-gray-900">
+                          {pkg.name}
+                        </h2>
+                        {isSelected && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary-600 text-white text-[10px] font-bold uppercase tracking-wider">
+                            Attivo
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Description if present */}
+                      {pkg.description && (
+                        <p className="text-xs text-gray-500 mb-4 line-clamp-2">
+                          {pkg.description}
+                        </p>
+                      )}
+
+                      {/* Price Box */}
+                      <div className="my-4 py-3 px-4 rounded-xl bg-gray-50/90 border border-gray-100">
+                        {hasDiscount && (
+                          <span className="block text-xs font-semibold text-gray-400 line-through">
+                            € {Number(pkg.price).toFixed(2)}
+                          </span>
+                        )}
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-3xl font-serif font-bold text-gray-900">
+                            € {pkgPrice.toFixed(2)}
+                          </span>
+                        </div>
+                        <span className="block text-[11px] text-gray-500 mt-0.5">
+                          + IVA • rateizzabile con Klarna/Scalapay
+                        </span>
+                      </div>
+
+                      {/* Benefits Checklist */}
+                      <div className="space-y-2.5 pt-2">
+                        <p className="text-xs font-bold uppercase tracking-wider text-gray-700">
+                          Cosa include:
+                        </p>
+                        <ul className="space-y-2 text-xs sm:text-sm text-gray-700">
+                          {pkg.benefits.map((benefit, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                              <span className="leading-snug">{benefit}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Bottom Action Indicator */}
+                    <div className="mt-6 pt-4 border-t border-gray-100">
+                      {isSelected ? (
+                        <div className="w-full py-2.5 rounded-xl bg-primary-950 text-white text-center text-xs sm:text-sm font-bold shadow-md flex items-center justify-center gap-1.5">
+                          <Check className="w-4 h-4 text-emerald-400" />
+                          <span>Pacchetto Selezionato</span>
+                        </div>
+                      ) : (
+                        <div className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-700 text-center text-xs sm:text-sm font-semibold hover:bg-primary-100 hover:text-primary-900 transition-colors">
+                          Seleziona questo piano
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Multi-course catalog switcher (if more than 1 course available) */}
+        {!hasPackages && catalog.length > 1 && (
+          <section className="rounded-2xl border border-primary-100 bg-white p-5 shadow-soft sm:p-8">
+            <h2 className="mb-4 text-2xl font-serif font-bold text-gray-900">Scegli la tua Masterclass</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {catalog.map((item, index) => {
+                const isSelected = item.course_id === course?.course_id;
                 return (
                   <button
-                    key={pkg.package_id}
+                    key={item.course_id}
                     type="button"
-                    onClick={() => handleSelectPackage(pkg)}
+                    onClick={() => handleSelectCourse(item)}
                     className={`text-left rounded-xl border p-5 transition-all ${
                       isSelected
                         ? 'border-primary-400 bg-primary-50 shadow-md ring-1 ring-primary-400'
                         : 'border-gray-200 bg-white hover:border-primary-200 hover:shadow-sm'
                     }`}
                   >
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <h3 className="text-lg font-semibold text-gray-900">{pkg.name}</h3>
-                      <div className="flex items-center gap-1.5">
-                        {pkg.discounted_price && Number(pkg.discounted_price) < Number(pkg.price) && (
-                          <span className="inline-flex px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[11px] font-bold uppercase tracking-wide">
-                            -500€ Lancio
-                          </span>
-                        )}
-                        {isSelected && (
-                          <span className="inline-flex px-2.5 py-1 rounded-full bg-primary-600 text-white text-xs font-medium">
-                            Selezionato
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="mb-3">
-                      {pkg.discounted_price && Number(pkg.discounted_price) < Number(pkg.price) && (
-                        <span className="block text-sm text-gray-400 line-through">€ {Number(pkg.price).toFixed(2)}</span>
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Corso {index + 1}
+                      </span>
+                      {isSelected && (
+                        <span className="inline-flex px-2.5 py-1 rounded-full bg-primary-600 text-white text-xs font-medium">
+                          Selezionato
+                        </span>
                       )}
-                      <span className="block text-2xl font-bold text-gray-900">€ {pkgPrice.toFixed(2)}</span>
                     </div>
-                    <ul className="space-y-1.5 text-sm text-gray-600">
-                      {pkg.benefits.map((benefit) => (
-                        <li key={benefit} className="flex items-start gap-2">
-                          <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary-600" />
-                          <span>{benefit}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
+                    <p className="text-sm text-gray-600 mt-2 line-clamp-3">{item.short_description || item.description}</p>
                   </button>
                 );
               })}
