@@ -11,6 +11,16 @@ import { formatDate } from '../utils/formatters';
 import { getErrorMessage } from '../utils/errors';
 import { useAdminOperationBanner } from '../components/common/AdminOperationBanner';
 
+const formatWatchTime = (seconds: number): string => {
+  if (!seconds || seconds <= 0) return '0 min';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) {
+    return `${h}h ${m > 0 ? `${m}m` : ''}`.trim();
+  }
+  return `${m} min`;
+};
+
 export const AdminStudentDetailPage: React.FC = () => {
   const { showSuccess, showError } = useAdminOperationBanner();
   const { studentId } = useParams<{ studentId: string }>();
@@ -129,7 +139,7 @@ export const AdminStudentDetailPage: React.FC = () => {
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-5">
           <p className="text-sm text-gray-500">Tempo di visione</p>
-          <p className="text-xl font-semibold text-gray-900">{student.total_watch_time}s</p>
+          <p className="text-xl font-semibold text-gray-900">{formatWatchTime(student.total_watch_time)}</p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-5">
           <p className="text-sm text-gray-500">Avanzamento medio</p>
