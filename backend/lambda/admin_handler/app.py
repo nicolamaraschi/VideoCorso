@@ -2658,12 +2658,36 @@ def get_stats():
             'views': views,
         })
 
+    revenue_by_day = {}
+    orders_by_day = {}
+    for purchase in purchases:
+        normalized = normalize_purchase(purchase)
+        if normalized.get('local_status') == 'paid':
+            p_dt = parse_iso_datetime(normalized.get('purchase_date') or normalized.get('created_at'))
+            if p_dt:
+                day_str = p_dt.date().isoformat()
+                amt = normalize_amount(normalized.get('amount_gross', normalized.get('amount', 0)))
+                net = max(Decimal('0'), amt - normalized.get('refunded_amount', Decimal('0')))
+                revenue_by_day[day_str] = revenue_by_day.get(day_str, Decimal('0')) + net
+                orders_by_day[day_str] = orders_by_day.get(day_str, 0) + 1
+
+    lessons_completed_by_day = {}
+    for item in progress_items:
+        last_watched = item.get('last_watched')
+        if last_watched:
+            day = str(last_watched).split('T')[0]
+            if item.get('completed'):
+                lessons_completed_by_day[day] = lessons_completed_by_day.get(day, 0) + 1
+
     daily_access_chart = []
-    for offset in range(6, -1, -1):
+    for offset in range(29, -1, -1):
         day = (today.fromordinal(today.toordinal() - offset)).isoformat()
         daily_access_chart.append({
             'date': day,
             'active_users': len(activity_by_day.get(day, set())),
+            'revenue': float(revenue_by_day.get(day, Decimal('0'))),
+            'orders_count': orders_by_day.get(day, 0),
+            'lessons_completed': lessons_completed_by_day.get(day, 0),
         })
 
     active_students = set()

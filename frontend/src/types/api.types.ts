@@ -179,6 +179,9 @@ export interface AdminStats {
   daily_access_chart: Array<{
     date: string;
     active_users: number;
+    revenue?: number;
+    orders_count?: number;
+    lessons_completed?: number;
   }>;
   active_students_last_7_days: number;
   revenue_last_30_days: number;
