@@ -56,72 +56,88 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
     <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            {/* Mobile Menu Button */}
-            <div className="xl:hidden flex-shrink-0 mr-2">
+          
+          {/* Left: Hamburger button (< lg) + Logo */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            {/* Mobile / Tablet Hamburger Button */}
+            {!isAuthenticated && (
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="min-h-11 min-w-11 p-2 -ml-2 rounded-lg hover:bg-gray-100"
+                className="lg:hidden flex-shrink-0 min-h-10 min-w-10 p-2 rounded-lg hover:bg-gray-100 text-gray-700 flex items-center justify-center -ml-1"
                 aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
                 aria-expanded={mobileMenuOpen}
               >
                 {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
-            </div>
+            )}
             
-            {/* Logo & Brand Text */}
-            <div className="flex items-center flex-1 md:flex-none">
-              <Link to={isAuthenticated ? (isAdmin ? '/admin' : '/dashboard') : '/'} className="flex items-center gap-3 w-full md:w-auto">
+            {/* Logo & Brand Name */}
+            <Link 
+              to={isAuthenticated ? (isAdmin ? '/admin' : '/dashboard') : '/'} 
+              className="flex items-center gap-2.5 sm:gap-3 min-w-0"
+            >
               <img 
                 src={logoUrl} 
                 alt="Chiara Morocutti" 
                 width={40}
                 height={40}
-                className="h-10 w-auto rounded-full object-cover flex-shrink-0"
+                className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover flex-shrink-0 shadow-sm"
               />
               
-              <div className="block min-w-0 flex-1 md:flex-none text-center md:text-left pr-2 md:pr-0">
-                <span className="text-base md:text-lg font-bold text-primary-600 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm sm:text-base lg:text-lg font-bold text-primary-600 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
                   Chiara Morocutti Academy
                 </span>
-                <span className="text-[10px] md:text-xs text-gray-500 leading-tight block" style={{ fontFamily: 'Abhaya Libre, serif' }}>
+                <span className="text-[9px] sm:text-xs text-gray-500 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
                   Formazione d'Eccellenza
                 </span>
               </div>
             </Link>
-            </div>
           </div>
 
-          {/* Link di navigazione (Desktop - Non autenticato) */}
+          {/* Center: Navigation Links (Desktop ONLY >= lg) */}
           {!isAuthenticated && (
-            <div className="hidden md:flex items-center space-x-8">
-              <ScrollLink to="/#corso" className="text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Il Corso</ScrollLink>
-              <ScrollLink to="/#vantaggi" className="text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Vantaggi</ScrollLink>
-              <ScrollLink to="/#anteprima" className="text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Anteprima</ScrollLink>
-              <ScrollLink to="/#testimonianze" className="text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Testimonianze</ScrollLink>
+            <div className="hidden lg:flex items-center space-x-6 xl:space-x-8">
+              <ScrollLink to="/#corso" className="text-sm xl:text-base font-medium text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Il Corso</ScrollLink>
+              <ScrollLink to="/#vantaggi" className="text-sm xl:text-base font-medium text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Vantaggi</ScrollLink>
+              <ScrollLink to="/#anteprima" className="text-sm xl:text-base font-medium text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Anteprima</ScrollLink>
+              <ScrollLink to="/#testimonianze" className="text-sm xl:text-base font-medium text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Testimonianze</ScrollLink>
             </div>
           )}
 
-          {/* Desktop Menu (Non Autenticato) */}
+          {/* Right: Actions */}
           {!isAuthenticated && (
-            <div className="hidden md:flex items-center gap-4">
-              <Link to="/login"><Button variant="ghost">Login</Button></Link>
-              <Link to="/checkout"><Button variant="primary">Vai al Checkout</Button></Link>
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* Desktop Buttons (>= lg) */}
+              <div className="hidden lg:flex items-center gap-3">
+                <Link to="/login"><Button variant="ghost">Login</Button></Link>
+                <Link to="/checkout"><Button variant="primary">Vai al Checkout</Button></Link>
+              </div>
+              {/* Mobile / Tablet Quick Checkout Button (< lg) */}
+              <Link to="/checkout" className="lg:hidden shrink-0">
+                <Button variant="primary" size="sm">
+                  Vai al Checkout
+                </Button>
+              </Link>
             </div>
           )}
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile & Tablet Drawer Menu (< lg) */}
       {mobileMenuOpen && !isAuthenticated && (
-        <div className="md:hidden border-t border-gray-200 bg-white">
-          <div className="px-4 py-4 space-y-2">
-            <ScrollLink to="/#corso" className="block px-4 py-2 rounded-lg hover:bg-gray-100" onClick={() => setMobileMenuOpen(false)}>Il Corso</ScrollLink>
-            <ScrollLink to="/#vantaggi" className="block px-4 py-2 rounded-lg hover:bg-gray-100" onClick={() => setMobileMenuOpen(false)}>Vantaggi</ScrollLink>
-            <ScrollLink to="/#anteprima" className="block px-4 py-2 rounded-lg hover:bg-gray-100" onClick={() => setMobileMenuOpen(false)}>Anteprima</ScrollLink>
-            <Link to="/login" className="block px-4 py-2 rounded-lg hover:bg-gray-100" onClick={() => setMobileMenuOpen(false)}>Login</Link>
-            <Link to="/checkout" onClick={() => setMobileMenuOpen(false)}><Button variant="primary" fullWidth>Vai al Checkout</Button></Link>
+        <div className="lg:hidden border-t border-gray-200 bg-white shadow-xl animate-in slide-in-from-top-2 duration-200">
+          <div className="px-5 py-4 space-y-1">
+            <ScrollLink to="/#corso" className="block px-3 py-2.5 rounded-xl text-base font-semibold text-gray-800 hover:bg-primary-50 hover:text-primary-700 transition" onClick={() => setMobileMenuOpen(false)}>Il Corso</ScrollLink>
+            <ScrollLink to="/#vantaggi" className="block px-3 py-2.5 rounded-xl text-base font-semibold text-gray-800 hover:bg-primary-50 hover:text-primary-700 transition" onClick={() => setMobileMenuOpen(false)}>Vantaggi</ScrollLink>
+            <ScrollLink to="/#anteprima" className="block px-3 py-2.5 rounded-xl text-base font-semibold text-gray-800 hover:bg-primary-50 hover:text-primary-700 transition" onClick={() => setMobileMenuOpen(false)}>Anteprima</ScrollLink>
+            <ScrollLink to="/#testimonianze" className="block px-3 py-2.5 rounded-xl text-base font-semibold text-gray-800 hover:bg-primary-50 hover:text-primary-700 transition" onClick={() => setMobileMenuOpen(false)}>Testimonianze</ScrollLink>
+            
+            <div className="border-t border-gray-100 pt-3 mt-2 flex flex-col gap-2">
+              <Link to="/login" className="block text-center py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 border border-gray-200" onClick={() => setMobileMenuOpen(false)}>Login Corsiste</Link>
+              <Link to="/checkout" onClick={() => setMobileMenuOpen(false)}><Button variant="primary" fullWidth size="lg">Iscriviti alla Masterclass</Button></Link>
+            </div>
           </div>
         </div>
       )}

@@ -30,10 +30,10 @@ export const LandingPage: React.FC = () => {
     <div className="bg-gradient-to-b from-primary-50/60 via-white to-primary-50/40 min-h-screen text-gray-800">
       
       {/* 1. HERO SECTION */}
-      <section id="hero" className="relative pt-24 pb-20 md:pt-36 md:pb-28 overflow-hidden">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
-            <div className="lg:w-7/12">
+      <section id="hero" className="relative pt-12 pb-14 sm:pt-16 sm:pb-20 lg:pt-28 lg:pb-24 overflow-hidden">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+            <div className="lg:w-7/12 text-center lg:text-left flex flex-col items-center lg:items-start">
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -48,7 +48,7 @@ export const LandingPage: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.1 }}
-                className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-gray-900 leading-[1.15] tracking-tight"
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-gray-900 leading-[1.15] tracking-tight max-w-2xl"
               >
                 Diventa la dermopigmentista che <span className="text-primary-700 italic font-normal">tutti si contendono.</span>
               </motion.h1>
@@ -57,7 +57,7 @@ export const LandingPage: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.2 }}
-                className="mt-6 text-lg sm:text-xl text-gray-600 leading-relaxed max-w-2xl font-light"
+                className="mt-6 text-base sm:text-lg lg:text-xl text-gray-600 leading-relaxed max-w-2xl font-light"
               >
                 Il percorso che unisce <strong className="text-gray-900 font-semibold">tecnica del microblading</strong> e <strong className="text-gray-900 font-semibold">mentalità imprenditoriale</strong> per costruire un'agenda piena, con margini alti e meno ore in cabina.
               </motion.p>
@@ -66,18 +66,18 @@ export const LandingPage: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.3 }}
-                className="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-4"
+                className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto justify-center lg:justify-start"
               >
                 <a 
                   href="#corso" 
-                  className="px-8 py-4 bg-primary-950 text-white text-center rounded-full font-medium hover:bg-primary-900 transition-all shadow-md hover:shadow-xl active:scale-[0.99] flex items-center justify-center gap-2 group"
+                  className="w-full sm:w-auto px-8 py-4 bg-primary-950 text-white text-center rounded-full font-medium hover:bg-primary-900 transition-all shadow-md hover:shadow-xl active:scale-[0.99] flex items-center justify-center gap-2 group"
                 >
                   <span>Scegli il tuo percorso</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </a>
                 <a 
                   href="#vantaggi" 
-                  className="px-8 py-4 bg-white text-primary-900 text-center border border-primary-200 rounded-full font-medium hover:bg-primary-50/60 transition shadow-sm"
+                  className="w-full sm:w-auto px-8 py-4 bg-white text-primary-900 text-center border border-primary-200 rounded-full font-medium hover:bg-primary-50/60 transition shadow-sm"
                 >
                   Scopri i 2 Pilastri
                 </a>
@@ -88,7 +88,7 @@ export const LandingPage: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.7, delay: 0.3 }}
-              className="lg:w-5/12 w-full max-w-md lg:max-w-none"
+              className="lg:w-5/12 w-full max-w-md lg:max-w-none mx-auto"
             >
               <div className="relative">
                 <div className="absolute inset-0 bg-primary-200/60 rounded-3xl transform -rotate-3 blur-sm"></div>
