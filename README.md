@@ -1,99 +1,130 @@
-# VideoCorso
+# Chiara Morocutti Academy — Piattaforma VideoCorso Pro
 
-Piattaforma per la vendita e la fruizione di corsi video. Il frontend React è pubblicato con AWS Amplify; il backend è una applicazione AWS SAM con API Gateway, Lambda, DynamoDB, Cognito, S3/CloudFront e Stripe.
+Piattaforma cloud proprietaria ad alte prestazioni per la vendita, fruizione e protezione di video corsi professionali (Masterclass Microblading).  
+Il frontend React è distribuito a livello globale tramite **AWS Amplify**; il backend è un'infrastruttura serverless su **AWS SAM** con API Gateway, Lambda, DynamoDB, Cognito, S3/CloudFront, AWS MediaConvert e Stripe.
 
-## Stato degli ambienti
+---
 
-| Ramo Git | Uso | URL Amplify |
+## 🌐 Stato degli Ambienti
+
+| Ramo Git | Uso | URL Web |
 | --- | --- | --- |
-| `main` | Produzione | https://main.d26u0xz2smmxfz.amplifyapp.com |
-| `development` | Sviluppo e collaudo prima della PR | https://development.d26u0xz2smmxfz.amplifyapp.com |
+| `main` | **Produzione** | [https://main.d26u0xz2smmxfz.amplifyapp.com](https://main.d26u0xz2smmxfz.amplifyapp.com) |
+| `development` | Collaudo prima del merge | [https://development.d26u0xz2smmxfz.amplifyapp.com](https://development.d26u0xz2smmxfz.amplifyapp.com) |
 
-- Repository: `github.com/nicolamaraschi/VideoCorso`
-- Amplify app id: `d26u0xz2smmxfz`
-- Stack backend di produzione: `corso-video-chiara`
-- API produzione: `https://nyer89lvbj.execute-api.us-east-1.amazonaws.com/prod`
-- Regione: `us-east-1`
+* **Repository**: `github.com/nicolamaraschi/VideoCorso`
+* **Amplify App ID**: `d26u0xz2smmxfz`
+* **Stack CloudFormation Backend**: `corso-video-chiara`
+* **API Gateway Produzione**: `https://nyer89lvbj.execute-api.us-east-1.amazonaws.com/prod`
+* **Regione AWS**: `us-east-1` (N. Virginia)
 
-> Il ramo `development` è un ambiente frontend separato, ma oggi usa lo stesso backend `prod`. Non eseguire prove distruttive, ordini reali o modifiche a dati di clienti da `development`. Un backend realmente isolato richiede uno stack `Environment=dev`, parametri SSM `/videocorso/dev/...` e variabili `VITE_*` del ramo aggiornate con i suoi output.
+---
 
-## Regola AWS obbligatoria
+## ⚡ Regola AWS Obbligatoria
 
-**Ogni comando AWS e SAM deve usare il profilo `personale`.** È l'account corretto per questo progetto: `170884089098` (`videocorso-admin`). Non usare il profilo predefinito.
+**Tutti i comandi AWS CLI e SAM devono utilizzare il profilo `--profile personale`.**  
+Account AWS associato: `170884089098` (`videocorso-admin`).
 
 ```bash
-# Da eseguire prima di una qualunque operazione AWS
+# Verifica identità prima di qualsiasi operazione
 aws --profile personale sts get-caller-identity
-
-# Esempio: anche SAM deve ricevere esplicitamente il profilo
-sam build --profile personale
 ```
 
-Tutti gli esempi di questa documentazione includono `--profile personale` per questo motivo.
+---
 
-## Struttura del progetto
+## 📁 Struttura del Progetto
 
 ```text
-frontend/                 applicazione React + TypeScript + Vite
-backend/infrastructure/   template AWS SAM/CloudFormation
-backend/lambda/           Lambda per catalogo, admin, pagamenti, video e progressi
-backend/tests/            test backend e smoke test API
-docs/OPERATIONS.md        runbook di produzione e procedure d'incidente
+VideoCorso/
+├── frontend/                  # Applicazione React 18 + TypeScript + Vite + Tailwind/CSS
+│   ├── src/pages/             # Pagine (Dashboard, Player, Checkout, Admin, System Logs)
+│   ├── src/components/        # Componenti UI (Player con Watermark, Sidebar, Modali)
+│   └── src/services/          # Client API, authService, adminService, courseService
+├── backend/
+│   ├── infrastructure/        # template.yaml (AWS SAM CloudFormation con 8 Lambda)
+│   ├── layers/shared/         # Layer Python condiviso (purchase_access, audit_logger)
+│   ├── lambda/                # I microservizi serverless:
+│   │   ├── admin_handler/     # Gestione studenti, acquisti, catalogo, statistiche, log
+│   │   ├── payment_handler/   # Checkout Stripe, webhook idempotenti, coupon
+│   │   ├── provisioning_outbox_handler/ # Provisioning automatico Cognito & email
+│   │   ├── video_handler/     # URL firmati streaming, controllo permessi, watermark
+│   │   ├── progress_handler/  # Tracciamento avanzamento lezioni corsiste
+│   │   ├── course_handler/    # Catalogo corsi, capitoli e lezioni pubbliche
+│   │   ├── coupon_reservation_recovery_handler/ # Cron recupero coupon scaduti
+│   │   └── video_transcode_handler/ # Pipeline MediaConvert per rendizioni 1080p-360p
+│   └── tests/                 # Suite di test pytest unitari e di integrazione
+├── docs/
+│   ├── OPERATIONS.md          # Runbook operativo, incident recovery, gestione Cognito
+│   └── GUIDA_CARICAMENTO_VIDEO_SSD.md # Istruzioni transcodifica e caricamento S3
+└── Relazione_Opere_Chiara_Morocutti_Academy.pdf # Documentazione tecnico-economica per il cliente
 ```
 
-## Flusso di sviluppo e rilascio
+---
 
-1. Lavora su `development`.
-2. Esegui i test locali e la build del frontend.
-3. Fai push: Amplify pubblica il ramo di sviluppo e CodeBuild può eseguire la suite backend.
-4. Verifica i flussi interessati sul sito di sviluppo senza alterare dati reali.
-5. Apri una Pull Request `development` → `main` e fai il merge solo dopo le verifiche.
-6. Il merge su `main` attiva il deploy Amplify in produzione. Per una modifica al backend, distribuisci SAM con change set ispezionato.
+## 🎓 Corso & Contenuti Caricati
 
-Il ramo storico `claude/video-course-platform-aws-011CUzH6FBHgyYLq2PrHPAvFf` è stato rimosso: non va più usato né ricreato.
+La piattaforma ospita il corso completo **Masterclass Microblading** suddiviso in **10 Moduli** e **54 Lezioni video Full HD** con 64 copertine personalizzate su AWS S3:
+1. **Modulo 1**: Presentazione e Benvenuto
+2. **Modulo 2**: Teoria e Fondamenti del Microblading (21 lezioni)
+3. **Modulo 3**: Anatomia, Tipi di Pelle e Controindicazioni (7 lezioni)
+4. **Modulo 4**: Studio delle Forme e Progettazione su Modella (3 lezioni)
+5. **Modulo 5**: Schemi e Direzione Peli / Spine (6 lezioni)
+6. **Modulo 6**: Esercitazioni Pratiche su Lattice (7 lezioni)
+7. **Modulo 7**: Trattamento Completo su Modella Live (5 lezioni)
+8. **Modulo 8**: Normative Igienico-Sanitarie e Consenso (4 lezioni)
+9. **Modulo 9**: Consulenza, Vendita e Fidelizzazione Clienti (9 lezioni)
+10. **Modulo 10**: Strategie di Marketing e Acquisizione Clienti (9 lezioni)
 
-## Pagamenti: contratto operativo
+---
 
-I pagamenti sono la parte più critica dell'applicazione. La UI non deve mai dedurre che un pagamento sia riuscito soltanto perché l'utente è tornato dalla pagina Stripe.
+## 🛡️ Motore Video & Protezione Anti-Pirateria
 
-1. Il frontend chiede il preventivo con `POST /payment/quote` e crea una sessione con `POST /payment/create-checkout`.
-2. Stripe reindirizza solo verso gli URL esplicitamente consentiti da `AllowedCheckoutOrigins`.
-3. La pagina di ritorno passa il `session_id` a `GET /payment/verify/{sessionId}`.
-4. La conferma restituisce separatamente lo stato Stripe (`payment_state`) e lo stato di accesso (`access_state`). L'accesso al corso è valido solo quando risulta attivo nel backend.
-5. Il webhook Stripe (`POST /payment/webhook`) è la fonte di riconciliazione; è idempotente e le purchase sono indicizzate tramite `StripeSessionIndex`.
+* **Streaming Adattivo Multi-Risoluzione**: Pipeline AWS MediaConvert che genera risoluzioni ottimizzate `1080p`, `720p`, `480p` e `360p` in QVBR.
+* **Watermark Dinamico Anti-Rec**: Player video personalizzato con impronta semi-trasparente mobile contenente l'email del corsista e l'ID sessione (rende impossibile la diffusione anonima su Telegram/Drive).
+* **URL Firmati a Scadenza**: Token crittografati CloudFront con validità 10 minuti per prevenire l'hotlinking.
+* **Write-Only Video Access Logs**: Tabella `prod-videocorso-video-access-logs` che archivia in modo immutabile ogni singola lezione vista per 2 anni a fini probatori.
 
-Gli stati mostrati al cliente devono restare chiari:
+---
 
-- pagamento confermato e accesso attivo;
-- pagamento ricevuto ma attivazione in elaborazione;
-- pagamento non confermato o accesso non disponibile;
-- pagamento rimborsato, contestato o revocato: accesso non attivo.
+## 💳 Pacchetti Commerciali & Checkout Stripe
 
-L'area amministrativa visualizza il record di acquisto e una vista cliente che indica se account e corso sono effettivamente disponibili. Non correggere acquisti modificando direttamente DynamoDB: usare i flussi admin o la procedura di incidente in [docs/OPERATIONS.md](docs/OPERATIONS.md).
+Configurati 3 livelli di acquisto con checkout dinamico:
+1. **Corso Base (€ 590,00)**: Accesso completo a tutti i 10 moduli video.
+2. **Masterclass Pro (€ 890,00)**: Corso completo + Kit Attrezzatura Professionale + Assistenza Dedicata.
+3. **VIP Mentorship (€ 1.490,00)**: Corso + Kit Pro + 3 Mesi di Coaching 1-to-1 con Chiara.
 
-### Prezzi
+* **Motore Coupon**: Supporto per sconti a percentuale (`%`), sconti fissi (`€`) e coupon di accesso gratuito al 100% con assegnazione deterministica dell'ID acquisto.
+* **Accettazione Legale & Rinuncia al Recesso**: Registrazione del consenso contrattuale e rinuncia espressa ai 14 giorni di recesso (Art. 59 Codice del Consumo) memorizzata all'istante del pagamento.
 
-Il catalogo memorizza e restituisce i prezzi in euro, non in centesimi. Al momento della redazione di questa documentazione il preventivo del corso `mai-fatto-microblading-inizio` restituisce `2500`, cioè **€ 2.500,00**. Ogni variazione commerciale del prezzo richiede una conferma esplicita prima del rilascio.
+---
 
-## Deploy backend in produzione
+## 🔍 Console Tecnica & Audit Log Backend (`/admin/system-logs`)
 
-Non passare chiavi Stripe, webhook secret o chiavi Resend a `sam deploy`: le Lambda li leggono da SSM Parameter Store. I nomi di produzione sono:
+Tutte le **8 funzioni Lambda** scrivono in modo asincrono e non bloccante nella tabella `prod-videocorso-audit-logs`:
+* **Filtri Rapidi**: `Tutti`, `🔴 Solo Errori / Criticità`, `🟡 Warning`, `💳 Pagamenti & Stripe`, `👤 Azioni Admin`.
+* **Ricerca Istantanea**: Ricerca full-text su email, `pi_...`, tipo di azione, target o dettagli JSON.
+* **Ispezione Diagnostica**: Visualizzazione istantanea del payload JSON e dello Stack Trace Python dell'errore.
+* **Pulsante "Copia Report per Assistenza"**: Generazione in 1 clic del report di debug per risoluzione immediata dei problemi.
+* **Protezione Automatica PII/PCI (Layer v4)**: Sanitizzazione automatica di password, carte, token e chiavi API prima della scrittura a database.
 
-- `/videocorso/prod/stripe/secret-key`
-- `/videocorso/prod/stripe/webhook-secret`
-- `/videocorso/prod/resend/api-key`
+---
 
-I valori non devono mai comparire in Git, `.env` versionati, log o comandi shell.
+## 🚀 Procedure di Deploy
 
-Da root del repository:
+### 1. Frontend (Amplify)
+Il deploy frontend è automatizzato tramite CI/CD su Git:
+```bash
+cd frontend
+npx tsc -b
+npm run build
+git add . && git commit -m "feat: aggiornamenti" && git push origin main
+```
 
+### 2. Backend (AWS SAM)
 ```bash
 aws --profile personale sts get-caller-identity
 
-sam build \
-  --template-file backend/infrastructure/template.yaml \
-  --profile personale \
-  --region us-east-1
+sam build --template-file backend/infrastructure/template.yaml --profile personale --region us-east-1
 
 sam deploy \
   --template-file .aws-sam/build/template.yaml \
@@ -104,71 +135,6 @@ sam deploy \
     AllowedCorsOrigin='*' \
   --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
   --resolve-s3 \
-  --no-execute-changeset \
-  --no-confirm-changeset \
   --profile personale \
   --region us-east-1
 ```
-
-Prima dell'esecuzione, ispeziona il change set e fermati se una risorsa persistente risulta sostituita o rimossa:
-
-```bash
-aws --profile personale cloudformation list-change-sets \
-  --stack-name corso-video-chiara \
-  --region us-east-1
-
-aws --profile personale cloudformation describe-change-set \
-  --stack-name corso-video-chiara \
-  --change-set-name NOME_DEL_CHANGE_SET \
-  --region us-east-1
-
-aws --profile personale cloudformation execute-change-set \
-  --stack-name corso-video-chiara \
-  --change-set-name NOME_DEL_CHANGE_SET \
-  --region us-east-1
-```
-
-`AllowedCheckoutOrigins` è una allowlist per i soli redirect Stripe e **non** deve essere `*`. `AllowedCorsOrigin` è separato e controlla il CORS del browser. La procedura completa, comprese le verifiche dopo il deploy, è in [docs/OPERATIONS.md](docs/OPERATIONS.md).
-
-## Test richiesti
-
-Frontend:
-
-```bash
-cd frontend
-npm ci
-npx tsc -b
-npm run lint
-npm run build
-```
-
-Backend e test di integrazione non distruttivi:
-
-```bash
-aws --profile personale codebuild start-build \
-  --project-name corso-video-chiara-api-tests \
-  --source-version development \
-  --region us-east-1
-```
-
-La suite deve coprire in particolare checkout, webhook idempotenti, verifica del ritorno Stripe, acquisti/admin, accesso ai corsi, coupon, upload/transcode video e validazione delle operazioni admin. Per i controlli manuali e gli scenari di incidente seguire il runbook, non tentativi casuali in produzione.
-
-## Configurazione frontend
-
-Le variabili pubbliche richieste sono documentate in [frontend/.env.example](frontend/.env.example). In particolare `VITE_API_BASE_URL` deve puntare all'API dell'ambiente previsto. Le chiavi `VITE_*` sono incorporate nel bundle: non inserirvi mai segreti privati Stripe, AWS o Resend.
-
-Amplify costruisce e pubblica il frontend dai rami Git collegati; non c'è una procedura manuale di upload del bundle su S3 da usare per i rilasci normali.
-
-## Operazioni e diagnosi
-
-- Runbook di produzione, segreti, deploy, smoke check e incidenti: [docs/OPERATIONS.md](docs/OPERATIONS.md)
-- Guida di sviluppo frontend: [frontend/README.md](frontend/README.md)
-- Stato dell'ultimo deploy Amplify:
-
-  ```bash
-  aws --profile personale amplify list-jobs \
-    --app-id d26u0xz2smmxfz \
-    --branch-name main \
-    --max-results 1 \
-    --region us-east-1
-  ```

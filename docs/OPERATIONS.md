@@ -1,245 +1,136 @@
-# Runbook operativo — VideoCorso
+# Runbook Operativo & Incident Recovery — Chiara Morocutti Academy
 
-Questo documento riguarda lo stack di produzione `corso-video-chiara` in `us-east-1` e l'API `https://nyer89lvbj.execute-api.us-east-1.amazonaws.com/prod`.
+Questo documento descrive le procedure operative, di diagnostica incidenti, gestione utenti e ripristino per lo stack di produzione `corso-video-chiara` in `us-east-1` (API: `https://nyer89lvbj.execute-api.us-east-1.amazonaws.com/prod`).
 
-## Identità AWS e regola di sicurezza
+---
 
-Usare **sempre** il profilo AWS `personale`, account `170884089098` (`videocorso-admin`) e la region `us-east-1`. Non usare mai il profilo AWS predefinito.
-In ambienti macOS dove `aws` non si trova in `/usr/bin` o nel `$PATH` predefinito, invocare il binario in `/usr/local/aws-cli/aws` oppure aggiungere il percorso al `$PATH`:
+## 🔒 1. Identità AWS & Regola di Sicurezza
+
+Usare **sempre** il profilo AWS `personale`, account `170884089098` (`videocorso-admin`) e region `us-east-1`.  
+Se il comando restituito non è `170884089098`, fermarsi immediatamente:
 
 ```bash
 export PATH=$PATH:/usr/local/aws-cli
 aws --profile personale sts get-caller-identity
 ```
 
-Se l'account restituito non è `170884089098`, fermarsi: non fare deploy, modifiche a parametri né diagnosi su un altro account.
+---
 
-## Ambienti e rami
+## 🛠️ 2. Console di Sistema & Risoluzione Errori in Tempo Reale
 
-| Ramo | Scopo | URL |
-| --- | --- | --- |
-| `main` | Produzione | https://main.d26u0xz2smmxfz.amplifyapp.com |
-| `development` | Verifica prima del merge | https://development.d26u0xz2smmxfz.amplifyapp.com |
+L'applicazione dispone di una console operativa dedicata accessibile dall'area amministrativa su **`/admin/system-logs`**.
 
-Entrambi i rami Amplify sono attivi. Attualmente il frontend `development` usa ancora l'API di produzione: trattarlo come un ambiente UI di verifica, non come sandbox dati. La messa in produzione ordinaria segue `development` → Pull Request → `main`.
+### 🔍 Monitoraggio & Diagnosi Guasti:
+1. **Se una corsista segnala un problema (es. non riesce a pagare, non vede un video, non ha ricevuto l'accesso):**
+   * Apri `/admin/system-logs`.
+   * Incolla la sua **email** o l'ID acquisto (`pi_...`) nella barra di ricerca.
+   * La console ti mostra l'intera cronologia temporale dell'utente.
+2. **Ispezione Tecnica:**
+   * Clicca su **"Ispeziona"** per aprire il drawer diagnostico.
+   * Trovi il messaggio di errore in chiaro, il payload JSON e lo **Stack Trace Python** con la riga di codice esatta.
+3. **Pulsante "Copia Report per Assistenza":**
+   * Genera una sintesi in formato markdown pronta da copiare e incollare per far intervenire il supporto tecnico in meno di un minuto.
 
-## Gestione Utenti Admin e AWS Cognito
+---
 
-Gli utenti amministratore e studenti sono gestiti tramite AWS Cognito nella region `us-east-1` con due User Pool distinti:
-- **Produzione (`prod`)**: `us-east-1_YMVsKScIc` (`prod-videocorso-users`)
-- **Sviluppo (`dev`)**: `us-east-1_qyiQNBTlW` (`dev-videocorso-users`)
+## ⚖️ 3. Procedura Contestazioni Bancarie & Chargeback (Dossier Legale)
 
-### Attenzione al blocco `FORCE_CHANGE_PASSWORD`
-Quando un utente viene creato da API/amministrazione senza password definitiva, Cognito lo inserisce nello stato `FORCE_CHANGE_PASSWORD`, bloccando il login diretto tramite password. Per abilitare l'accesso immediato e impostare lo stato su `CONFIRMED`, è necessario assegnare una password permanente (`--permanent`).
+Quando un cliente apre un chargeback o una contestazione fraudolenta con la propria banca:
 
-### Comandi CLI da terminale (usando `/usr/local/aws-cli/aws` con `--profile personale --region us-east-1`)
+1. Accedi a **Pannello Admin → Acquisti** e seleziona l'acquisto contestato.
+2. Nella pagina di dettaglio (`/admin/purchases/:id`), trovi:
+   * **Consenso Legale**: Timestamp UTC di accettazione termini e **rinuncia espressa al diritto di recesso di 14 giorni** (Art. 59 Codice del Consumo).
+   * **Autenticazione Stripe**: ID `pi_...`, `ch_...`, stato 3D Secure / SCA.
+   * **Registro Fruizione Video (`video-access-logs`)**: Elenco certificato con data/ora di ogni singola lezione visualizzata dal cliente.
+3. Clicca su **"Esporta Dossier Contestazione"**:
+   * Ti scarica la memoria difensiva strutturata con tutti i log probatori da caricare nel portale Stripe Dispute.
 
-1. **Verificare stato e dettagli di un utente:**
-   ```bash
-   /usr/local/aws-cli/aws --profile personale --region us-east-1 cognito-idp admin-get-user \
-     --user-pool-id us-east-1_YMVsKScIc \
-     --username nicola.maraschi@gmail.com
-   ```
+---
 
-2. **Impostare una password definitiva (`CONFIRMED`) senza richiesta di cambio:**
-   ```bash
-   /usr/local/aws-cli/aws --profile personale --region us-east-1 cognito-idp admin-set-user-password \
-     --user-pool-id us-east-1_YMVsKScIc \
-     --username nicola.maraschi@gmail.com \
-     --password "NuovaPassword123!" \
-     --permanent
-   ```
+## 👥 4. Gestione Utenti & AWS Cognito
 
-3. **Aggiungere l'utente al gruppo `admin`:**
-   ```bash
-   /usr/local/aws-cli/aws --profile personale --region us-east-1 cognito-idp admin-add-user-to-group \
-     --user-pool-id us-east-1_YMVsKScIc \
-     --username nicola.maraschi@gmail.com \
-     --group-name admin
-   ```
+* **User Pool Produzione (`prod`)**: `us-east-1_YMVsKScIc`
+* **App Client ID**: configurato nelle variabili Amplify.
 
-4. **Creazione nuovo utente admin (inclusa auto-conferma email):**
-   ```bash
-   /usr/local/aws-cli/aws --profile personale --region us-east-1 cognito-idp admin-create-user \
-     --user-pool-id us-east-1_YMVsKScIc \
-     --username nicola.maraschi@gmail.com \
-     --user-attributes Name=email,Value=nicola.maraschi@gmail.com Name=email_verified,Value=true \
-     --message-action SUPPRESS
-   ```
+### Comandi Rapidi per Gestione Corsiste:
 
-### Gestione via script Python / `boto3`
-Per operazioni automatizzate o di debug su Cognito, utilizzare sempre una sessione con profilo `personale`:
-```python
-import boto3
-
-session = boto3.Session(profile_name='personale', region_name='us-east-1')
-client = session.client('cognito-idp')
-
-# Impostazione password permanente (sblocca da FORCE_CHANGE_PASSWORD a CONFIRMED)
-client.admin_set_user_password(
-    UserPoolId='us-east-1_YMVsKScIc',
-    Username='nicola.maraschi@gmail.com',
-    Password='NuovaPassword123!',
-    Permanent=True
-)
+#### 1. Verificare lo stato di un account:
+```bash
+aws --profile personale --region us-east-1 cognito-idp admin-get-user \
+  --user-pool-id us-east-1_YMVsKScIc \
+  --username corsista@email.it
 ```
 
-## Segreti
+#### 2. Reimpostare la password in modo definitivo (`CONFIRMED`):
+```bash
+aws --profile personale --region us-east-1 cognito-idp admin-set-user-password \
+  --user-pool-id us-east-1_YMVsKScIc \
+  --username corsista@email.it \
+  --password "PasswordTemporanea123!" \
+  --permanent
+```
 
-I valori sono `SecureString` in SSM Parameter Store:
+#### 3. Promuovere un account ad Amministratore:
+```bash
+aws --profile personale --region us-east-1 cognito-idp admin-add-user-to-group \
+  --user-pool-id us-east-1_YMVsKScIc \
+  --username admin@email.it \
+  --group-name admin
+```
 
-| Parametro | Utilizzo |
+---
+
+## 🔑 5. Gestione Segreti (SSM Parameter Store)
+
+Tutti i segreti di produzione sono memorizzati come `SecureString` in AWS SSM Parameter Store e non compaiono mai nel codice Git:
+
+| Parametro SSM | Funzione |
 | --- | --- |
-| `/videocorso/prod/stripe/secret-key` | API privata Stripe |
-| `/videocorso/prod/stripe/webhook-secret` | verifica della firma del webhook Stripe |
-| `/videocorso/prod/resend/api-key` | email transazionali opzionali |
+| `/videocorso/prod/stripe/secret-key` | Chiave API segreta Stripe per incasso pagamenti |
+| `/videocorso/prod/stripe/webhook-secret` | Firma crittografica per validazione webhook Stripe |
+| `/videocorso/prod/resend/api-key` | Chiave API Resend per invio email transazionali |
 
-Non scrivere mai i valori in CloudFormation, Amplify, file `.env` versionati, ticket, chat, output di shell o argomenti di `sam deploy`.
-
-### Rotazione
-
-1. Aggiornare il `SecureString` mantenendo esattamente il suo nome.
-2. Per Stripe, aggiornare prima la configurazione Stripe e poi il parametro corrispondente.
-3. Eseguire un deploy del backend oppure attendere nuovi cold start delle Lambda.
-4. Eseguire uno smoke check appropriato senza esporre il segreto.
-
-## Deploy SAM sicuro
-
-Eseguire dalla root del repository.
-
+### Aggiornamento di un Segreto:
 ```bash
-aws --profile personale sts get-caller-identity
-
-sam build \
-  --template-file backend/infrastructure/template.yaml \
-  --profile personale \
-  --region us-east-1
-
-sam deploy \
-  --template-file .aws-sam/build/template.yaml \
-  --stack-name corso-video-chiara \
-  --parameter-overrides \
-    Environment=prod \
-    AllowedCheckoutOrigins='https://main.d26u0xz2smmxfz.amplifyapp.com,https://development.d26u0xz2smmxfz.amplifyapp.com' \
-    AllowedCorsOrigin='*' \
-  --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
-  --resolve-s3 \
-  --no-execute-changeset \
-  --no-confirm-changeset \
-  --profile personale \
-  --region us-east-1
+aws --profile personale --region us-east-1 ssm put-parameter \
+  --name "/videocorso/prod/stripe/secret-key" \
+  --value "sk_live_..." \
+  --type "SecureString" \
+  --overwrite
 ```
 
-Non eseguire un change set senza prima ispezionarlo:
+---
 
+## 📦 6. Gestione Lambda Layer Condiviso (`prod-videocorso-shared`)
+
+Tutte le 8 funzioni Lambda importano le logiche critiche (`purchase_access`, `audit_logger`, `stripe`, `resend`) dal layer condiviso.
+
+Per aggiornare e ripubblicare il layer:
 ```bash
-aws --profile personale cloudformation list-change-sets \
-  --stack-name corso-video-chiara \
-  --region us-east-1
+cd backend/layers/shared
+rm -f /tmp/shared_layer.zip
+zip -r /tmp/shared_layer.zip python > /dev/null
 
-aws --profile personale cloudformation describe-change-set \
-  --stack-name corso-video-chiara \
-  --change-set-name NOME_DEL_CHANGE_SET \
-  --region us-east-1
+LAYER_ARN=$(aws --profile personale --region us-east-1 lambda publish-layer-version \
+  --layer-name prod-videocorso-shared \
+  --zip-file fileb:///tmp/shared_layer.zip \
+  --compatible-runtimes python3.11 \
+  --query "LayerVersionArn" --output text)
+
+echo "Nuovo Layer ARN: $LAYER_ARN"
+
+# Aggiornamento automatico su tutte le 8 Lambda
+for FN in prod-videocorso-admin-handler prod-videocorso-payment-handler prod-videocorso-provisioning-outbox prod-videocorso-video-handler prod-videocorso-course-handler prod-videocorso-progress-handler prod-videocorso-coupon-reservation-recovery prod-videocorso-video-transcode; do
+  aws --profile personale --region us-east-1 lambda update-function-configuration --function-name $FN --layers $LAYER_ARN > /dev/null
+  aws --profile personale --region us-east-1 lambda wait function-updated --function-name $FN
+done
 ```
 
-Fermarsi se Cognito, API Gateway, bucket, distribuzione CloudFront o tabelle DynamoDB persistenti hanno una sostituzione/rimozione non prevista. Dopo l'approvazione:
+---
 
-```bash
-aws --profile personale cloudformation execute-change-set \
-  --stack-name corso-video-chiara \
-  --change-set-name NOME_DEL_CHANGE_SET \
-  --region us-east-1
+## 📹 7. Elaborazione Video MediaConvert & Storage S3
 
-aws --profile personale cloudformation wait stack-update-complete \
-  --stack-name corso-video-chiara \
-  --region us-east-1
-```
-
-### Parametri di redirect e CORS
-
-`AllowedCheckoutOrigins` non è CORS: è la lista, separata da virgole, degli origin consentiti per gli URL `success_url` e `cancel_url` generati per Stripe Checkout. Deve contenere esattamente gli origin Amplify autorizzati e non può essere `*`.
-
-`AllowedCorsOrigin` regola invece il CORS dell'API per il browser. Tenerli separati evita di permettere redirect Stripe verso siti terzi.
-
-## Verifiche dopo un deploy
-
-```bash
-# Lo stack è aggiornato?
-aws --profile personale cloudformation describe-stacks \
-  --stack-name corso-video-chiara \
-  --region us-east-1
-
-# La Lambda pagamenti ha la allowlist effettiva attesa?
-aws --profile personale lambda get-function-configuration \
-  --function-name prod-videocorso-payment-handler \
-  --region us-east-1 \
-  --query 'Environment.Variables.ALLOWED_CHECKOUT_ORIGINS' \
-  --output text
-
-# Il deploy Amplify del frontend è concluso?
-aws --profile personale amplify list-jobs \
-  --app-id d26u0xz2smmxfz \
-  --branch-name main \
-  --max-results 1 \
-  --region us-east-1
-```
-
-Eseguire anche CodeBuild prima del merge per una modifica funzionale:
-
-```bash
-aws --profile personale codebuild start-build \
-  --project-name corso-video-chiara-api-tests \
-  --source-version development \
-  --region us-east-1
-```
-
-## Pagamenti: verifica e incidente
-
-Il redirect Stripe non equivale a una conferma. Il flusso corretto è:
-
-1. checkout creato tramite `POST /payment/create-checkout`;
-2. Stripe invia il webhook a `POST /payment/webhook`;
-3. il frontend interroga `GET /payment/verify/{sessionId}`;
-4. accesso al corso solo con `access_state` attivo.
-
-Il backend conserva `payment_state` e `access_state` separati. La UI deve distinguere pagamento confermato, elaborazione dell'attivazione, pagamento non confermato e accesso revocato/rimborsato/contestato. Il webhook è idempotente e usa `StripeSessionIndex` per riconciliare il ritorno di Stripe senza scansioni.
-
-Se un cliente segnala un problema:
-
-1. non chiedere di pagare una seconda volta e non creare manualmente un record DynamoDB;
-2. cercare l'acquisto nell'area amministrativa e leggere stato pagamento, stato accesso e cronologia;
-3. confrontare sessione/pagamento Stripe con il record di acquisto;
-4. verificare che il webhook sia arrivato e che non sia in ritardo;
-5. se l'addebito è confermato ma l'attivazione è in elaborazione, comunicare chiaramente lo stato e completare la riconciliazione secondo il flusso admin previsto;
-6. se risulta rimborso, contestazione o revoca, non riattivare l'accesso senza autorizzazione commerciale esplicita.
-
-### Evidenze per contestazioni
-
-- Dal checkout con termini `2026-08-10` ogni ordine conserva la versione dei termini, l'istante di accettazione e il consenso esplicito all'accesso immediato al contenuto digitale. La medesima versione e gli istanti sono presenti anche nei metadati della Checkout Session e del PaymentIntent Stripe.
-- Ogni URL protetto emesso per una lezione a pagamento genera una riga append-only in `*-videocorso-video-access-logs`: utente, ordine, corso, lezione, istante e hash di IP/User-Agent. Le righe scadono dopo due anni; non contengono IP o User-Agent in chiaro.
-- Per preparare una risposta a Stripe, esportare dalla scheda ordine l'acquisto, la versione/ora dei consensi, gli eventi di accesso video pertinenti e il progresso. Il progresso da solo non prova la visione: il client può dichiarare una posizione; gli eventi di URL emessi sono l'evidenza complementare.
-- Prima di pubblicare una nuova versione dei termini, aggiornare **insieme** la costante `TERMS_VERSION` nel checkout frontend e nel payment handler. Non cambiare la versione per ordini già conclusi.
-
-I prezzi sono espressi in euro. Prima di cambiare un prezzo o di pubblicare una variazione, fare confermare il valore commerciale: `2500` viene presentato dal checkout come € 2.500,00, non € 25,00.
-
-## Corsi, video e operazioni admin
-
-- L'accesso ai corsi è fail-closed: uno stato di acquisto sconosciuto o revocato non dà accesso.
-- Le modifiche admin validano campi, stato, riordini, coupon e grant manuali; non aggirare tali API con modifiche dirette alle tabelle.
-- Il transcode video è asincrono. Prima di comunicare che una lezione è disponibile, verificare che l'asset sia stato promosso e che il player lo possa caricare.
-- I grant manuali non devono sovrascrivere o simulare una sessione Stripe e non devono duplicare un accesso già attivo.
-
-## Test locali
-
-Frontend:
-
-```bash
-cd frontend
-npm ci
-npx tsc -b
-npm run lint
-npm run build
-```
-
-Backend: usare la suite e CodeBuild per verificare catalogo, checkout, webhook, acquisti/accesso, coupon, video e tutte le operazioni admin autorizzate. Non eseguire test con effetti reali su dati o pagamenti di clienti.
+* **Bucket Video Sorgente & Streaming**: `prod-videocorso-content`
+* **Bucket Copertine / Thumbnail**: `prod-videocorso-thumbnails`
+* I video caricati nel prefisso `videos/` attivano automaticamente la Lambda `prod-videocorso-video-transcode` che avvia un job AWS MediaConvert con profili QVBR a 4 risoluzioni (`1080p`, `720p`, `480p`, `360p`).
+* Al termine, lo stato della lezione in `prod-videocorso-lessons` viene aggiornato automaticamente a `COMPLETE`.
