@@ -437,6 +437,90 @@ def build_pdf(filename="Relazione_Opere_Chiara_Morocutti_Academy.pdf"):
 
     story.append(Spacer(1, 0.4 * cm))
 
+    # Sottosezione Decodifica Badge & Stati
+    story.append(Paragraph("<b>Guida Rapida ai Badge & Stati della Piattaforma (Come Leggere lo Schermo)</b>", style_h2))
+    story.append(Paragraph(
+        "Nel pannello amministratore, ogni elemento (ordini, account, video) è contraddistinto da un'etichetta colorata chiara:",
+        style_body
+    ))
+
+    badge_status_data = [
+        [
+            Paragraph("<b>Ambito</b>", style_meta_label),
+            Paragraph("<b>Badge & Colore a Schermo</b>", style_meta_label),
+            Paragraph("<b>Significato Operativo</b>", style_meta_label),
+            Paragraph("<b>Cosa Fare se Necessario</b>", style_meta_label),
+        ],
+        [
+            Paragraph("<b>Pagamenti & Ordini</b>", style_card_text),
+            Paragraph("<font color='#059669'><b>PAGATO (Verde)</b></font>", style_card_text),
+            Paragraph("Incasso confermato su Stripe.", style_card_text),
+            Paragraph("Nessuna azione: tutto regolare.", style_card_text),
+        ],
+        [
+            Paragraph("<b>Pagamenti & Ordini</b>", style_card_text),
+            Paragraph("<font color='#D97706'><b>IN SOSPESO (Giallo)</b></font>", style_card_text),
+            Paragraph("Checkout avviato ma in attesa.", style_card_text),
+            Paragraph("Attendere la conferma della banca.", style_card_text),
+        ],
+        [
+            Paragraph("<b>Pagamenti & Ordini</b>", style_card_text),
+            Paragraph("<font color='#DC2626'><b>FALLITO (Rosso)</b></font>", style_card_text),
+            Paragraph("Carta rifiutata o fondi insufficienti.", style_card_text),
+            Paragraph("Invitare la cliente a usare altra carta.", style_card_text),
+        ],
+        [
+            Paragraph("<b>Pagamenti & Ordini</b>", style_card_text),
+            Paragraph("<font color='#7C3AED'><b>RIMBORSATO (Viola)</b></font>", style_card_text),
+            Paragraph("Fondi restituiti e corso chiuso.", style_card_text),
+            Paragraph("Nessuna azione: rimborso completato.", style_card_text),
+        ],
+        [
+            Paragraph("<b>Pagamenti & Ordini</b>", style_card_text),
+            Paragraph("<font color='#DC2626'><b>CONTESTATO (Rosso)</b></font>", style_card_text),
+            Paragraph("Reclamo aperto dal cliente in banca.", style_card_text),
+            Paragraph("Cliccare <i>'Esporta Dossier Contestazione'</i>.", style_card_text),
+        ],
+        [
+            Paragraph("<b>Stato Corsista</b>", style_card_text),
+            Paragraph("<font color='#059669'><b>ATTIVA (Verde)</b></font>", style_card_text),
+            Paragraph("Account confermato e operativo.", style_card_text),
+            Paragraph("Nessuna azione: accede liberamente.", style_card_text),
+        ],
+        [
+            Paragraph("<b>Stato Corsista</b>", style_card_text),
+            Paragraph("<font color='#D97706'><b>INVITO INVIATO (Giallo)</b></font>", style_card_text),
+            Paragraph("Credenziali inviate, 1° login pendente.", style_card_text),
+            Paragraph("Se non trova la mail, cliccare <i>'Resetta Password'</i>.", style_card_text),
+        ],
+        [
+            Paragraph("<b>Video & Lezioni</b>", style_card_text),
+            Paragraph("<font color='#059669'><b>PRONTO (Verde)</b></font>", style_card_text),
+            Paragraph("Video Full HD 1080p pronto.", style_card_text),
+            Paragraph("Visibile a tutte le corsiste iscritte.", style_card_text),
+        ],
+        [
+            Paragraph("<b>Video & Lezioni</b>", style_card_text),
+            Paragraph("<font color='#D97706'><b>IN ELABORAZIONE (Giallo)</b></font>", style_card_text),
+            Paragraph("Rendering 1080p/720p/480p in corso.", style_card_text),
+            Paragraph("Attendere qualche minuto il termine di AWS.", style_card_text),
+        ],
+    ]
+
+    badge_table = Table(badge_status_data, colWidths=[3.2 * cm, 3.8 * cm, 5.0 * cm, 5.0 * cm])
+    badge_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), COLOR_LIGHT_BG),
+        ('BOX', (0, 0), (-1, -1), 1, COLOR_BORDER),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, COLOR_BORDER),
+        ('TOPPADDING', (0, 0), (-1, -1), 3.5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3.5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    story.append(badge_table)
+
+    story.append(Spacer(1, 0.4 * cm))
+
     # =========================================================================
     # 7. PERCHÉ UNA SOLUZIONE PROPRIETARIA VS PIATTAFORME ESTERNE
     # =========================================================================
