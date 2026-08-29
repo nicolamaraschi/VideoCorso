@@ -173,6 +173,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewMissing, setPreviewMissing] = useState(false);
   const [replacingThumbnail, setReplacingThumbnail] = useState(false);
+  const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
 
   const [chapterForm, setChapterForm] = useState({ title: '', description: '', image_url: '' });
   const [lessonForm, setLessonForm] = useState({
@@ -381,14 +382,23 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                     </button>
                   </div>
                   {chapter.image_url ? (
-                    <img
-                      src={chapter.image_url}
-                      alt={chapter.title}
-                      loading="lazy"
-                      width={192}
-                      height={108}
-                      className="h-20 w-32 sm:h-28 sm:w-48 rounded-xl border border-gray-200 object-cover bg-white shadow-sm flex-shrink-0"
-                    />
+                    <div
+                      onClick={() => setZoomImage({ url: chapter.image_url!, title: `Capitolo ${chapter.order_number}: ${chapter.title}` })}
+                      className="group relative cursor-pointer flex-shrink-0"
+                      title="Clicca per ingrandire la copertina"
+                    >
+                      <img
+                        src={chapter.image_url}
+                        alt={chapter.title}
+                        loading="lazy"
+                        width={192}
+                        height={108}
+                        className="aspect-video h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 rounded-xl border border-gray-200 object-contain bg-white shadow-sm group-hover:shadow-md group-hover:scale-[1.02] transition-all"
+                      />
+                      <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[9px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                        🔍 Zoom
+                      </span>
+                    </div>
                   ) : null}
                   <div className="min-w-0 flex-1">
                     <h3 className="font-semibold text-gray-900 truncate text-base sm:text-lg">
@@ -463,16 +473,25 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                             </button>
                           </div>
                           {lesson.thumbnail_url ? (
-                            <img
-                              src={lesson.thumbnail_url}
-                              alt={lesson.title}
-                              loading="lazy"
-                              width={192}
-                              height={108}
-                              className="h-20 w-32 sm:h-24 sm:w-44 md:h-28 md:w-52 rounded-xl border border-gray-200 object-cover bg-gray-50 flex-shrink-0 shadow-sm"
-                            />
+                            <div
+                              onClick={() => setZoomImage({ url: lesson.thumbnail_url!, title: `Lezione ${lesson.order_number}: ${lesson.title}` })}
+                              className="group relative cursor-pointer flex-shrink-0"
+                              title="Clicca per ingrandire la copertina"
+                            >
+                              <img
+                                src={lesson.thumbnail_url}
+                                alt={lesson.title}
+                                loading="lazy"
+                                width={192}
+                                height={108}
+                                className="aspect-video h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 rounded-xl border border-gray-200 object-contain bg-white shadow-sm group-hover:shadow-md group-hover:scale-[1.02] transition-all"
+                              />
+                              <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[9px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                🔍 Zoom
+                              </span>
+                            </div>
                           ) : (
-                            <div className="flex h-20 w-32 sm:h-24 sm:w-44 md:h-28 md:w-52 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-xs font-medium text-gray-400">
+                            <div className="flex aspect-video h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-xs font-medium text-gray-400">
                               No cover
                             </div>
                           )}
@@ -811,6 +830,31 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
           <p>Error loading video.</p>
         )}
       </Modal>
+
+      {/* Image Zoom Modal */}
+      {zoomImage && (
+        <Modal
+          isOpen={true}
+          onClose={() => setZoomImage(null)}
+          title={zoomImage.title}
+          size="2xl"
+        >
+          <div className="space-y-4">
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-black/5 p-2 flex items-center justify-center">
+              <img
+                src={zoomImage.url}
+                alt={zoomImage.title}
+                className="max-h-[70vh] w-auto max-w-full rounded-lg object-contain shadow-md"
+              />
+            </div>
+            <div className="flex justify-end">
+              <Button variant="secondary" onClick={() => setZoomImage(null)}>
+                Chiudi
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };
