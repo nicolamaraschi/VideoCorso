@@ -363,11 +363,84 @@ def build_pdf(filename="Relazione_Opere_Chiara_Morocutti_Academy.pdf"):
     for item in works_infra:
         story.append(Paragraph(f"• {item}", style_bullet))
 
+    story.append(PageBreak())
+
     # =========================================================================
-    # 6. PERCHÉ UNA SOLUZIONE PROPRIETARIA VS PIATTAFORME ESTERNE
+    # 6. MANUALE OPERATIVO: RISOLUZIONE CON 1 CLIC DELLE PROBLEMATICHE CLIENTI
     # =========================================================================
+    story.append(Paragraph("6. Manuale Operativo: Risoluzione con 1 Clic di Ogni Problematica Cliente", style_h1))
+    story.append(Paragraph(
+        "Per garantire la massima serenità operativa a Chiara e al suo team, sono state anticipate e implementate "
+        "soluzioni automatiche e pulsanti dedicati a 1 clic per gestire qualsiasi errore umano o contestazione delle corsiste:",
+        style_body
+    ))
+
+    troubleshooting_data = [
+        [
+            Paragraph("<b>Scenario / Problema del Cliente</b>", style_meta_label),
+            Paragraph("<b>Cosa Può Fare la Corsista da Sola</b>", style_meta_label),
+            Paragraph("<b>Soluzione con 1 Clic per Chiara (Admin)</b>", style_meta_label),
+        ],
+        [
+            Paragraph("<b>1. Password Persa o Non Ricordata</b>", style_card_text),
+            Paragraph("Clicca su <i>'Password dimenticata?'</i>, riceve un codice via email e la reimposta in 30 secondi.", style_card_text),
+            Paragraph("Entra in <i>Corsiste</i> e clicca <b>'Resetta Password'</b>: il server le invia all'istante una nuova password temporanea via email.", style_card_text),
+        ],
+        [
+            Paragraph("<b>2. Email Sbagliata al Checkout</b><br/><font color='#6B7280' size='8'>(es. scrive <i>gmai.com</i>)</font>", style_card_text),
+            Paragraph("Non riceve l'invito e contatta l'assistenza di Chiara.", style_card_text),
+            Paragraph("Apre l'acquisto e clicca <b>'Correggi Email'</b>: il sistema trasferisce l'acquisto sul nuovo indirizzo corretto e invia subito l'accesso.", style_card_text),
+        ],
+        [
+            Paragraph("<b>3. Errore Indirizzo Spedizione Kit</b>", style_card_text),
+            Paragraph("Segnala la modifica dell'indirizzo di consegna prima della spedizione.", style_card_text),
+            Paragraph("Nella scheda acquisto trova la sezione <b>'Dati di Spedizione'</b> con CAP, città e note corriere fornite al checkout.", style_card_text),
+        ],
+        [
+            Paragraph("<b>4. Richiesta di Rimborso Volontario</b>", style_card_text),
+            Paragraph("Invia richiesta di annullamento o recesso.", style_card_text),
+            Paragraph("Clicca <b>'Effettua Rimborso'</b> (Totale o Parziale): Stripe accredita i fondi su carta e l'accesso al corso viene revocato all'istante.", style_card_text),
+        ],
+        [
+            Paragraph("<b>5. Contestazione Bancaria Furbetta</b><br/><font color='#6B7280' size='8'>(Vuole i soldi dopo aver visto i video)</font>", style_card_text),
+            Paragraph("Apre contestazione in banca asserendo di non aver autorizzato l'ordine.", style_card_text),
+            Paragraph("Clicca <b>'Esporta Dossier Contestazione'</b>: genera la memoria difensiva certificata con rinuncia legale al recesso e registro delle lezioni già viste.", style_card_text),
+        ],
+        [
+            Paragraph("<b>6. Corso 'Non Visibile' dopo l'Acquisto</b>", style_card_text),
+            Paragraph("Accede con email diversa o richiede verifica.", style_card_text),
+            Paragraph("Clicca <b>'Sblocca Accesso Manualmente'</b> o <b>'Risincronizza con Stripe'</b> per forzare l'attivazione immediata.", style_card_text),
+        ],
+        [
+            Paragraph("<b>7. Verifica Carta Respinta / Errore</b>", style_card_text),
+            Paragraph("Sostiene di aver pagato ma il checkout è fallito.", style_card_text),
+            Paragraph("Nel <i>Log di Sistema</i> visualizza il motivo esatto della banca (es. <i>fondi insufficienti</i> o <i>3DS fallito</i>) per rispondere con precisione.", style_card_text),
+        ],
+        [
+            Paragraph("<b>8. Condivisione Abusiva o Pirateria</b>", style_card_text),
+            Paragraph("Cerca di diffondere o registrare i video.", style_card_text),
+            Paragraph("Il video proietta a schermo l'email dell'utente come <b>Watermark dinamico</b>. Chiara può cliccare <b>'Revoca Accesso'</b> per bloccarla.", style_card_text),
+        ],
+    ]
+
+    trouble_table = Table(troubleshooting_data, colWidths=[4.2 * cm, 6.4 * cm, 6.4 * cm])
+    trouble_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), COLOR_LIGHT_BG),
+        ('BOX', (0, 0), (-1, -1), 1, COLOR_BORDER),
+        ('INNERGRID', (0, 0), (-1, -1), 0.5, COLOR_BORDER),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    story.append(trouble_table)
+
     story.append(Spacer(1, 0.4 * cm))
-    story.append(Paragraph("6. Analisi Economica: Soluzione Proprietaria vs Piattaforme Esterne a Noleggio", style_h1))
+
+    # =========================================================================
+    # 7. PERCHÉ UNA SOLUZIONE PROPRIETARIA VS PIATTAFORME ESTERNE
+    # =========================================================================
+    story.append(Paragraph("7. Analisi Economica: Soluzione Proprietaria vs Piattaforme Esterne a Noleggio", style_h1))
     story.append(Paragraph(
         "Prima di sviluppare l'infrastruttura, è stata valutata l'alternativa di utilizzare piattaforme terze già pronte "
         "(come <b>Kajabi, Teachable o Hotmart</b>). Il confronto economico e strategico dimostra chiaramente perché la soluzione "
@@ -419,9 +492,9 @@ def build_pdf(filename="Relazione_Opere_Chiara_Morocutti_Academy.pdf"):
     story.append(Spacer(1, 0.4 * cm))
 
     # =========================================================================
-    # 7. SCOMPOSIZIONE DEI COSTI DEL CANONE (100 € / MESE)
+    # 8. SCOMPOSIZIONE DEI COSTI DEL CANONE (100 € / MESE)
     # =========================================================================
-    story.append(Paragraph("7. Scomposizione Analitica del Canone Tutto Incluso (100 € / Mese)", style_h1))
+    story.append(Paragraph("8. Scomposizione Analitica del Canone Tutto Incluso (100 € / Mese)", style_h1))
     story.append(Paragraph(
         "Il canone forfettario di <b>100 € al mese</b> copre integralmente tutte le spese vive di server, banda e assistenza, "
         "ripartito in modo trasparente nelle seguenti 4 voci operative:",
