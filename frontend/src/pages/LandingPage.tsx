@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Sparkles, 
@@ -11,6 +11,21 @@ import {
 import { TrustindexWidget } from '../components/common/TrustindexWidget';
 
 export const LandingPage: React.FC = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '');
+      const element = document.getElementById(id);
+      if (element) {
+        setTimeout(() => {
+          const yOffset = -70;
+          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }, 100);
+      }
+    }
+  }, [location]);
   return (
     <div className="bg-gradient-to-b from-primary-50/60 via-white to-primary-50/40 min-h-screen text-gray-800">
       
@@ -54,14 +69,14 @@ export const LandingPage: React.FC = () => {
                 className="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-4"
               >
                 <a 
-                  href="#catalogo" 
+                  href="#corso" 
                   className="px-8 py-4 bg-primary-950 text-white text-center rounded-full font-medium hover:bg-primary-900 transition-all shadow-md hover:shadow-xl active:scale-[0.99] flex items-center justify-center gap-2 group"
                 >
                   <span>Scegli il tuo percorso</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </a>
                 <a 
-                  href="#pilastri" 
+                  href="#vantaggi" 
                   className="px-8 py-4 bg-white text-primary-900 text-center border border-primary-200 rounded-full font-medium hover:bg-primary-50/60 transition shadow-sm"
                 >
                   Scopri i 2 Pilastri
@@ -234,8 +249,9 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 5. I DUE PILASTRI (TECNICA + BUSINESS) */}
-      <section id="pilastri" className="py-24 bg-gradient-to-b from-primary-50/40 via-white to-primary-50/50 border-t border-primary-100">
+      {/* 5. I DUE PILASTRI (TECNICA + BUSINESS) / VANTAGGI */}
+      <section id="vantaggi" className="py-24 bg-gradient-to-b from-primary-50/40 via-white to-primary-50/50 border-t border-primary-100 relative">
+        <span id="pilastri" className="absolute -top-20" aria-hidden="true" />
         <div className="container mx-auto px-6 max-w-6xl">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <span className="text-xs font-bold tracking-widest uppercase text-primary-600 bg-primary-50 px-3.5 py-1.5 rounded-full border border-primary-100">
@@ -405,8 +421,9 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 8. CATALOGO CORSI & I 3 PACCHETTI */}
-      <section id="catalogo" className="py-24 bg-primary-50/50">
+      {/* 8. CATALOGO CORSI & I 3 PACCHETTI / IL CORSO */}
+      <section id="corso" className="py-24 bg-primary-50/50 relative">
+        <span id="catalogo" className="absolute -top-20" aria-hidden="true" />
         <div className="container mx-auto px-6 max-w-6xl">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <span className="text-xs font-bold tracking-widest uppercase text-primary-600 bg-primary-50 px-3.5 py-1.5 rounded-full border border-primary-100">
@@ -745,7 +762,7 @@ export const LandingPage: React.FC = () => {
 
           <div className="mt-10">
             <a 
-              href="#catalogo" 
+              href="#corso" 
               className="px-10 py-5 bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 font-bold text-lg rounded-full hover:from-amber-300 hover:to-amber-400 transition shadow-2xl inline-block active:scale-95"
             >
               Iscriviti alla Masterclass Ora

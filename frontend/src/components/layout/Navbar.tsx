@@ -37,7 +37,9 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
         const id = to.substring(2); // Rimuove '/#'
         const element = document.getElementById(id);
         if (element) {
-          element.scrollIntoView({ behavior: 'smooth' });
+          const yOffset = -70;
+          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          window.scrollTo({ top: y, behavior: 'smooth' });
           if (onClick) onClick();
         }
       } 
