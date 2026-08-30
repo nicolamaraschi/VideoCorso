@@ -504,14 +504,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               onMouseMove={handleProgressBarMouseMove}
               onMouseLeave={handleProgressBarMouseLeave}
               onTouchStart={(e) => {
+                e.stopPropagation();
                 setIsScrubbing(true);
                 const touch = e.touches[0];
                 if (touch) seekToTime(calculateTimeFromEvent(touch.clientX));
               }}
               onTouchMove={(e) => {
+                e.stopPropagation();
                 const touch = e.touches[0];
                 if (touch && isScrubbing) seekToTime(calculateTimeFromEvent(touch.clientX));
               }}
+              data-no-swipe="true"
               className="relative w-full py-2 cursor-pointer group/progress select-none"
             >
               {/* Background Track */}

@@ -11,6 +11,7 @@ import {
   ListOrdered,
   Play,
   Sparkles,
+  Smartphone,
   Video,
   X,
 } from 'lucide-react';
@@ -66,6 +67,11 @@ export const VideoPlayerPage: React.FC = () => {
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
   const [isTogglingComplete, setIsTogglingComplete] = useState(false);
 
+  // Swipe Gesture Feedback Toast
+  const [swipeToast, setSwipeToast] = useState<{ direction: 'next' | 'prev'; title: string } | null>(null);
+  const swipeToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
   const lesson = lessonId ? getLessonById(lessonId) : null;
   const nextLesson = lessonId ? getNextLesson(lessonId) : null;
   const previousLesson = lessonId ? getPreviousLesson(lessonId) : null;
@@ -109,6 +115,15 @@ export const VideoPlayerPage: React.FC = () => {
   const totalCompletedInCourse = courseProgress?.completed_lessons || 0;
   const totalLessonsInCourse = courseProgress?.total_lessons || 0;
 
+  // Trigger feedback banner on swipe
+  const triggerSwipeFeedback = useCallback((direction: 'next' | 'prev', title: string) => {
+    if (swipeToastTimerRef.current) clearTimeout(swipeToastTimerRef.current);
+    setSwipeToast({ direction, title });
+    swipeToastTimerRef.current = setTimeout(() => {
+      setSwipeToast(null);
+    }, 1600);
+  }, []);
+
   // Guard against stale asynchronous video requests
   const requestIdRef = useRef(0);
 
@@ -148,6 +163,7 @@ export const VideoPlayerPage: React.FC = () => {
     await refreshProgress();
 
     if (nextLesson && courseId) {
+      triggerSwipeFeedback('next', nextLesson.title);
       navigate(`/courses/${courseId}/lessons/${nextLesson.lesson_id}`);
       return;
     }
@@ -172,6 +188,87 @@ export const VideoPlayerPage: React.FC = () => {
       setIsTogglingComplete(false);
     }
   };
+
+  // ===========================================================================
+  // SWIPE GESTURE HANDLERS (Touch navigation for iPhone, iPad and Touch devices)
+  // ===========================================================================
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (isPlaylistOpen) return;
+
+    // Ignore touches starting on interactive elements
+    const target = e.target as HTMLElement | null;
+    if (
+      target?.closest('[data-no-swipe]') ||
+      target?.closest('input') ||
+      target?.closest('select') ||
+      target?.closest('textarea') ||
+      target?.closest('button')
+    ) {
+      return;
+    }
+
+    const touch = e.touches[0];
+    if (touch) {
+      touchStartRef.current = {
+        x: touch.clientX,
+        y: touch.clientY,
+        time: Date.now(),
+      };
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const touch = e.changedTouches[0];
+    if (!touch) {
+      touchStartRef.current = null;
+      return;
+    }
+
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    const elapsed = Date.now() - touchStartRef.current.time;
+    touchStartRef.current = null;
+
+    // Deliberate horizontal swipe: >= 65px distance, horizontal dominance, and <= 600ms
+    const isHorizontalSwipe =
+      Math.abs(deltaX) >= 65 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && elapsed < 600;
+
+    if (isHorizontalSwipe) {
+      if (deltaX < 0 && nextLesson && courseId) {
+        // Swipe Left (Gesture towards left) -> Next Lesson
+        triggerSwipeFeedback('next', nextLesson.title);
+        navigate(`/courses/${courseId}/lessons/${nextLesson.lesson_id}`);
+      } else if (deltaX > 0 && previousLesson && courseId) {
+        // Swipe Right (Gesture towards right) -> Previous Lesson
+        triggerSwipeFeedback('prev', previousLesson.title);
+        navigate(`/courses/${courseId}/lessons/${previousLesson.lesson_id}`);
+      }
+    }
+  };
+
+  // Keyboard navigation for desktop: Arrow Left (prev) / Arrow Right (next)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = document.activeElement?.tagName.toLowerCase();
+      if (activeTag === 'input' || activeTag === 'textarea') return;
+
+      if (e.key === 'ArrowRight' && (e.shiftKey || e.altKey || !e.metaKey)) {
+        if (nextLesson && courseId) {
+          triggerSwipeFeedback('next', nextLesson.title);
+          navigate(`/courses/${courseId}/lessons/${nextLesson.lesson_id}`);
+        }
+      } else if (e.key === 'ArrowLeft' && (e.shiftKey || e.altKey || !e.metaKey)) {
+        if (previousLesson && courseId) {
+          triggerSwipeFeedback('prev', previousLesson.title);
+          navigate(`/courses/${courseId}/lessons/${previousLesson.lesson_id}`);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [nextLesson, previousLesson, courseId, navigate, triggerSwipeFeedback]);
 
   const courseBackUrl = `/courses/${
     courseStructure?.course?.public_slug || courseStructure?.course?.course_id || courseId
@@ -251,7 +348,30 @@ export const VideoPlayerPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-full bg-[#FAF7F8] py-6 sm:py-8 lg:py-10 px-4 sm:px-6 lg:px-8">
+    <div
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      className="min-h-full bg-[#FAF7F8] py-6 sm:py-8 lg:py-10 px-4 sm:px-6 lg:px-8 relative select-none"
+    >
+      {/* Floating Animated Swipe Toast Notification */}
+      {swipeToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-4 duration-200 pointer-events-none">
+          <div className="flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-primary-950 text-white shadow-2xl border border-primary-800 text-xs sm:text-sm font-semibold backdrop-blur-md">
+            {swipeToast.direction === 'next' ? (
+              <>
+                <ArrowRight className="w-4 h-4 text-primary-300 animate-pulse" />
+                <span>Prossima lezione: <strong>{swipeToast.title}</strong></span>
+              </>
+            ) : (
+              <>
+                <ArrowLeft className="w-4 h-4 text-primary-300 animate-pulse" />
+                <span>Lezione precedente: <strong>{swipeToast.title}</strong></span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="max-w-5xl mx-auto">
         
         {/* ========================================================================= */}
@@ -358,6 +478,12 @@ export const VideoPlayerPage: React.FC = () => {
             )}
           </div>
 
+          {/* Mobile Swipe Hint Badge */}
+          <div className="mt-2.5 flex items-center justify-center gap-1.5 text-[11px] text-gray-400">
+            <Smartphone className="w-3.5 h-3.5 text-primary-500" />
+            <span>Puoi scorrere con il dito (<strong>swipe ← / →</strong>) per cambiare lezione</span>
+          </div>
+
           {/* Lesson Description (if any) */}
           {lesson.description && (
             <p className="mt-3 text-sm text-gray-600 max-w-xl mx-auto leading-relaxed">
@@ -400,7 +526,7 @@ export const VideoPlayerPage: React.FC = () => {
               </div>
               <div className="min-w-0 flex-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block mb-0.5">
-                  Lezione Precedente
+                  Lezione Precedente (o swipe →)
                 </span>
                 <span className="text-sm font-semibold text-primary-950 block truncate group-hover:text-primary-800">
                   {previousLesson.title}
@@ -420,7 +546,7 @@ export const VideoPlayerPage: React.FC = () => {
             >
               <div className="min-w-0 flex-1 text-left sm:text-right">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-primary-200 block mb-0.5">
-                  Prossima Lezione
+                  Prossima Lezione (o swipe ←)
                 </span>
                 <span className="text-sm font-semibold text-white block truncate group-hover:text-primary-100">
                   {nextLesson.title}
