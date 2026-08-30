@@ -3,6 +3,7 @@ import math
 import os
 import secrets
 import string
+import traceback
 import uuid
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
@@ -215,6 +216,11 @@ def get_claims(event) -> dict[str, Any]:
 def get_current_admin_email(event) -> str:
     claims = get_claims(event)
     return str(claims.get('email', '')).strip().lower()
+
+
+def get_current_admin_username(event) -> str:
+    claims = get_claims(event)
+    return str(claims.get('cognito:username') or claims.get('email') or claims.get('sub') or '').strip().lower()
 
 
 def record_audit_log(
@@ -2402,11 +2408,15 @@ def create_admin_account(body):
         return create_response(409, {'error': 'Admin account already exists'})
 
 
-def update_admin_account(event, email, body):
-    current_admin_username = get_current_admin_username(event)
-    username = (email or '').strip().lower()
-    if not username:
-        return create_response(400, {'error': 'Admin username is required'})
+def update_admin_account(event, identifier, body):
+    claims = get_claims(event)
+    current_admin_email = str(claims.get('email', '')).strip().lower()
+    current_admin_sub = str(claims.get('sub', '')).strip().lower()
+    current_admin_username = str(claims.get('cognito:username', '')).strip().lower()
+
+    target = (identifier or '').strip()
+    if not target:
+        return create_response(400, {'error': 'Identificativo admin obbligatorio'})
 
     full_name = body.get('full_name')
     enabled = body.get('enabled')
@@ -2418,36 +2428,54 @@ def update_admin_account(event, email, body):
     if attributes:
         cognito_client.admin_update_user_attributes(
             UserPoolId=COGNITO_USER_POOL_ID,
-            Username=username,
+            Username=target,
             UserAttributes=attributes,
         )
 
     if enabled is not None:
         normalized_enabled = normalize_bool(enabled)
-        if not normalized_enabled and username == current_admin_username:
+        if not normalized_enabled and target.lower() in (current_admin_email, current_admin_sub, current_admin_username):
             return create_response(400, {'error': 'Non puoi disattivare il tuo stesso account admin'})
         if normalized_enabled:
-            cognito_client.admin_enable_user(UserPoolId=COGNITO_USER_POOL_ID, Username=username)
+            cognito_client.admin_enable_user(UserPoolId=COGNITO_USER_POOL_ID, Username=target)
         else:
-            cognito_client.admin_disable_user(UserPoolId=COGNITO_USER_POOL_ID, Username=username)
+            cognito_client.admin_disable_user(UserPoolId=COGNITO_USER_POOL_ID, Username=target)
 
     return create_response(200, {'success': True})
 
 
-def delete_admin_account(event, email):
-    current_admin_username = get_current_admin_username(event)
-    username = (email or '').strip().lower()
-    if not username:
-        return create_response(400, {'error': 'Admin username is required'})
+def delete_admin_account(event, identifier):
+    claims = get_claims(event)
+    current_admin_email = str(claims.get('email', '')).strip().lower()
+    current_admin_sub = str(claims.get('sub', '')).strip().lower()
+    current_admin_username = str(claims.get('cognito:username', '')).strip().lower()
 
-    if username == current_admin_username:
+    target = (identifier or '').strip()
+    if not target:
+        return create_response(400, {'error': 'Identificativo admin obbligatorio'})
+
+    # Prevent self-deletion
+    if target.lower() in (current_admin_email, current_admin_sub, current_admin_username):
         return create_response(400, {'error': 'Non puoi eliminare il tuo stesso account admin'})
 
-    cognito_client.admin_delete_user(
-        UserPoolId=COGNITO_USER_POOL_ID,
-        Username=username,
-    )
-    return create_response(200, {'success': True, 'message': 'Admin account deleted'})
+    try:
+        cognito_client.admin_delete_user(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Username=target,
+        )
+    except cognito_client.exceptions.UserNotFoundException:
+        pass
+    except Exception as e:
+        print(f"Error deleting admin user from Cognito ({target}): {e}")
+        return create_response(500, {'error': f'Impossibile eliminare l account admin: {str(e)}'})
+
+    try:
+        TABLES['USERS'].delete_item(Key={'user_id': target})
+    except Exception as e:
+        print(f"Error deleting user from DynamoDB ({target}): {e}")
+
+    record_audit_log('delete_admin', 'admin', target, {'target': target})
+    return create_response(200, {'success': True, 'message': 'Account admin eliminato con successo'})
 
 
 def resend_admin_invite(email):
