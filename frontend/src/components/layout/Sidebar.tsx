@@ -98,14 +98,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false, mobileMenuOpe
             {/* Quick Link: Sito Ufficiale */}
             <div className="pt-2">
               <a
-                href="https://chiaramorocutti.it"
+                href="https://pmumorocutti.it/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl text-gray-700 hover:bg-primary-50/70 hover:text-primary-950 font-medium transition-all group"
               >
                 <div className="flex items-center gap-3">
                   <ExternalLink className="w-4 h-4 text-primary-800 group-hover:text-primary-900" />
-                  <span className="text-sm">Sito Ufficiale Chiara</span>
+                  <span className="text-sm">Sito Ufficiale PMU</span>
                 </div>
                 <span className="text-[10px] uppercase font-bold text-primary-700 bg-primary-100/70 px-1.5 py-0.5 rounded">
                   Web
@@ -146,7 +146,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false, mobileMenuOpe
                 </a>
 
                 <a
-                  href="mailto:info@chiaramorocutti.it?subject=Supporto%20Didattico%20Videocorso%20Microblading"
+                  href="mailto:info@pmumorocutti.it?subject=Supporto%20Didattico%20Videocorso%20Microblading"
                   className="inline-flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded-xl bg-white border border-primary-200 hover:bg-primary-50 text-primary-900 text-[11px] font-medium transition-all"
                 >
                   <HelpCircle className="w-3.5 h-3.5 text-primary-700" />
