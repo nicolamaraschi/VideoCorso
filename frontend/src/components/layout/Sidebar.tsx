@@ -70,7 +70,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false, mobileMenuOpe
 
         {links.map((link) => {
           const Icon = link.icon;
-          const isActive = location.pathname === link.to || (link.to !== '/dashboard' && location.pathname.startsWith(`${link.to}/`));
+          const isActive =
+            link.to === '/admin' || link.to === '/dashboard'
+              ? location.pathname === link.to
+              : location.pathname === link.to || location.pathname.startsWith(`${link.to}/`);
 
           return (
             <Link
