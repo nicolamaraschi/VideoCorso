@@ -10,19 +10,11 @@ import {
   SkipBack,
   SkipForward,
   RotateCcw,
+  X,
 } from 'lucide-react';
 import { formatDuration } from '../../utils/formatters';
 import { useVideoProgress } from '../../hooks/useVideoProgress';
 import type { VideoQuality } from '../../types';
-
-interface WebKitVideoElement extends HTMLVideoElement {
-  webkitEnterFullscreen?: () => void;
-  webkitRequestFullscreen?: () => void;
-}
-
-interface WebKitPlayerWrapper {
-  getInternalPlayer?: () => WebKitVideoElement | null;
-}
 
 const QUALITY_LABELS: Record<string, string> = {
   '1080p': 'Full HD (1080p)',
@@ -254,32 +246,49 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const toggleFullscreen = useCallback(() => {
+    // 1. If currently in standard fullscreen, exit
     if (document.fullscreenElement) {
-      document.exitFullscreen();
+      document.exitFullscreen().catch(() => {});
       return;
     }
 
+    // 2. Find native <video> element
     const container = containerRef.current;
-    if (container && 'requestFullscreen' in container && typeof container.requestFullscreen === 'function') {
-      container.requestFullscreen();
-      return;
-    }
+    const videoEl = (container?.querySelector('video') || playerRef.current) as (HTMLVideoElement & {
+      webkitEnterFullscreen?: () => void;
+      webkitExitFullscreen?: () => void;
+      webkitDisplayingFullscreen?: boolean;
+    }) | null;
 
-    // Fallback nativo per iOS Safari (iPhone / iPad) dove l'API Fullscreen è supportata solo sul tag <video>
-    const playerWrapper = playerRef.current as unknown as WebKitPlayerWrapper | WebKitVideoElement | null;
-    const videoEl =
-      playerWrapper && 'getInternalPlayer' in playerWrapper && typeof playerWrapper.getInternalPlayer === 'function'
-        ? playerWrapper.getInternalPlayer()
-        : (playerWrapper as WebKitVideoElement | null);
-
-    if (videoEl) {
-      if (typeof videoEl.webkitEnterFullscreen === 'function') {
+    // 3. iOS Detection: On iPhone Safari, only videoEl.webkitEnterFullscreen() is supported
+    const isIOS = typeof navigator !== 'undefined' && /iPhone|iPod|iPad/i.test(navigator.userAgent);
+    if (isIOS && videoEl && typeof videoEl.webkitEnterFullscreen === 'function') {
+      try {
         videoEl.webkitEnterFullscreen();
         return;
+      } catch (err) {
+        console.warn('webkitEnterFullscreen failed, trying container fallback:', err);
       }
-      if (typeof videoEl.webkitRequestFullscreen === 'function') {
-        videoEl.webkitRequestFullscreen();
-      }
+    }
+
+    // 4. Standard container fullscreen (Desktop Mac/Windows, Android, iPadOS)
+    if (container && typeof container.requestFullscreen === 'function') {
+      container.requestFullscreen().catch(() => {
+        // If container requestFullscreen fails, fall back to native video element
+        if (videoEl) {
+          if (typeof videoEl.webkitEnterFullscreen === 'function') {
+            videoEl.webkitEnterFullscreen();
+          } else if (typeof videoEl.requestFullscreen === 'function') {
+            videoEl.requestFullscreen().catch(() => {});
+          }
+        }
+      });
+      return;
+    }
+
+    // 5. Native video element fallback
+    if (videoEl && typeof videoEl.webkitEnterFullscreen === 'function') {
+      videoEl.webkitEnterFullscreen();
     }
   }, []);
 
@@ -657,69 +666,25 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               </div>
 
               <div className="flex shrink-0 items-center gap-1">
-                {/* Settings Menu */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowSettings(!showSettings)}
-                    className={`rounded-full p-1.5 text-white hover:bg-white/10 hover:text-primary-400 ${showSettings ? 'text-primary-400 bg-white/10' : ''}`}
-                    aria-label="Impostazioni video"
-                  >
-                    <Settings className="w-5 h-5" />
-                  </button>
+                {/* Settings Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowSettings(!showSettings)}
+                  className={`rounded-full p-1.5 text-white hover:bg-white/10 hover:text-primary-400 transition ${
+                    showSettings ? 'text-primary-400 bg-white/10' : ''
+                  }`}
+                  aria-label="Impostazioni video"
+                >
+                  <Settings className="w-5 h-5" />
+                </button>
 
-                  {showSettings && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-20"
-                        onClick={() => setShowSettings(false)}
-                      />
-                      <div className="absolute bottom-full right-0 mb-2 bg-neutral-900/95 border border-white/15 rounded-xl p-2.5 min-w-[180px] max-h-[65vh] overflow-y-auto overscroll-contain shadow-2xl backdrop-blur-md z-30">
-                        {/* Qualità Video */}
-                        <div className="text-white text-xs font-semibold mb-1 px-2 flex items-center justify-between">
-                          <span>Qualità video</span>
-                        </div>
-                        {(availableQualities.length > 0 ? availableQualities : ['1080p', '720p', '480p', '360p']).map((q) => {
-                          const isSelected = quality === q || (!quality && (q === '1080p' || q === 'high'));
-                          return (
-                            <button
-                              key={q}
-                              onClick={() => handleQualitySelect(q as VideoQuality)}
-                              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                                isSelected
-                                  ? 'bg-primary-600 text-white font-semibold shadow-sm'
-                                  : 'text-white/80 hover:bg-white/10 hover:text-white'
-                              }`}
-                            >
-                              {QUALITY_LABELS[q] || q}
-                            </button>
-                          );
-                        })}
-
-                        {/* Velocità di riproduzione */}
-                        <div className="text-white text-xs font-semibold mt-2.5 mb-1 px-2 border-t border-white/15 pt-2">
-                          Velocità
-                        </div>
-                        <div className="grid grid-cols-3 gap-1">
-                          {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
-                            <button
-                              key={rate}
-                              onClick={() => changePlaybackRate(rate)}
-                              className={`text-center py-1 rounded text-xs transition-colors ${
-                                playbackRate === rate
-                                  ? 'bg-primary-600 text-white font-semibold'
-                                  : 'text-white/80 hover:bg-white/10'
-                              }`}
-                            >
-                              {rate}x
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <button onClick={toggleFullscreen} className="rounded-full p-1.5 text-white hover:bg-white/10 hover:text-primary-400" aria-label="Schermo intero">
+                {/* Fullscreen Button */}
+                <button
+                  type="button"
+                  onClick={toggleFullscreen}
+                  className="rounded-full p-1.5 text-white hover:bg-white/10 hover:text-primary-400 transition"
+                  aria-label="Schermo intero"
+                >
                   <Maximize className="w-5 h-5" />
                 </button>
               </div>
@@ -727,6 +692,86 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Settings Modal (Centered Overlay inside player, never clipped by overflow-hidden) */}
+      {showSettings && (
+        <div
+          className="absolute inset-0 bg-black/85 backdrop-blur-md z-40 flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowSettings(false);
+          }}
+        >
+          <div className="w-full max-w-[280px] sm:max-w-xs bg-neutral-900/95 border border-white/15 rounded-2xl p-4 shadow-2xl space-y-3.5 my-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <span className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                <Settings className="w-4 h-4 text-primary-400" />
+                <span>Impostazioni</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowSettings(false)}
+                className="p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition"
+                aria-label="Chiudi impostazioni"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Qualità Video */}
+            <div>
+              <div className="text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-400 mb-1.5">
+                Qualità Video
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {(availableQualities.length > 0 ? availableQualities : ['1080p', '720p', '480p', '360p']).map((q) => {
+                  const isSelected = quality === q || (!quality && (q === '1080p' || q === 'high'));
+                  return (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => {
+                        handleQualitySelect(q as VideoQuality);
+                        setShowSettings(false);
+                      }}
+                      className={`w-full text-center px-2 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                        isSelected
+                          ? 'bg-primary-600 text-white shadow-md border border-primary-400'
+                          : 'bg-white/5 text-white/80 hover:bg-white/15 hover:text-white border border-white/5'
+                      }`}
+                    >
+                      {QUALITY_LABELS[q] || q}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Velocità di riproduzione */}
+            <div>
+              <div className="text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-400 mb-1.5">
+                Velocità
+              </div>
+              <div className="grid grid-cols-3 gap-1">
+                {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
+                  <button
+                    key={rate}
+                    type="button"
+                    onClick={() => changePlaybackRate(rate)}
+                    className={`text-center py-1 rounded-lg text-xs font-semibold transition-all ${
+                      playbackRate === rate
+                        ? 'bg-primary-600 text-white shadow-md border border-primary-400'
+                        : 'bg-white/5 text-white/80 hover:bg-white/15 border border-white/5'
+                    }`}
+                  >
+                    {rate}x
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
