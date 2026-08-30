@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Shield } from 'lucide-react';
 import { useAuthContext } from '../auth/useAuthContext'; 
 import { Button } from '../common/Button';
 
@@ -16,7 +16,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
   const [internalMobileMenuOpen, setInternalMobileMenuOpen] = useState(false);
   const mobileMenuOpen = externalMobileMenuOpen !== undefined ? externalMobileMenuOpen : internalMobileMenuOpen;
   const setMobileMenuOpen = externalSetMobileMenuOpen || setInternalMobileMenuOpen;
-  const { isAuthenticated, isAdmin } = useAuthContext();
+  const { isAuthenticated, isAdmin, user } = useAuthContext();
 
   const ScrollLink = ({
     to,
@@ -57,20 +57,20 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           
-          {/* Left: Hamburger button (< lg) + Logo */}
+          {/* Left: Hamburger button + Logo */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            {/* Mobile / Tablet Hamburger Button */}
-            {!isAuthenticated && (
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden flex-shrink-0 min-h-10 min-w-10 p-2 rounded-lg hover:bg-gray-100 text-gray-700 flex items-center justify-center -ml-1"
-                aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
-                aria-expanded={mobileMenuOpen}
-              >
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
-            )}
+            {/* Hamburger Button: visible on < xl when logged in (to open sidebar), or < lg when public */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className={`${
+                isAuthenticated ? 'xl:hidden' : 'lg:hidden'
+              } flex-shrink-0 min-h-10 min-w-10 p-2 rounded-lg hover:bg-gray-100 text-gray-700 flex items-center justify-center -ml-1 transition-colors`}
+              aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
             
             {/* Logo & Brand Name */}
             <Link 
@@ -90,13 +90,13 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
                   Chiara Morocutti Academy
                 </span>
                 <span className="text-[9px] sm:text-xs text-gray-500 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
-                  Formazione d'Eccellenza
+                  {isAdmin ? 'Pannello Amministrazione' : "Formazione d'Eccellenza"}
                 </span>
               </div>
             </Link>
           </div>
 
-          {/* Center: Navigation Links (Desktop ONLY >= lg) */}
+          {/* Center: Navigation Links (Public Desktop ONLY >= lg) */}
           {!isAuthenticated && (
             <div className="hidden lg:flex items-center space-x-6 xl:space-x-8">
               <ScrollLink to="/#corso" className="text-sm xl:text-base font-medium text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Il Corso</ScrollLink>
@@ -107,7 +107,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
           )}
 
           {/* Right: Actions */}
-          {!isAuthenticated && (
+          {!isAuthenticated ? (
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               {/* Desktop Buttons (>= lg) */}
               <div className="hidden lg:flex items-center gap-3">
@@ -121,11 +121,29 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
                 </Button>
               </Link>
             </div>
+          ) : (
+            /* Authenticated User / Admin Header Widget */
+            <div className="flex items-center gap-3 shrink-0">
+              {isAdmin && (
+                <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-50 border border-primary-200 text-primary-800 text-xs font-bold uppercase tracking-wider">
+                  <Shield className="w-3.5 h-3.5 text-primary-600" />
+                  <span>Admin</span>
+                </span>
+              )}
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-primary-950 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                  {user?.fullName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'A'}
+                </div>
+                <span className="hidden md:inline-block text-xs font-semibold text-gray-700 max-w-[160px] truncate">
+                  {user?.fullName || user?.email}
+                </span>
+              </div>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Mobile & Tablet Drawer Menu (< lg) */}
+      {/* Public Mobile & Tablet Drawer Menu (< lg when not authenticated) */}
       {mobileMenuOpen && !isAuthenticated && (
         <div className="lg:hidden border-t border-gray-200 bg-white shadow-xl animate-in slide-in-from-top-2 duration-200">
           <div className="px-5 py-4 space-y-1">
