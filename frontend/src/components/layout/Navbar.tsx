@@ -130,11 +130,11 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
                   <span>Admin</span>
                 </span>
               )}
-              <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-primary-950 text-white flex items-center justify-center font-bold text-xs shadow-sm">
                   {user?.fullName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'A'}
                 </div>
-                <span className="hidden md:inline-block text-xs font-semibold text-gray-700 max-w-[160px] truncate">
+                <span className="text-xs font-semibold text-gray-700 max-w-[160px] truncate">
                   {user?.fullName || user?.email}
                 </span>
               </div>
