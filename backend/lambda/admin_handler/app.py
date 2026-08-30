@@ -343,27 +343,29 @@ def send_welcome_email(email: str, temp_password: str, password_reset: bool = Fa
             cta_text='Accedi alla Masterclass',
             note='👉 Al tuo primo accesso ti verrà richiesto di confermare questa password temporanea e sceglierne una tua personale e definitiva.',
         )
-        resend.Emails.send({
+        resp = resend.Emails.send({
             'from': 'Chiara Morocutti Academy <onboarding@resend.dev>',
             'to': email,
             'subject': subject,
             'html': html_body,
         })
+        print(f'[EMAIL SUCCESS] Welcome email sent via Resend to {email}: {resp}')
     except Exception as exc:
-        print(f'Email send failed: {exc}')
+        print(f'[EMAIL ERROR] Failed to send email via Resend to {email}: {exc}')
 
 
 def send_admin_welcome_email(email: str, temp_password: str):
     if not resend or not getattr(resend, 'api_key', None):
-        print('Admin welcome email skipped: Resend not configured.')
+        print('Admin invite skipped: Resend not configured.')
         return
 
     try:
         html_body = render_academy_email_html(
-            title='Accesso Amministratore Attivato',
-            subtitle='Pannello di Controllo e Gestione',
+            title='Account Amministratore',
+            subtitle='Chiara Morocutti Academy',
             paragraphs=[
-                'Il tuo account amministratore per la gestione della piattaforma Chiara Morocutti Academy è stato creato con successo.'
+                'Sei stata invitata come amministratrice della piattaforma.',
+                'Di seguito trovi le tue credenziali di accesso provvisorie.',
             ],
             email=email,
             temp_password=temp_password,
@@ -371,14 +373,15 @@ def send_admin_welcome_email(email: str, temp_password: str):
             cta_text='Accedi al Pannello Admin',
             note='👉 Al tuo primo accesso ti verrà richiesto di confermare la password temporanea e sceglierne una tua personale.',
         )
-        resend.Emails.send({
+        resp = resend.Emails.send({
             'from': 'Chiara Morocutti Academy <onboarding@resend.dev>',
             'to': email,
             'subject': 'Accesso Amministratore - Chiara Morocutti Academy',
             'html': html_body,
         })
+        print(f'[EMAIL SUCCESS] Admin invite sent via Resend to {email}: {resp}')
     except Exception as exc:
-        print(f'Admin email send failed: {exc}')
+        print(f'[EMAIL ERROR] Failed to send admin invite via Resend to {email}: {exc}')
 
 
 def list_admin_accounts():
@@ -1521,15 +1524,28 @@ def generate_thumbnail(body):
     })
 
 
-def ensure_cognito_student(email: str, full_name: str):
+def ensure_cognito_student(email: str, full_name: str, force_reset_password_on_existing: bool = False):
     try:
         existing = cognito_client.admin_get_user(
             UserPoolId=COGNITO_USER_POOL_ID,
             Username=email,
         )
         attributes = {item['Name']: item['Value'] for item in existing.get('UserAttributes', [])}
+        user_id = attributes.get('sub')
         sync_cognito_user(email, full_name=full_name, subscription_status='active')
-        return attributes.get('sub'), False, None
+        
+        if force_reset_password_on_existing:
+            temp_password = generate_temp_password()
+            cognito_client.admin_set_user_password(
+                UserPoolId=COGNITO_USER_POOL_ID,
+                Username=email,
+                Password=temp_password,
+                Permanent=False,
+            )
+            send_welcome_email(email, temp_password)
+            return user_id, False, temp_password
+            
+        return user_id, False, None
     except cognito_client.exceptions.UserNotFoundException:
         temp_password = generate_temp_password()
         created = cognito_client.admin_create_user(
@@ -1566,7 +1582,7 @@ def create_manual_student(body):
     if not is_valid_email(email.lower()):
         return create_response(400, {'error': 'Inserisci un indirizzo email valido'})
 
-    user_id, _, _ = ensure_cognito_student(email, full_name)
+    user_id, _, temp_password = ensure_cognito_student(email, full_name, force_reset_password_on_existing=True)
     item = {
         'user_id': user_id,
         'email': email,
