@@ -496,7 +496,7 @@ export const VideoPlayerPage: React.FC = () => {
         {/* VIDEO PLAYER FRAME: Centered Cinema Container */}
         {/* ========================================================================= */}
         <div className="relative mb-6 sm:mb-8">
-          <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl ring-1 ring-black/10 bg-black">
+          <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl ring-1 ring-primary-950/15 bg-transparent">
             <VideoPlayer
               key={lessonId}
               videoUrl={videoUrl}
