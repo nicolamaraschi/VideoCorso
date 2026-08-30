@@ -46,14 +46,14 @@ const METRICS_CONFIG: Record<
 > = {
   active_users: {
     label: 'Corsiste Attive',
-    shortLabel: 'Studenti',
+    shortLabel: 'Corsiste',
     icon: Users,
-    colorName: 'rose',
-    barGradient: 'from-rose-500 via-pink-500 to-purple-600',
-    barHoverGradient: 'from-rose-400 via-pink-400 to-purple-500',
-    bgBadge: 'bg-rose-50 text-rose-700 border-rose-200',
-    borderActive: 'border-rose-500 bg-rose-500 text-white shadow-rose-200',
-    textAccent: 'text-rose-600',
+    colorName: 'burgundy',
+    barGradient: 'from-[#381B21] via-[#56212B] to-[#7D3241]',
+    barHoverGradient: 'from-[#56212B] via-[#7D3241] to-[#9C3F52]',
+    bgBadge: 'bg-primary-50 text-primary-900 border-primary-200',
+    borderActive: 'border-primary-900 bg-primary-900 text-white shadow-primary-950/20',
+    textAccent: 'text-primary-950',
     formatValue: (v) => `${v}`,
     unit: 'corsiste',
   },
@@ -62,11 +62,11 @@ const METRICS_CONFIG: Record<
     shortLabel: 'Fatturato',
     icon: Euro,
     colorName: 'emerald',
-    barGradient: 'from-emerald-500 via-teal-500 to-cyan-600',
-    barHoverGradient: 'from-emerald-400 via-teal-400 to-cyan-500',
-    bgBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    borderActive: 'border-emerald-500 bg-emerald-500 text-white shadow-emerald-200',
-    textAccent: 'text-emerald-600',
+    barGradient: 'from-[#14422A] via-[#1B5E3C] to-[#2D7D52]',
+    barHoverGradient: 'from-[#1B5E3C] via-[#2D7D52] to-[#3E9E6B]',
+    bgBadge: 'bg-emerald-50 text-emerald-900 border-emerald-200',
+    borderActive: 'border-emerald-800 bg-emerald-800 text-white shadow-emerald-900/20',
+    textAccent: 'text-emerald-800',
     formatValue: (v) => formatCurrency(v),
     unit: '€',
   },
@@ -74,12 +74,12 @@ const METRICS_CONFIG: Record<
     label: 'Lezioni Completate',
     shortLabel: 'Didattica',
     icon: CheckCircle2,
-    colorName: 'amber',
-    barGradient: 'from-amber-500 via-orange-500 to-rose-600',
-    barHoverGradient: 'from-amber-400 via-orange-400 to-rose-500',
-    bgBadge: 'bg-amber-50 text-amber-700 border-amber-200',
-    borderActive: 'border-amber-500 bg-amber-500 text-white shadow-amber-200',
-    textAccent: 'text-amber-600',
+    colorName: 'gold',
+    barGradient: 'from-[#7A591E] via-[#A87E2C] to-[#CBA24B]',
+    barHoverGradient: 'from-[#A87E2C] via-[#CBA24B] to-[#DFC075]',
+    bgBadge: 'bg-amber-50 text-amber-900 border-amber-200',
+    borderActive: 'border-amber-700 bg-amber-700 text-white shadow-amber-800/20',
+    textAccent: 'text-amber-900',
     formatValue: (v) => `${v}`,
     unit: 'lezioni',
   },
@@ -87,12 +87,12 @@ const METRICS_CONFIG: Record<
     label: 'Nuove Iscrizioni',
     shortLabel: 'Ordini',
     icon: ShoppingBag,
-    colorName: 'indigo',
-    barGradient: 'from-indigo-500 via-blue-500 to-violet-600',
-    barHoverGradient: 'from-indigo-400 via-blue-400 to-violet-500',
-    bgBadge: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    borderActive: 'border-indigo-500 bg-indigo-500 text-white shadow-indigo-200',
-    textAccent: 'text-indigo-600',
+    colorName: 'plum',
+    barGradient: 'from-[#3A141E] via-[#5C2332] to-[#803548]',
+    barHoverGradient: 'from-[#5C2332] via-[#803548] to-[#9F465D]',
+    bgBadge: 'bg-primary-50 text-primary-900 border-primary-200',
+    borderActive: 'border-primary-950 bg-primary-950 text-white shadow-primary-950/20',
+    textAccent: 'text-primary-950',
     formatValue: (v) => `${v}`,
     unit: 'ordini',
   },
@@ -118,80 +118,48 @@ export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ 
         monthsSet.add(d.date.slice(0, 7)); // 'YYYY-MM'
       }
     }
-    return Array.from(monthsSet).sort();
+    const sorted = Array.from(monthsSet).sort();
+    return sorted;
   }, [data]);
 
-  // Current selected month for monthly navigation (default to latest month)
-  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
-    if (availableMonths.length > 0) {
-      return availableMonths[availableMonths.length - 1];
-    }
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  // Selected single month when in 'month' viewMode (defaults to the latest month with data or current)
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState<number>(() => {
+    return Math.max(0, availableMonths.length - 1);
   });
 
-  // Current selected year for annual view
-  const currentYear = useMemo(() => {
-    return selectedMonth ? selectedMonth.slice(0, 4) : String(new Date().getFullYear());
-  }, [selectedMonth]);
+  // Selected year when in 'annual' viewMode
+  const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
 
-  // Handle previous & next month navigation
-  const currentMonthIndex = availableMonths.indexOf(selectedMonth);
-  const hasPrevMonth = currentMonthIndex > 0;
-  const hasNextMonth = currentMonthIndex < availableMonths.length - 1;
+  const config = METRICS_CONFIG[selectedMetric];
 
-  const handlePrevMonth = () => {
-    if (hasPrevMonth) {
-      setSelectedMonth(availableMonths[currentMonthIndex - 1]);
+  // =========================================================================
+  // DATA FILTERING & AGGREGATION BASED ON VIEW MODE
+  // =========================================================================
+
+  const { chartItems, stats, periodLabel } = useMemo(() => {
+    if (!data || data.length === 0) {
+      return {
+        chartItems: [],
+        stats: { total: 0, average: 0, max: 0, maxLabel: '', activeDaysCount: 0 },
+        periodLabel: 'Periodo',
+      };
     }
-  };
 
-  const handleNextMonth = () => {
-    if (hasNextMonth) {
-      setSelectedMonth(availableMonths[currentMonthIndex + 1]);
-    }
-  };
+    // Sort data chronologically
+    const sortedData = [...data].sort((a, b) => a.date.localeCompare(b.date));
 
-  // Build chart items depending on viewMode
-  const chartItems: Array<{
-    key: string;
-    date?: string;
-    topLabel?: string;
-    bottomLabel: string;
-    isDimLabel?: boolean;
-    tooltipTitle: string;
-    active_users: number;
-    revenue: number;
-    orders_count: number;
-    lessons_completed: number;
-  }> = useMemo(() => {
-    if (!data || data.length === 0) return [];
-
+    // 1. LAST 7 DAYS
     if (viewMode === '7d') {
-      return data.slice(-7).map(d => ({
-        key: d.date,
-        date: d.date,
-        topLabel: (new Date(`${d.date}T12:00:00Z`)).toLocaleDateString('it-IT', { weekday: 'short' }),
-        bottomLabel: (new Date(`${d.date}T12:00:00Z`)).toLocaleDateString('it-IT', { day: 'numeric' }),
-        isDimLabel: false,
-        tooltipTitle: (new Date(`${d.date}T12:00:00Z`)).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'short' }),
-        active_users: d.active_users || 0,
-        revenue: d.revenue || 0,
-        orders_count: d.orders_count || 0,
-        lessons_completed: d.lessons_completed || 0,
-      }));
-    }
-
-    if (viewMode === '30d') {
-      return data.slice(-30).map((d, idx, arr) => {
-        const dateObj = new Date(`${d.date}T12:00:00Z`);
-        const showLabel = idx % 3 === 0 || idx === arr.length - 1;
+      const items = sortedData.slice(-7).map((d) => {
+        const dateObj = new Date(d.date + 'T00:00:00');
+        const dayName = dateObj.toLocaleDateString('it-IT', { weekday: 'short' });
+        const dayNum = dateObj.toLocaleDateString('it-IT', { day: 'numeric' });
         return {
           key: d.date,
           date: d.date,
-          topLabel: '',
-          bottomLabel: showLabel ? dateObj.toLocaleDateString('it-IT', { day: 'numeric', month: 'numeric' }) : '•',
-          isDimLabel: !showLabel,
+          topLabel: dayName,
+          bottomLabel: dayNum,
+          isDimLabel: false,
           tooltipTitle: dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }),
           active_users: d.active_users || 0,
           revenue: d.revenue || 0,
@@ -199,24 +167,38 @@ export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ 
           lessons_completed: d.lessons_completed || 0,
         };
       });
+
+      const values = items.map((i) => i[selectedMetric] as number);
+      const total = values.reduce((acc, v) => acc + v, 0);
+      const max = Math.max(...values, 0);
+      const maxItem = items.find((i) => (i[selectedMetric] as number) === max);
+      const activeDaysCount = values.filter((v) => v > 0).length;
+
+      return {
+        chartItems: items,
+        stats: {
+          total,
+          average: items.length > 0 ? total / items.length : 0,
+          max,
+          maxLabel: maxItem ? maxItem.tooltipTitle : '',
+          activeDaysCount,
+        },
+        periodLabel: '7 Giorni',
+      };
     }
 
-    if (viewMode === 'month') {
-      // Filter days for the selected month
-      const monthData = data.filter(d => d.date && d.date.startsWith(selectedMonth));
-      return monthData.map((d, idx, arr) => {
-        const dateObj = new Date(`${d.date}T12:00:00Z`);
+    // 2. LAST 30 DAYS
+    if (viewMode === '30d') {
+      const items = sortedData.slice(-30).map((d, index) => {
+        const dateObj = new Date(d.date + 'T00:00:00');
         const dayNum = dateObj.toLocaleDateString('it-IT', { day: 'numeric' });
-        const dayOfWeek = dateObj.toLocaleDateString('it-IT', { weekday: 'short' });
-        // Clean label distribution so 31 days don't cram
-        const showLabel = idx % 2 === 0 || idx === arr.length - 1;
-
+        const isDim = index % 3 !== 0 && index !== 29;
         return {
           key: d.date,
           date: d.date,
-          topLabel: showLabel ? dayOfWeek : '',
-          bottomLabel: showLabel ? dayNum : '•',
-          isDimLabel: !showLabel,
+          topLabel: '',
+          bottomLabel: dayNum,
+          isDimLabel: isDim,
           tooltipTitle: dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
           active_users: d.active_users || 0,
           revenue: d.revenue || 0,
@@ -224,224 +206,319 @@ export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ 
           lessons_completed: d.lessons_completed || 0,
         };
       });
+
+      const values = items.map((i) => i[selectedMetric] as number);
+      const total = values.reduce((acc, v) => acc + v, 0);
+      const max = Math.max(...values, 0);
+      const maxItem = items.find((i) => (i[selectedMetric] as number) === max);
+      const activeDaysCount = values.filter((v) => v > 0).length;
+
+      return {
+        chartItems: items,
+        stats: {
+          total,
+          average: items.length > 0 ? total / items.length : 0,
+          max,
+          maxLabel: maxItem ? maxItem.tooltipTitle : '',
+          activeDaysCount,
+        },
+        periodLabel: '30 Giorni',
+      };
     }
 
+    // 3. SINGLE MONTH SELECTION
+    if (viewMode === 'month') {
+      const currentMonthKey = availableMonths[selectedMonthIndex] || sortedData[sortedData.length - 1].date.slice(0, 7);
+      const monthData = sortedData.filter((d) => d.date.startsWith(currentMonthKey));
+
+      const items = monthData.map((d, index) => {
+        const dateObj = new Date(d.date + 'T00:00:00');
+        const dayNum = dateObj.toLocaleDateString('it-IT', { day: 'numeric' });
+        const dayShort = dateObj.toLocaleDateString('it-IT', { weekday: 'narrow' });
+        const isDim = index % 2 !== 0 && index !== monthData.length - 1;
+        return {
+          key: d.date,
+          date: d.date,
+          topLabel: dayShort,
+          bottomLabel: dayNum,
+          isDimLabel: isDim,
+          tooltipTitle: dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+          active_users: d.active_users || 0,
+          revenue: d.revenue || 0,
+          orders_count: d.orders_count || 0,
+          lessons_completed: d.lessons_completed || 0,
+        };
+      });
+
+      const values = items.map((i) => i[selectedMetric] as number);
+      const total = values.reduce((acc, v) => acc + v, 0);
+      const max = Math.max(...values, 0);
+      const maxItem = items.find((i) => (i[selectedMetric] as number) === max);
+      const activeDaysCount = values.filter((v) => v > 0).length;
+
+      return {
+        chartItems: items,
+        stats: {
+          total,
+          average: items.length > 0 ? total / items.length : 0,
+          max,
+          maxLabel: maxItem ? maxItem.tooltipTitle : '',
+          activeDaysCount,
+        },
+        periodLabel: formatMonthName(currentMonthKey),
+      };
+    }
+
+    // 4. ANNUAL (12 MONTHS AGGREGATE)
     if (viewMode === 'annual') {
-      // Group all 12 months for currentYear
-      const monthsMap: Record<string, { active_users: number; revenue: number; orders_count: number; lessons_completed: number }> = {};
+      const monthsMap: Record<string, { active_users: number; revenue: number; orders_count: number; lessons_completed: number; daysCount: number }> = {};
+
       for (let m = 1; m <= 12; m++) {
-        const ym = `${currentYear}-${String(m).padStart(2, '0')}`;
-        monthsMap[ym] = { active_users: 0, revenue: 0, orders_count: 0, lessons_completed: 0 };
+        const monthStr = m < 10 ? `0${m}` : `${m}`;
+        monthsMap[`${selectedYear}-${monthStr}`] = {
+          active_users: 0,
+          revenue: 0,
+          orders_count: 0,
+          lessons_completed: 0,
+          daysCount: 0,
+        };
       }
 
-      for (const d of data) {
-        if (d.date && d.date.startsWith(currentYear)) {
-          const ym = d.date.slice(0, 7);
-          if (monthsMap[ym]) {
-            monthsMap[ym].revenue += d.revenue || 0;
-            monthsMap[ym].orders_count += d.orders_count || 0;
-            monthsMap[ym].active_users = Math.max(monthsMap[ym].active_users, d.active_users || 0);
-            monthsMap[ym].lessons_completed += d.lessons_completed || 0;
+      for (const d of sortedData) {
+        if (d.date.startsWith(`${selectedYear}-`)) {
+          const mKey = d.date.slice(0, 7);
+          if (monthsMap[mKey]) {
+            monthsMap[mKey].active_users += d.active_users || 0;
+            monthsMap[mKey].revenue += d.revenue || 0;
+            monthsMap[mKey].orders_count += d.orders_count || 0;
+            monthsMap[mKey].lessons_completed += d.lessons_completed || 0;
+            if ((d[selectedMetric] || 0) > 0) {
+              monthsMap[mKey].daysCount += 1;
+            }
           }
         }
       }
 
-      return Object.entries(monthsMap).map(([ym, stats]) => {
-        const monthNum = parseInt(ym.slice(5, 7), 10);
-        const dateObj = new Date(parseInt(currentYear, 10), monthNum - 1, 1);
-        const shortName = dateObj.toLocaleDateString('it-IT', { month: 'short' });
-        const fullName = dateObj.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
-
+      const items = Object.entries(monthsMap).map(([mKey, val]) => {
+        const [y, m] = mKey.split('-');
+        const dateObj = new Date(parseInt(y, 10), parseInt(m, 10) - 1, 1);
+        const monthShort = dateObj.toLocaleDateString('it-IT', { month: 'short' });
         return {
-          key: ym,
-          date: ym,
+          key: mKey,
+          date: mKey,
           topLabel: '',
-          bottomLabel: shortName,
+          bottomLabel: monthShort,
           isDimLabel: false,
-          tooltipTitle: fullName,
-          active_users: stats.active_users,
-          revenue: stats.revenue,
-          orders_count: stats.orders_count,
-          lessons_completed: stats.lessons_completed,
+          tooltipTitle: dateObj.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' }),
+          active_users: val.active_users,
+          revenue: val.revenue,
+          orders_count: val.orders_count,
+          lessons_completed: val.lessons_completed,
         };
       });
+
+      const values = items.map((i) => i[selectedMetric] as number);
+      const total = values.reduce((acc, v) => acc + v, 0);
+      const max = Math.max(...values, 0);
+      const maxItem = items.find((i) => (i[selectedMetric] as number) === max);
+      const activeMonthsCount = values.filter((v) => v > 0).length;
+
+      return {
+        chartItems: items,
+        stats: {
+          total,
+          average: items.length > 0 ? total / 12 : 0,
+          max,
+          maxLabel: maxItem ? maxItem.tooltipTitle : '',
+          activeDaysCount: activeMonthsCount,
+        },
+        periodLabel: `Anno ${selectedYear}`,
+      };
     }
 
-    return [];
-  }, [data, viewMode, selectedMonth, currentYear]);
-
-  const config = METRICS_CONFIG[selectedMetric];
-
-  // Compute KPI metrics for current active chart items
-  const stats = useMemo(() => {
-    if (chartItems.length === 0) {
-      return { total: 0, max: 0, maxLabel: '', average: 0, activeDaysCount: 0 };
-    }
-
-    let sum = 0;
-    let maxVal = 0;
-    let maxLabel = '';
-    let activeDays = 0;
-
-    for (const d of chartItems) {
-      const val = (d[selectedMetric] as number) || 0;
-      sum += val;
-      if (val > 0) activeDays++;
-      if (val > maxVal) {
-        maxVal = val;
-        maxLabel = d.tooltipTitle || '';
-      }
-    }
-
-    const avg = sum / chartItems.length;
     return {
-      total: sum,
-      max: maxVal,
-      maxLabel,
-      average: avg,
-      activeDaysCount: activeDays,
+      chartItems: [],
+      stats: { total: 0, average: 0, max: 0, maxLabel: '', activeDaysCount: 0 },
+      periodLabel: 'Periodo',
     };
+  }, [data, viewMode, selectedMetric, selectedMonthIndex, availableMonths, selectedYear]);
+
+  const chartMax = useMemo(() => {
+    return Math.max(...chartItems.map((i) => (i[selectedMetric] as number) || 0), 1);
   }, [chartItems, selectedMetric]);
 
-  const chartMax = Math.max(stats.max, selectedMetric === 'revenue' ? 50 : 5);
-
-  // Period label for KPI cards
-  const periodLabel = useMemo(() => {
-    if (viewMode === '7d') return '7 Giorni';
-    if (viewMode === '30d') return '30 Giorni';
-    if (viewMode === 'month') return formatMonthName(selectedMonth);
-    if (viewMode === 'annual') return `Anno ${currentYear}`;
-    return 'Periodo';
-  }, [viewMode, selectedMonth, currentYear]);
-
   return (
-    <section className="rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 lg:p-7 shadow-sm">
-      {/* 1. Header & Navigation Controls */}
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between border-b border-gray-100 pb-5">
+    <section className="overflow-hidden rounded-3xl border border-primary-100 bg-white p-5 sm:p-7 shadow-xs">
+      
+      {/* 1. Header: Title, Subtitle & View Mode Controls */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-primary-100 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-100 text-primary-700">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-50 border border-primary-200/80 text-primary-800">
               <TrendingUp className="h-4 w-4" />
-            </span>
-            <h2 className="text-xl font-bold text-gray-900">Analisi Performance & Business</h2>
+            </div>
+            <h3
+              className="text-lg sm:text-xl font-bold text-primary-950"
+              style={{ fontFamily: 'Abhaya Libre, serif' }}
+            >
+              Analisi Performance & Business
+            </h3>
           </div>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-xs sm:text-sm text-gray-600">
             Monitora l'andamento di frequenza, incassi Stripe, lezioni seguite e nuovi ordini nei mesi.
           </p>
         </div>
 
-        {/* View mode switcher & Month navigator */}
-        <div className="flex flex-wrap items-center gap-2">
-          
-          {/* Preset Buttons */}
-          <div className="flex items-center gap-1 rounded-xl bg-gray-100 p-1">
-            <button
-              type="button"
-              onClick={() => setViewMode('7d')}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                viewMode === '7d'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              7 Giorni
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('30d')}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                viewMode === '30d'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              30 Giorni
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('month')}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                viewMode === 'month'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Calendar className="h-3.5 w-3.5" />
-              Mese per Mese
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('annual')}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                viewMode === 'annual'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <BarChart3 className="h-3.5 w-3.5" />
-              Anno {currentYear}
-            </button>
-          </div>
+        {/* View Mode Switcher Pill */}
+        <div className="flex flex-wrap items-center gap-1.5 rounded-2xl bg-primary-50/60 p-1.5 border border-primary-100/80">
+          <button
+            type="button"
+            onClick={() => setViewMode('7d')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              viewMode === '7d'
+                ? 'bg-primary-900 text-white shadow-xs'
+                : 'text-gray-700 hover:text-primary-950 hover:bg-white/80'
+            }`}
+          >
+            7 Giorni
+          </button>
 
-          {/* Month Stepper Selector (Visible in 'month' mode) */}
-          {viewMode === 'month' && (
-            <div className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
-              <button
-                type="button"
-                onClick={handlePrevMonth}
-                disabled={!hasPrevMonth}
-                className="rounded-lg p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition"
-                title="Mese precedente"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('30d')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              viewMode === '30d'
+                ? 'bg-primary-900 text-white shadow-xs'
+                : 'text-gray-700 hover:text-primary-950 hover:bg-white/80'
+            }`}
+          >
+            30 Giorni
+          </button>
 
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="bg-transparent text-xs font-bold text-gray-900 py-1 px-2 cursor-pointer focus:outline-none capitalize"
-              >
-                {availableMonths.map((m) => (
-                  <option key={m} value={m}>
-                    {formatMonthName(m)}
-                  </option>
-                ))}
-              </select>
+          <button
+            type="button"
+            onClick={() => setViewMode('month')}
+            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              viewMode === 'month'
+                ? 'bg-primary-900 text-white shadow-xs'
+                : 'text-gray-700 hover:text-primary-950 hover:bg-white/80'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Mese per Mese</span>
+          </button>
 
-              <button
-                type="button"
-                onClick={handleNextMonth}
-                disabled={!hasNextMonth}
-                className="rounded-lg p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition"
-                title="Mese successivo"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={() => setViewMode('annual')}
+            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              viewMode === 'annual'
+                ? 'bg-primary-900 text-white shadow-xs'
+                : 'text-gray-700 hover:text-primary-950 hover:bg-white/80'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>Anno {selectedYear}</span>
+          </button>
         </div>
       </div>
 
-      {/* 2. Metric Selector Pills */}
-      <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {(Object.keys(METRICS_CONFIG) as MetricType[]).map((key) => {
-          const item = METRICS_CONFIG[key];
-          const Icon = item.icon;
-          const isSelected = selectedMetric === key;
+      {/* 1.1 Month / Year Navigator Bar */}
+      {viewMode === 'month' && availableMonths.length > 0 && (
+        <div className="mt-4 flex items-center justify-between rounded-2xl bg-primary-50/50 border border-primary-100/80 px-4 py-2.5">
+          <button
+            type="button"
+            disabled={selectedMonthIndex <= 0}
+            onClick={() => setSelectedMonthIndex((prev) => Math.max(0, prev - 1))}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-primary-900 hover:text-primary-950 disabled:opacity-30 disabled:cursor-not-allowed transition"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Mese Precedente</span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-primary-700" />
+            <span
+              className="text-sm font-bold text-primary-950 capitalize"
+              style={{ fontFamily: 'Abhaya Libre, serif' }}
+            >
+              {formatMonthName(availableMonths[selectedMonthIndex] || '')}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            disabled={selectedMonthIndex >= availableMonths.length - 1}
+            onClick={() => setSelectedMonthIndex((prev) => Math.min(availableMonths.length - 1, prev + 1))}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-primary-900 hover:text-primary-950 disabled:opacity-30 disabled:cursor-not-allowed transition"
+          >
+            <span>Mese Successivo</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {viewMode === 'annual' && (
+        <div className="mt-4 flex items-center justify-between rounded-2xl bg-primary-50/50 border border-primary-100/80 px-4 py-2.5">
+          <button
+            type="button"
+            onClick={() => setSelectedYear((y) => y - 1)}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-primary-900 hover:text-primary-950 transition"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Anno {selectedYear - 1}</span>
+          </button>
+
+          <span
+            className="text-sm font-bold text-primary-950"
+            style={{ fontFamily: 'Abhaya Libre, serif' }}
+          >
+            Report Annuale {selectedYear}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setSelectedYear((y) => y + 1)}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-primary-900 hover:text-primary-950 transition"
+          >
+            <span>Anno {selectedYear + 1}</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* 2. Metric Tabs Grid */}
+      <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+        {(Object.keys(METRICS_CONFIG) as MetricType[]).map((metricKey) => {
+          const itemConfig = METRICS_CONFIG[metricKey];
+          const isSelected = selectedMetric === metricKey;
+          const Icon = itemConfig.icon;
 
           return (
             <button
-              key={key}
+              key={metricKey}
               type="button"
-              onClick={() => setSelectedMetric(key)}
-              className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm font-semibold transition-all shadow-sm ${
+              onClick={() => setSelectedMetric(metricKey)}
+              className={`flex items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl border transition-all text-left ${
                 isSelected
-                  ? `${item.borderActive} shadow-md scale-[1.02]`
-                  : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                  ? itemConfig.borderActive
+                  : 'bg-white border-primary-100 hover:bg-primary-50/50 hover:border-primary-200 text-gray-700'
               }`}
             >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="truncate">{item.label}</span>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-xl flex-shrink-0 ${
+                    isSelected ? 'bg-white/20 text-white' : 'bg-primary-50 text-primary-800'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-xs sm:text-sm font-bold block truncate">
+                    {itemConfig.label}
+                  </span>
+                </div>
+              </div>
             </button>
           );
         })}
@@ -449,58 +526,58 @@ export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ 
 
       {/* 3. Executive Summary KPI Cards */}
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
-          <p className="text-xs font-medium text-gray-500 truncate">Totale {periodLabel}</p>
+        <div className="rounded-2xl border border-primary-100 bg-[#FAF7F8] p-4 shadow-xs">
+          <p className="text-xs font-semibold text-primary-800/80 truncate">Totale {periodLabel}</p>
           <p className={`mt-1 text-lg sm:text-2xl font-bold ${config.textAccent}`}>
             {config.formatValue(stats.total)}
           </p>
-          <span className="mt-0.5 block text-[10px] text-gray-400">{config.unit} complessivi</span>
+          <span className="mt-0.5 block text-[10px] text-gray-500 font-medium">{config.unit} complessivi</span>
         </div>
 
-        <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
-          <p className="text-xs font-medium text-gray-500">Picco del Periodo</p>
-          <p className="mt-1 text-lg sm:text-2xl font-bold text-gray-900">
+        <div className="rounded-2xl border border-primary-100 bg-[#FAF7F8] p-4 shadow-xs">
+          <p className="text-xs font-semibold text-primary-800/80">Picco del Periodo</p>
+          <p className="mt-1 text-lg sm:text-2xl font-bold text-primary-950">
             {config.formatValue(stats.max)}
           </p>
-          <span className="mt-0.5 block text-[10px] text-gray-400 truncate">
+          <span className="mt-0.5 block text-[10px] text-gray-500 font-medium truncate">
             {stats.maxLabel || 'N/D'}
           </span>
         </div>
 
-        <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
-          <p className="text-xs font-medium text-gray-500">
+        <div className="rounded-2xl border border-primary-100 bg-[#FAF7F8] p-4 shadow-xs">
+          <p className="text-xs font-semibold text-primary-800/80">
             {viewMode === 'annual' ? 'Media al Mese' : 'Media al Giorno'}
           </p>
-          <p className="mt-1 text-lg sm:text-2xl font-bold text-gray-900">
+          <p className="mt-1 text-lg sm:text-2xl font-bold text-primary-950">
             {selectedMetric === 'revenue'
               ? formatCurrency(stats.average)
               : stats.average.toFixed(1)}
           </p>
-          <span className="mt-0.5 block text-[10px] text-gray-400">
+          <span className="mt-0.5 block text-[10px] text-gray-500 font-medium">
             media su {chartItems.length} {viewMode === 'annual' ? 'mesi' : 'giorni'}
           </span>
         </div>
 
-        <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
-          <p className="text-xs font-medium text-gray-500">
+        <div className="rounded-2xl border border-primary-100 bg-[#FAF7F8] p-4 shadow-xs">
+          <p className="text-xs font-semibold text-primary-800/80">
             {viewMode === 'annual' ? 'Mesi con Vendite' : 'Giorni con Attività'}
           </p>
-          <p className="mt-1 text-lg sm:text-2xl font-bold text-emerald-600">
+          <p className="mt-1 text-lg sm:text-2xl font-bold text-emerald-800">
             {stats.activeDaysCount} / {chartItems.length}
           </p>
-          <span className="mt-0.5 block text-[10px] text-gray-400">
+          <span className="mt-0.5 block text-[10px] text-gray-500 font-medium">
             {Math.round((stats.activeDaysCount / (chartItems.length || 1)) * 100)}% di continuità
           </span>
         </div>
       </div>
 
-      {/* 4. Interactive Vibrant Bar Chart Container */}
-      <div className="relative mt-6 overflow-x-auto rounded-2xl border border-gray-100 bg-gradient-to-b from-gray-50/70 via-white to-gray-50/40 p-4 sm:p-5">
+      {/* 4. Luxury Harmonious Bar Chart Container */}
+      <div className="relative mt-6 overflow-x-auto rounded-2xl border border-primary-100 bg-[#FAF7F8] p-4 sm:p-5">
         {/* Floating Interactive Tooltip */}
         {hoveredDay && (
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 rounded-xl border border-gray-200 bg-white/95 px-4 py-2.5 shadow-xl backdrop-blur-md transition-all z-30 pointer-events-none min-w-[220px]">
-            <div className="flex items-center justify-between gap-2 border-b border-gray-100 pb-1.5">
-              <span className="text-xs font-bold text-gray-900 capitalize">
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 rounded-2xl border border-primary-200 bg-white px-4 py-2.5 shadow-xl backdrop-blur-md transition-all z-30 pointer-events-none min-w-[220px]">
+            <div className="flex items-center justify-between gap-2 border-b border-primary-100 pb-1.5">
+              <span className="text-xs font-bold text-primary-950 capitalize">
                 {hoveredDay.label}
               </span>
               <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${config.bgBadge}`}>
@@ -510,19 +587,19 @@ export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ 
             <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-gray-500">Corsiste:</span>
-                <span className="font-bold text-gray-900">{hoveredDay.active_users || 0}</span>
+                <span className="font-bold text-primary-950">{hoveredDay.active_users || 0}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-500">Fatturato:</span>
-                <span className="font-bold text-emerald-600">{formatCurrency(hoveredDay.revenue || 0)}</span>
+                <span className="font-bold text-emerald-800">{formatCurrency(hoveredDay.revenue || 0)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-500">Lezioni:</span>
-                <span className="font-bold text-amber-600">{hoveredDay.lessons_completed || 0}</span>
+                <span className="font-bold text-amber-800">{hoveredDay.lessons_completed || 0}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-500">Ordini:</span>
-                <span className="font-bold text-indigo-600">{hoveredDay.orders_count || 0}</span>
+                <span className="font-bold text-primary-900">{hoveredDay.orders_count || 0}</span>
               </div>
             </div>
           </div>
@@ -530,7 +607,7 @@ export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ 
 
         {/* The Bars Grid */}
         <div
-          className={`grid h-52 items-end gap-1 sm:gap-2 ${
+          className={`grid h-52 items-end gap-1.5 sm:gap-2 ${
             chartItems.length > 20 ? 'min-w-[550px]' : 'w-full'
           }`}
           style={{ gridTemplateColumns: `repeat(${chartItems.length}, minmax(0, 1fr))` }}
@@ -562,10 +639,10 @@ export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ 
                   <span
                     className={`mb-1 truncate text-[10px] sm:text-xs font-bold transition-all ${
                       isHighlighted
-                        ? `${config.textAccent} scale-110`
+                        ? `${config.textAccent} scale-105`
                         : isHovered
-                        ? 'text-gray-900 font-extrabold'
-                        : 'text-gray-600'
+                        ? 'text-primary-950 font-extrabold'
+                        : 'text-gray-500'
                     }`}
                   >
                     {rawVal > 0
@@ -576,19 +653,19 @@ export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ 
                   </span>
                 )}
 
-                {/* Animated Gradient Bar */}
+                {/* Animated Luxury Gradient Bar */}
                 <div
-                  className={`relative w-full rounded-t-lg bg-gradient-to-t ${
+                  className={`relative w-full rounded-t-xl bg-gradient-to-t ${
                     isHovered ? config.barHoverGradient : config.barGradient
                   } transition-all duration-300 ${
-                    rawVal === 0 ? 'opacity-20 bg-gray-300' : 'shadow-md group-hover:shadow-lg'
-                  } ${isHovered ? 'scale-x-110 ring-2 ring-white ring-offset-2' : ''}`}
+                    rawVal === 0 ? 'opacity-20 bg-primary-200' : 'shadow-xs group-hover:shadow-md'
+                  } ${isHovered ? 'scale-x-105 ring-2 ring-primary-300' : ''}`}
                   style={{ height: `${heightPercent}%` }}
                 >
                   {isHighlighted && (
                     <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
                     </span>
                   )}
                 </div>
@@ -596,13 +673,13 @@ export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ 
                 {/* Bottom Date / Month Label */}
                 <div className="mt-2 text-center h-8 flex flex-col justify-start">
                   {item.topLabel && (
-                    <span className="block text-[9px] font-medium text-gray-500 capitalize leading-tight">
+                    <span className="block text-[9px] font-semibold text-primary-900/70 capitalize leading-tight">
                       {item.topLabel}
                     </span>
                   )}
                   <span
                     className={`block text-[10px] font-bold leading-tight capitalize ${
-                      item.isDimLabel ? 'text-transparent' : 'text-gray-700'
+                      item.isDimLabel ? 'text-transparent' : 'text-primary-950'
                     }`}
                   >
                     {item.bottomLabel}
@@ -615,9 +692,9 @@ export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ 
       </div>
 
       {/* 5. Smart Business Footnote */}
-      <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-2xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
+      <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-2xl bg-[#FAF7F8] border border-primary-100 px-4 py-3 text-xs text-gray-600">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-amber-500 shrink-0" />
+          <Sparkles className="h-4 w-4 text-primary-700 shrink-0" />
           <span>
             {stats.max > 0 ? (
               <>
@@ -629,7 +706,7 @@ export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ 
             )}
           </span>
         </div>
-        <span className="text-[11px] font-medium text-gray-400 shrink-0">
+        <span className="text-[11px] font-semibold text-primary-800/70 shrink-0">
           Aggiornamento in tempo reale
         </span>
       </div>
