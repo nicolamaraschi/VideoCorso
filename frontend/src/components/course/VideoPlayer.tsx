@@ -366,10 +366,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const displayAspectRatio = rotation === 90 || rotation === 270 ? 1 / aspectRatio : aspectRatio;
   const isPortrait = displayAspectRatio < 1;
 
+  const [videoPlaybackError, setVideoPlaybackError] = useState<string | null>(null);
+
   useEffect(() => {
     // A new lesson may use a different format from the previous one.
     setAspectRatio(16 / 9);
     setRotation(0);
+    setVideoPlaybackError(null);
+
+    // Mobile devices (iOS & Android) auto-rotate portrait MP4s natively in hardware.
+    // Avoid running extra 4MB range requests on mobile 4G networks.
+    const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      return;
+    }
 
     const controller = new AbortController();
     void getIPhoneVideoRotation(videoUrl, controller.signal)
@@ -388,6 +398,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
       setAspectRatio(videoEl.videoWidth / videoEl.videoHeight);
     }
+    setIsBuffering(false);
+    setVideoPlaybackError(null);
 
     const pending = qualitySwitchStateRef.current;
     if (pending) {
@@ -417,10 +429,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           volume={volume}
           muted={isMuted}
           playbackRate={playbackRate}
-          preload="auto"
+          preload="metadata"
+          playsInline={true}
           onWaiting={() => setIsBuffering(true)}
-          onPlaying={() => setIsBuffering(false)}
+          onPlaying={() => {
+            setIsBuffering(false);
+            setVideoPlaybackError(null);
+          }}
           onCanPlay={() => setIsBuffering(false)}
+          onError={() => {
+            setIsBuffering(false);
+            setVideoPlaybackError('Connessione lenta o errore di caricamento. Tocca per riprovare.');
+          }}
           onTimeUpdate={(event) => {
             const playedSeconds = event.currentTarget.currentTime;
             if (!isScrubbing) {
@@ -455,6 +475,27 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           }}
         />
       </div>
+
+      {/* Playback Error Overlay */}
+      {videoPlaybackError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-black/85 text-white z-30 text-center">
+          <p className="text-sm font-medium mb-3 text-red-200">{videoPlaybackError}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setVideoPlaybackError(null);
+              setIsBuffering(true);
+              if (playerRef.current) {
+                playerRef.current.load();
+                togglePlay();
+              }
+            }}
+            className="px-4 py-2 rounded-xl bg-primary-700 hover:bg-primary-800 text-white font-semibold text-xs transition"
+          >
+            Ricarica Video
+          </button>
+        </div>
+      )}
 
       {/* Buffering Indicator */}
       {isBuffering && isPlaying && (

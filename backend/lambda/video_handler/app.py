@@ -315,7 +315,7 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requ
         presigned_url = s3_client.generate_presigned_url(
             'get_object',
             Params={'Bucket': video_bucket_name, 'Key': served_video_key},
-            ExpiresIn=600,
+            ExpiresIn=7200,
         )
     except ClientError as exc:
         print(f'generate_presigned_url error: {exc}')
@@ -327,7 +327,7 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requ
 
     return create_response(200, {
         'video_url': presigned_url,
-        'expires_at': (datetime.utcnow() + timedelta(minutes=10)).isoformat() + 'Z',
+        'expires_at': (datetime.utcnow() + timedelta(hours=2)).isoformat() + 'Z',
         'course_id': course_id,
         'video_quality': served_quality or 'source',
         'available_qualities': available_qualities,
