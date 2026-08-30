@@ -6,7 +6,10 @@ import {
   CheckCircle2, 
   ShoppingBag, 
   Calendar,
-  Sparkles
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  BarChart3
 } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -23,7 +26,7 @@ interface BusinessAnalyticsChartProps {
 }
 
 type MetricType = 'active_users' | 'revenue' | 'lessons_completed' | 'orders_count';
-type TimeframeType = 7 | 14 | 30;
+type ViewMode = '7d' | '30d' | 'month' | 'annual';
 
 const METRICS_CONFIG: Record<
   MetricType,
@@ -95,56 +98,226 @@ const METRICS_CONFIG: Record<
   },
 };
 
+const formatMonthName = (yearMonth: string) => {
+  const [year, month] = yearMonth.split('-');
+  const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+  return date.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+};
+
 export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ data }) => {
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('active_users');
-  const [timeframe, setTimeframe] = useState<TimeframeType>(7);
-  const [hoveredDay, setHoveredDay] = useState<DailyStat | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('7d');
+  const [hoveredDay, setHoveredDay] = useState<{ label: string; date?: string; active_users: number; revenue: number; orders_count: number; lessons_completed: number } | null>(null);
 
-  // Filter timeframe from latest entries
-  const filteredData = useMemo(() => {
+  // Extract all available months from data
+  const availableMonths = useMemo(() => {
     if (!data || data.length === 0) return [];
-    return data.slice(-timeframe);
-  }, [data, timeframe]);
+    const monthsSet = new Set<string>();
+    for (const d of data) {
+      if (d.date) {
+        monthsSet.add(d.date.slice(0, 7)); // 'YYYY-MM'
+      }
+    }
+    return Array.from(monthsSet).sort();
+  }, [data]);
+
+  // Current selected month for monthly navigation (default to latest month)
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    if (availableMonths.length > 0) {
+      return availableMonths[availableMonths.length - 1];
+    }
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  // Current selected year for annual view
+  const currentYear = useMemo(() => {
+    return selectedMonth ? selectedMonth.slice(0, 4) : String(new Date().getFullYear());
+  }, [selectedMonth]);
+
+  // Handle previous & next month navigation
+  const currentMonthIndex = availableMonths.indexOf(selectedMonth);
+  const hasPrevMonth = currentMonthIndex > 0;
+  const hasNextMonth = currentMonthIndex < availableMonths.length - 1;
+
+  const handlePrevMonth = () => {
+    if (hasPrevMonth) {
+      setSelectedMonth(availableMonths[currentMonthIndex - 1]);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (hasNextMonth) {
+      setSelectedMonth(availableMonths[currentMonthIndex + 1]);
+    }
+  };
+
+  // Build chart items depending on viewMode
+  const chartItems: Array<{
+    key: string;
+    date?: string;
+    topLabel?: string;
+    bottomLabel: string;
+    isDimLabel?: boolean;
+    tooltipTitle: string;
+    active_users: number;
+    revenue: number;
+    orders_count: number;
+    lessons_completed: number;
+  }> = useMemo(() => {
+    if (!data || data.length === 0) return [];
+
+    if (viewMode === '7d') {
+      return data.slice(-7).map(d => ({
+        key: d.date,
+        date: d.date,
+        topLabel: (new Date(`${d.date}T12:00:00Z`)).toLocaleDateString('it-IT', { weekday: 'short' }),
+        bottomLabel: (new Date(`${d.date}T12:00:00Z`)).toLocaleDateString('it-IT', { day: 'numeric' }),
+        isDimLabel: false,
+        tooltipTitle: (new Date(`${d.date}T12:00:00Z`)).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'short' }),
+        active_users: d.active_users || 0,
+        revenue: d.revenue || 0,
+        orders_count: d.orders_count || 0,
+        lessons_completed: d.lessons_completed || 0,
+      }));
+    }
+
+    if (viewMode === '30d') {
+      return data.slice(-30).map((d, idx, arr) => {
+        const dateObj = new Date(`${d.date}T12:00:00Z`);
+        const showLabel = idx % 3 === 0 || idx === arr.length - 1;
+        return {
+          key: d.date,
+          date: d.date,
+          topLabel: '',
+          bottomLabel: showLabel ? dateObj.toLocaleDateString('it-IT', { day: 'numeric', month: 'numeric' }) : '•',
+          isDimLabel: !showLabel,
+          tooltipTitle: dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }),
+          active_users: d.active_users || 0,
+          revenue: d.revenue || 0,
+          orders_count: d.orders_count || 0,
+          lessons_completed: d.lessons_completed || 0,
+        };
+      });
+    }
+
+    if (viewMode === 'month') {
+      // Filter days for the selected month
+      const monthData = data.filter(d => d.date && d.date.startsWith(selectedMonth));
+      return monthData.map((d, idx, arr) => {
+        const dateObj = new Date(`${d.date}T12:00:00Z`);
+        const dayNum = dateObj.toLocaleDateString('it-IT', { day: 'numeric' });
+        const dayOfWeek = dateObj.toLocaleDateString('it-IT', { weekday: 'short' });
+        // Clean label distribution so 31 days don't cram
+        const showLabel = idx % 2 === 0 || idx === arr.length - 1;
+
+        return {
+          key: d.date,
+          date: d.date,
+          topLabel: showLabel ? dayOfWeek : '',
+          bottomLabel: showLabel ? dayNum : '•',
+          isDimLabel: !showLabel,
+          tooltipTitle: dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+          active_users: d.active_users || 0,
+          revenue: d.revenue || 0,
+          orders_count: d.orders_count || 0,
+          lessons_completed: d.lessons_completed || 0,
+        };
+      });
+    }
+
+    if (viewMode === 'annual') {
+      // Group all 12 months for currentYear
+      const monthsMap: Record<string, { active_users: number; revenue: number; orders_count: number; lessons_completed: number }> = {};
+      for (let m = 1; m <= 12; m++) {
+        const ym = `${currentYear}-${String(m).padStart(2, '0')}`;
+        monthsMap[ym] = { active_users: 0, revenue: 0, orders_count: 0, lessons_completed: 0 };
+      }
+
+      for (const d of data) {
+        if (d.date && d.date.startsWith(currentYear)) {
+          const ym = d.date.slice(0, 7);
+          if (monthsMap[ym]) {
+            monthsMap[ym].revenue += d.revenue || 0;
+            monthsMap[ym].orders_count += d.orders_count || 0;
+            monthsMap[ym].active_users = Math.max(monthsMap[ym].active_users, d.active_users || 0);
+            monthsMap[ym].lessons_completed += d.lessons_completed || 0;
+          }
+        }
+      }
+
+      return Object.entries(monthsMap).map(([ym, stats]) => {
+        const monthNum = parseInt(ym.slice(5, 7), 10);
+        const dateObj = new Date(parseInt(currentYear, 10), monthNum - 1, 1);
+        const shortName = dateObj.toLocaleDateString('it-IT', { month: 'short' });
+        const fullName = dateObj.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+
+        return {
+          key: ym,
+          date: ym,
+          topLabel: '',
+          bottomLabel: shortName,
+          isDimLabel: false,
+          tooltipTitle: fullName,
+          active_users: stats.active_users,
+          revenue: stats.revenue,
+          orders_count: stats.orders_count,
+          lessons_completed: stats.lessons_completed,
+        };
+      });
+    }
+
+    return [];
+  }, [data, viewMode, selectedMonth, currentYear]);
 
   const config = METRICS_CONFIG[selectedMetric];
 
-  // Compute KPI metrics for selected window
+  // Compute KPI metrics for current active chart items
   const stats = useMemo(() => {
-    if (filteredData.length === 0) {
-      return { total: 0, max: 0, maxDate: '', average: 0, activeDaysCount: 0 };
+    if (chartItems.length === 0) {
+      return { total: 0, max: 0, maxLabel: '', average: 0, activeDaysCount: 0 };
     }
 
     let sum = 0;
     let maxVal = 0;
-    let maxDay = '';
+    let maxLabel = '';
     let activeDays = 0;
 
-    for (const d of filteredData) {
+    for (const d of chartItems) {
       const val = (d[selectedMetric] as number) || 0;
       sum += val;
       if (val > 0) activeDays++;
       if (val > maxVal) {
         maxVal = val;
-        maxDay = d.date;
+        maxLabel = d.tooltipTitle || '';
       }
     }
 
-    const avg = sum / filteredData.length;
+    const avg = sum / chartItems.length;
     return {
       total: sum,
       max: maxVal,
-      maxDate: maxDay,
+      maxLabel,
       average: avg,
       activeDaysCount: activeDays,
     };
-  }, [filteredData, selectedMetric]);
+  }, [chartItems, selectedMetric]);
 
   const chartMax = Math.max(stats.max, selectedMetric === 'revenue' ? 50 : 5);
 
+  // Period label for KPI cards
+  const periodLabel = useMemo(() => {
+    if (viewMode === '7d') return '7 Giorni';
+    if (viewMode === '30d') return '30 Giorni';
+    if (viewMode === 'month') return formatMonthName(selectedMonth);
+    if (viewMode === 'annual') return `Anno ${currentYear}`;
+    return 'Periodo';
+  }, [viewMode, selectedMonth, currentYear]);
+
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
-      {/* 1. Header & Controls */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-gray-100 pb-5">
+    <section className="rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 lg:p-7 shadow-sm">
+      {/* 1. Header & Navigation Controls */}
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between border-b border-gray-100 pb-5">
         <div>
           <div className="flex items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-100 text-primary-700">
@@ -153,27 +326,99 @@ export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ 
             <h2 className="text-xl font-bold text-gray-900">Analisi Performance & Business</h2>
           </div>
           <p className="mt-1 text-sm text-gray-500">
-            Monitora l'andamento di frequenza, incassi Stripe, lezioni seguite e nuovi ordini.
+            Monitora l'andamento di frequenza, incassi Stripe, lezioni seguite e nuovi ordini nei mesi.
           </p>
         </div>
 
-        {/* Timeframe selector tabs */}
-        <div className="flex items-center gap-1.5 self-start rounded-xl bg-gray-100 p-1 lg:self-auto">
-          {([7, 14, 30] as TimeframeType[]).map((days) => (
+        {/* View mode switcher & Month navigator */}
+        <div className="flex flex-wrap items-center gap-2">
+          
+          {/* Preset Buttons */}
+          <div className="flex items-center gap-1 rounded-xl bg-gray-100 p-1">
             <button
-              key={days}
               type="button"
-              onClick={() => setTimeframe(days)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                timeframe === days
+              onClick={() => setViewMode('7d')}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                viewMode === '7d'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <Calendar className="h-3 w-3" />
-              {days} Giorni
+              7 Giorni
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={() => setViewMode('30d')}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                viewMode === '30d'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              30 Giorni
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('month')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                viewMode === 'month'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Calendar className="h-3.5 w-3.5" />
+              Mese per Mese
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('annual')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                viewMode === 'annual'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              Anno {currentYear}
+            </button>
+          </div>
+
+          {/* Month Stepper Selector (Visible in 'month' mode) */}
+          {viewMode === 'month' && (
+            <div className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={handlePrevMonth}
+                disabled={!hasPrevMonth}
+                className="rounded-lg p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                title="Mese precedente"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="bg-transparent text-xs font-bold text-gray-900 py-1 px-2 cursor-pointer focus:outline-none capitalize"
+              >
+                {availableMonths.map((m) => (
+                  <option key={m} value={m}>
+                    {formatMonthName(m)}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                onClick={handleNextMonth}
+                disabled={!hasNextMonth}
+                className="rounded-lg p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                title="Mese successivo"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -204,43 +449,47 @@ export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ 
 
       {/* 3. Executive Summary KPI Cards */}
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-3.5 shadow-sm">
-          <p className="text-xs font-medium text-gray-500">Totale {timeframe}gg</p>
-          <p className={`mt-1 text-lg sm:text-xl font-bold ${config.textAccent}`}>
+        <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-gray-500 truncate">Totale {periodLabel}</p>
+          <p className={`mt-1 text-lg sm:text-2xl font-bold ${config.textAccent}`}>
             {config.formatValue(stats.total)}
           </p>
           <span className="mt-0.5 block text-[10px] text-gray-400">{config.unit} complessivi</span>
         </div>
 
-        <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-3.5 shadow-sm">
-          <p className="text-xs font-medium text-gray-500">Picco Giornaliero</p>
-          <p className="mt-1 text-lg sm:text-xl font-bold text-gray-900">
+        <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-gray-500">Picco del Periodo</p>
+          <p className="mt-1 text-lg sm:text-2xl font-bold text-gray-900">
             {config.formatValue(stats.max)}
           </p>
           <span className="mt-0.5 block text-[10px] text-gray-400 truncate">
-            {stats.maxDate
-              ? new Date(`${stats.maxDate}T12:00:00Z`).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })
-              : 'N/D'}
+            {stats.maxLabel || 'N/D'}
           </span>
         </div>
 
-        <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-3.5 shadow-sm">
-          <p className="text-xs font-medium text-gray-500">Media al Giorno</p>
-          <p className="mt-1 text-lg sm:text-xl font-bold text-gray-900">
+        <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-gray-500">
+            {viewMode === 'annual' ? 'Media al Mese' : 'Media al Giorno'}
+          </p>
+          <p className="mt-1 text-lg sm:text-2xl font-bold text-gray-900">
             {selectedMetric === 'revenue'
               ? formatCurrency(stats.average)
               : stats.average.toFixed(1)}
           </p>
-          <span className="mt-0.5 block text-[10px] text-gray-400">media su {timeframe} giorni</span>
+          <span className="mt-0.5 block text-[10px] text-gray-400">
+            media su {chartItems.length} {viewMode === 'annual' ? 'mesi' : 'giorni'}
+          </span>
         </div>
 
-        <div className="rounded-xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-3.5 shadow-sm">
-          <p className="text-xs font-medium text-gray-500">Giorni con Attività</p>
-          <p className="mt-1 text-lg sm:text-xl font-bold text-emerald-600">
-            {stats.activeDaysCount} / {timeframe}
+        <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-gray-500">
+            {viewMode === 'annual' ? 'Mesi con Vendite' : 'Giorni con Attività'}
+          </p>
+          <p className="mt-1 text-lg sm:text-2xl font-bold text-emerald-600">
+            {stats.activeDaysCount} / {chartItems.length}
           </p>
           <span className="mt-0.5 block text-[10px] text-gray-400">
-            {Math.round((stats.activeDaysCount / timeframe) * 100)}% di continuità
+            {Math.round((stats.activeDaysCount / (chartItems.length || 1)) * 100)}% di continuità
           </span>
         </div>
       </div>
@@ -249,14 +498,10 @@ export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ 
       <div className="relative mt-6 overflow-x-auto rounded-2xl border border-gray-100 bg-gradient-to-b from-gray-50/70 via-white to-gray-50/40 p-4 sm:p-5">
         {/* Floating Interactive Tooltip */}
         {hoveredDay && (
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 rounded-xl border border-gray-200 bg-white/95 px-4 py-2 shadow-xl backdrop-blur-md transition-all z-30 pointer-events-none min-w-[220px]">
-            <div className="flex items-center justify-between gap-2 border-b border-gray-100 pb-1">
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 rounded-xl border border-gray-200 bg-white/95 px-4 py-2.5 shadow-xl backdrop-blur-md transition-all z-30 pointer-events-none min-w-[220px]">
+            <div className="flex items-center justify-between gap-2 border-b border-gray-100 pb-1.5">
               <span className="text-xs font-bold text-gray-900 capitalize">
-                {new Date(`${hoveredDay.date}T12:00:00Z`).toLocaleDateString('it-IT', {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'short',
-                })}
+                {hoveredDay.label}
               </span>
               <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${config.bgBadge}`}>
                 {config.label}
@@ -285,33 +530,35 @@ export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ 
 
         {/* The Bars Grid */}
         <div
-          className={`grid h-48 items-end gap-1 sm:gap-2 ${timeframe > 14 ? 'min-w-[500px]' : 'w-full'}`}
-          style={{ gridTemplateColumns: `repeat(${filteredData.length}, minmax(0, 1fr))` }}
+          className={`grid h-52 items-end gap-1 sm:gap-2 ${
+            chartItems.length > 20 ? 'min-w-[550px]' : 'w-full'
+          }`}
+          style={{ gridTemplateColumns: `repeat(${chartItems.length}, minmax(0, 1fr))` }}
         >
-          {filteredData.map((day, idx) => {
-            const rawVal = (day[selectedMetric] as number) || 0;
+          {chartItems.map((item) => {
+            const rawVal = (item[selectedMetric] as number) || 0;
             const heightPercent = Math.max((rawVal / chartMax) * 100, rawVal > 0 ? 10 : 3);
             const isHighlighted = rawVal === stats.max && rawVal > 0;
-            const isHovered = hoveredDay?.date === day.date;
-            const dateObj = new Date(`${day.date}T12:00:00Z`);
-            const dayOfWeek = dateObj.toLocaleDateString('it-IT', { weekday: 'short' });
-            const dayNum = dateObj.toLocaleDateString('it-IT', { day: 'numeric' });
-
-            // On mobile 14d/30d view, skip some labels to prevent cramping
-            const isLabelVisible = 
-              timeframe === 7 ||
-              (timeframe === 14 && (idx % 2 === 0 || idx === filteredData.length - 1)) ||
-              (timeframe === 30 && (idx % 4 === 0 || idx === filteredData.length - 1));
+            const isHovered = hoveredDay?.label === item.tooltipTitle;
 
             return (
               <div
-                key={day.date}
-                onMouseEnter={() => setHoveredDay(day)}
+                key={item.key}
+                onMouseEnter={() =>
+                  setHoveredDay({
+                    label: item.tooltipTitle,
+                    date: item.date,
+                    active_users: item.active_users,
+                    revenue: item.revenue,
+                    orders_count: item.orders_count,
+                    lessons_completed: item.lessons_completed,
+                  })
+                }
                 onMouseLeave={() => setHoveredDay(null)}
                 className="group relative flex h-full min-w-0 flex-col justify-end text-center cursor-pointer"
               >
-                {/* Top value indicator (only on 7d or hover to avoid clutter) */}
-                {(timeframe === 7 || isHovered) && (
+                {/* Top value indicator (on 7d, annual, or hover) */}
+                {(viewMode === '7d' || viewMode === 'annual' || isHovered) && (
                   <span
                     className={`mb-1 truncate text-[10px] sm:text-xs font-bold transition-all ${
                       isHighlighted
@@ -346,20 +593,20 @@ export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ 
                   )}
                 </div>
 
-                {/* Bottom Date Label */}
+                {/* Bottom Date / Month Label */}
                 <div className="mt-2 text-center h-8 flex flex-col justify-start">
-                  {isLabelVisible ? (
-                    <>
-                      <span className="block text-[9px] font-medium text-gray-500 capitalize leading-tight">
-                        {timeframe === 7 ? dayOfWeek : ''}
-                      </span>
-                      <span className="block text-[10px] font-bold text-gray-700 leading-tight">
-                        {dayNum}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="block text-[10px] text-transparent leading-tight">•</span>
+                  {item.topLabel && (
+                    <span className="block text-[9px] font-medium text-gray-500 capitalize leading-tight">
+                      {item.topLabel}
+                    </span>
                   )}
+                  <span
+                    className={`block text-[10px] font-bold leading-tight capitalize ${
+                      item.isDimLabel ? 'text-transparent' : 'text-gray-700'
+                    }`}
+                  >
+                    {item.bottomLabel}
+                  </span>
                 </div>
               </div>
             );
@@ -368,21 +615,14 @@ export const BusinessAnalyticsChart: React.FC<BusinessAnalyticsChartProps> = ({ 
       </div>
 
       {/* 5. Smart Business Footnote */}
-      <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
+      <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-2xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-amber-500 shrink-0" />
           <span>
             {stats.max > 0 ? (
               <>
-                Picco di <strong>{config.formatValue(stats.max)}</strong> registrato il{' '}
-                <strong>
-                  {new Date(`${stats.maxDate}T12:00:00Z`).toLocaleDateString('it-IT', {
-                    weekday: 'long',
-                    day: 'numeric',
-                    month: 'long',
-                  })}
-                </strong>
-                . Continuità nel periodo all'<strong>{Math.round((stats.activeDaysCount / timeframe) * 100)}%</strong>.
+                Picco di <strong>{config.formatValue(stats.max)}</strong> ({stats.maxLabel}).
+                Continuità nel periodo all'<strong>{Math.round((stats.activeDaysCount / (chartItems.length || 1)) * 100)}%</strong>.
               </>
             ) : (
               'Nessun dato registrato nel periodo selezionato.'

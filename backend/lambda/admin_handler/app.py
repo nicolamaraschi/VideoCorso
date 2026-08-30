@@ -2680,7 +2680,8 @@ def get_stats():
                 lessons_completed_by_day[day] = lessons_completed_by_day.get(day, 0) + 1
 
     daily_access_chart = []
-    for offset in range(29, -1, -1):
+    # Provide 365 days of full history so admin can navigate across all months of the year
+    for offset in range(365, -1, -1):
         day = (today.fromordinal(today.toordinal() - offset)).isoformat()
         daily_access_chart.append({
             'date': day,
