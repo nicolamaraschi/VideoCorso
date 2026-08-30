@@ -86,14 +86,14 @@ export const LoginPage: React.FC = () => {
         <img 
           src="/login-beauty.webp" 
           alt="Microblading Masterclass" 
-          className="absolute inset-0 w-full h-full object-cover object-[center_20%]"
+          className="absolute inset-0 w-full h-full object-cover object-[center_35%]"
         />
-        {/* Luxury Vignette Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-primary-950/20 to-black/25"></div>
+        {/* Luxury Vignette Gradient Overlay (darker at top for card, clear at center/bottom for treatment) */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/10 to-black/20"></div>
 
-        {/* Floating Quote Card */}
-        <div className="absolute bottom-6 left-6 right-6 lg:bottom-10 lg:left-10 lg:right-10">
-          <div className="rounded-2xl border border-white/20 bg-black/45 p-5 lg:p-6 backdrop-blur-md shadow-2xl">
+        {/* Floating Quote Card (Positioned at TOP so the treatment below is 100% visible) */}
+        <div className="absolute top-6 left-6 right-6 lg:top-8 lg:left-10 lg:right-10 z-10">
+          <div className="rounded-2xl border border-white/20 bg-black/45 p-4 sm:p-5 lg:p-6 backdrop-blur-md shadow-2xl">
             <div className="flex items-center gap-1 text-amber-400 mb-2">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="w-3.5 h-3.5 fill-current" />
@@ -105,7 +105,7 @@ export const LoginPage: React.FC = () => {
               "Il microblading non è solo una tecnica: è l'abilità di creare naturalezza assoluta e costruire un business che ti dà libertà e autorevolezza."
             </p>
 
-            <div className="mt-3.5 pt-3 border-t border-white/15 flex items-center justify-between">
+            <div className="mt-3 pt-2.5 border-t border-white/15 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-300" />
                 <span className="text-xs font-semibold text-primary-200">Chiara Morocutti</span>
