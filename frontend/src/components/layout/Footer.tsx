@@ -132,7 +132,7 @@ export const Footer: React.FC = () => {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
           <p className="text-base text-gray-500 text-center md:text-left">
-            &copy; {currentYear} Chiara Morocutti Academy. Tutti i diritti riservati. P.IVA 12345678901
+            &copy; {currentYear} Chiara Morocutti Academy. Tutti i diritti riservati. P.IVA 12841360964
           </p>
           <div className="mt-4 md:mt-0 flex space-x-6">
             <span className="text-sm text-gray-600">

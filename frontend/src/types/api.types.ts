@@ -111,6 +111,20 @@ export interface UploadImageResponse {
   expires_at: string;
 }
 
+export interface UploadMaterialRequest {
+  file_name: string;
+  file_type: string;
+  lesson_id?: string;
+}
+
+export interface UploadMaterialResponse {
+  upload_url: string;
+  s3_key: string;
+  file_name: string;
+  file_type: string;
+  expires_at: string;
+}
+
 export interface AdminCourseRequest {
   title: string;
   description: string;
@@ -146,6 +160,7 @@ export interface CreateLessonRequest {
   video_s3_key: string;
   thumbnail_url?: string;
   is_free_preview?: boolean;
+  attachments?: import('./course.types').LessonAttachment[];
 }
 
 export interface ReorderRequest {

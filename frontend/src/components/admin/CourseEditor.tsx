@@ -1,7 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, GripVertical, Save, Play, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+  Plus,
+  Edit,
+  Trash2,
+  GripVertical,
+  Save,
+  Play,
+  ArrowUp,
+  ArrowDown,
+  Paperclip,
+  FileText,
+  Upload,
+  Download,
+  Loader2,
+  ExternalLink,
+} from 'lucide-react';
 import { Reorder } from 'framer-motion';
-import type { Chapter, Lesson, VideoQuality } from '../../types';
+import type { Chapter, Lesson, LessonAttachment, VideoQuality } from '../../types';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { VideoUploader } from './VideoUploader';
@@ -9,6 +24,7 @@ import { ImageUploader } from './ImageUploader';
 // FIX: Importa i componenti necessari per l'anteprima
 import { VideoPlayer } from '../course/VideoPlayer';
 import { courseService } from '../../services/courseService';
+import { adminService } from '../../services/adminService';
 import { Loading } from '../common/Loading';
 
 type LessonFormData = {
@@ -18,6 +34,7 @@ type LessonFormData = {
   video_s3_key: string;
   thumbnail_url?: string;
   is_free_preview: boolean;
+  attachments?: LessonAttachment[];
 };
 
 interface CourseEditorProps {
@@ -174,18 +191,73 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const [previewMissing, setPreviewMissing] = useState(false);
   const [replacingThumbnail, setReplacingThumbnail] = useState(false);
   const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
+  const [uploadingMaterial, setUploadingMaterial] = useState(false);
+  const [materialError, setMaterialError] = useState<string | null>(null);
 
   const [chapterForm, setChapterForm] = useState({ title: '', description: '', image_url: '' });
-  const [lessonForm, setLessonForm] = useState({
+  const [lessonForm, setLessonForm] = useState<LessonFormData>({
     title: '',
     description: '',
     duration_seconds: 0,
     video_s3_key: '',
     thumbnail_url: '',
     is_free_preview: false,
+    attachments: [],
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleMaterialUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploadingMaterial(true);
+    setMaterialError(null);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const res = await adminService.getMaterialUploadUrl({
+          file_name: file.name,
+          file_type: file.type || 'application/octet-stream',
+          lesson_id: editingLesson?.lesson_id || selectedChapterId || 'general',
+        });
+        await adminService.uploadMaterialToS3(res.upload_url, file);
+        const newAttachment: LessonAttachment = {
+          id: `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          title: file.name.replace(/\.[^/.]+$/, ''),
+          file_name: res.file_name,
+          s3_key: res.s3_key,
+          file_size: file.size,
+          file_type: file.type || 'application/octet-stream',
+          download_url: null,
+          created_at: new Date().toISOString(),
+        };
+        setLessonForm((prev) => ({
+          ...prev,
+          attachments: [...(prev.attachments || []), newAttachment],
+        }));
+      }
+    } catch (err) {
+      console.error('Material upload error:', err);
+      setMaterialError('Impossibile caricare il materiale. Riprova con un altro file.');
+    } finally {
+      setUploadingMaterial(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveAttachment = (attId: string) => {
+    setLessonForm((prev) => ({
+      ...prev,
+      attachments: (prev.attachments || []).filter((a) => a.id !== attId),
+    }));
+  };
+
+  const handleUpdateAttachmentTitle = (attId: string, title: string) => {
+    setLessonForm((prev) => ({
+      ...prev,
+      attachments: (prev.attachments || []).map((a) => (a.id === attId ? { ...a, title } : a)),
+    }));
+  };
 
   const handleCreateChapter = async () => {
     if (isSubmitting) return;
@@ -229,6 +301,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const handleCreateLesson = (chapterId: string) => {
     setSelectedChapterId(chapterId);
     setReplacingThumbnail(false);
+    setMaterialError(null);
     setLessonForm({
       title: '',
       description: '',
@@ -236,6 +309,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       video_s3_key: '',
       thumbnail_url: '',
       is_free_preview: false,
+      attachments: [],
     });
     setShowLessonModal(true);
   };
@@ -250,6 +324,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         duration_seconds: lessonForm.duration_seconds,
         thumbnail_url: lessonForm.thumbnail_url || '',
         is_free_preview: lessonForm.is_free_preview,
+        attachments: lessonForm.attachments || [],
       };
 
       if (lessonForm.video_s3_key) {
@@ -520,6 +595,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                             onClick={() => {
                               setEditingLesson(lesson);
                               setReplacingThumbnail(false);
+                              setMaterialError(null);
                               setLessonForm({
                                 title: lesson.title,
                                 description: lesson.description,
@@ -527,6 +603,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                                 video_s3_key: lesson.video_s3_key,
                                 thumbnail_url: lesson.thumbnail_url || '',
                                 is_free_preview: lesson.is_free_preview || false,
+                                attachments: lesson.attachments ? [...lesson.attachments] : [],
                               });
                               setShowLessonModal(true);
                             }}
@@ -753,7 +830,134 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             value={lessonForm.duration_seconds}
           />
 
-          <div className="flex items-center gap-2">
+          {/* Sezione Materiali Didattici e Allegati */}
+          <div className="space-y-3 pt-2 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                  <Paperclip className="w-4 h-4 text-primary-600" />
+                  Materiali Didattici e Allegati (PDF, PowerPoint, Dispense)
+                </label>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Documenti e risorse di studio scaricabili dai corsisti che hanno acquistato il corso.
+                </p>
+              </div>
+              <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                uploadingMaterial
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-primary-50 text-primary-700 hover:bg-primary-100 border border-primary-200'
+              }`}>
+                {uploadingMaterial ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Caricamento...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>+ Aggiungi file</span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.zip,.rar,.png,.jpg,.jpeg"
+                  className="hidden"
+                  disabled={uploadingMaterial}
+                  onChange={handleMaterialUpload}
+                />
+              </label>
+            </div>
+
+            {materialError && (
+              <p className="text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-200">
+                {materialError}
+              </p>
+            )}
+
+            {lessonForm.attachments && lessonForm.attachments.length > 0 ? (
+              <div className="space-y-2">
+                {lessonForm.attachments.map((att, idx) => {
+                  const isPdf = att.file_name.toLowerCase().endsWith('.pdf') || att.file_type?.includes('pdf');
+                  const isPpt = att.file_name.toLowerCase().match(/\.(ppt|pptx)$/) || att.file_type?.includes('presentation');
+                  const isDoc = att.file_name.toLowerCase().match(/\.(doc|docx)$/) || att.file_type?.includes('word');
+                  const isZip = att.file_name.toLowerCase().match(/\.(zip|rar)$/);
+
+                  const badgeColor = isPdf
+                    ? 'bg-red-50 text-red-700 border-red-200'
+                    : isPpt
+                    ? 'bg-orange-50 text-orange-700 border-orange-200'
+                    : isDoc
+                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                    : isZip
+                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                    : 'bg-gray-50 text-gray-700 border-gray-200';
+
+                  const formatSize = (bytes?: number) => {
+                    if (!bytes || bytes <= 0) return '';
+                    const k = 1024;
+                    const sizes = ['B', 'KB', 'MB', 'GB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+                  };
+
+                  return (
+                    <div
+                      key={att.id || idx}
+                      className="flex items-center justify-between gap-3 p-3 bg-gray-50/80 rounded-xl border border-gray-200 hover:border-gray-300 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className={`p-2 rounded-lg border flex-shrink-0 ${badgeColor}`}>
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <input
+                            type="text"
+                            value={att.title}
+                            onChange={(e) => handleUpdateAttachmentTitle(att.id, e.target.value)}
+                            placeholder="Titolo documento (es. Dispensa Modulo 1)"
+                            className="w-full text-xs font-semibold text-gray-900 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-primary-500 focus:bg-white focus:outline-hidden px-1 py-0.5 rounded transition-all"
+                          />
+                          <p className="text-[11px] text-gray-500 px-1 truncate">
+                            {att.file_name} {att.file_size ? `• ${formatSize(att.file_size)}` : ''}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        {att.download_url && (
+                          <a
+                            href={att.download_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                            title="Apri file"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAttachment(att.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Rimuovi allegato"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-4 border border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+                <FileText className="w-6 h-6 text-gray-300 mx-auto mb-1" />
+                <p className="text-xs text-gray-400">Nessun materiale didattico allegato a questa lezione.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
             <input
               type="checkbox"
               id="freePreview"

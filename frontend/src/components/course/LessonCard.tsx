@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, CheckCircle, Lock, Clock } from 'lucide-react';
+import { Play, CheckCircle, Lock, Clock, Paperclip } from 'lucide-react';
 import type { Lesson, Progress } from '../../types';
 import { formatDuration } from '../../utils/formatters';
 
@@ -84,14 +84,20 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 
       {/* Lesson Content Column (Takes 100% of remaining width with zero cramped wrapping) */}
       <div className="min-w-0 flex-1 flex flex-col justify-center">
-        {/* Top Metadata: Lesson number + Preview Tag */}
-        <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
+        {/* Top Metadata: Lesson number + Preview Tag + Attachments */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
           <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-primary-800">
             Lezione {lesson.order_number}
           </span>
           {lesson.is_free_preview && (
             <span className="text-[10px] sm:text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded">
               Anteprima Gratuita
+            </span>
+          )}
+          {lesson.attachments && lesson.attachments.length > 0 && (
+            <span className="text-[10px] sm:text-xs font-medium text-primary-700 bg-primary-50 border border-primary-200 px-1.5 py-0.2 rounded inline-flex items-center gap-1">
+              <Paperclip className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+              <span>{lesson.attachments.length} {lesson.attachments.length === 1 ? 'risorsa' : 'risorse'}</span>
             </span>
           )}
         </div>

@@ -33,6 +33,7 @@ const emptyPackage = (): CoursePackage => ({
 type LessonEditorPayload = Omit<Pick<Lesson, 'title' | 'description' | 'duration_seconds' | 'video_s3_key' | 'thumbnail_url'>, 'thumbnail_url'> & {
   thumbnail_url?: string;
   is_free_preview?: boolean;
+  attachments?: import('../types').LessonAttachment[];
 };
 
 const emptyCourseForm: AdminCourseRequest = {
@@ -287,6 +288,7 @@ export const AdminCoursePage: React.FC = () => {
         video_s3_key: data.video_s3_key,
         thumbnail_url: data.thumbnail_url,
         is_free_preview: data.is_free_preview,
+        attachments: data.attachments,
       });
       showSuccess('Lezione creata', `La lezione “${data.title}” è stata aggiunta al capitolo.`);
       await reload();
@@ -808,7 +810,7 @@ export const AdminCoursePage: React.FC = () => {
                       onChange={(e) => updatePackage(pkg.package_id, { includes_kit: e.target.checked })}
                       className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                     />
-                    Include kit fisico
+                    Include kit prodotti (consegna a mano in sede)
                   </label>
                   <label className="flex items-center gap-2">
                     <input

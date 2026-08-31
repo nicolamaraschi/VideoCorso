@@ -729,7 +729,7 @@ export const LandingPage: React.FC = () => {
               },
               {
                 question: "Il kit prodotti per la pratica è incluso?",
-                answer: "Il kit prodotti professionale completo è incluso nel pacchetto Full e ti verrà spedito direttamente a casa. Per i pacchetti Base e Plus, all'interno del corso troverai la lista esatta dei materiali consigliati e i link per acquistarli al miglior prezzo."
+                answer: "Il kit prodotti professionale completo è incluso nel pacchetto Full e ti verrà consegnato a mano direttamente durante le giornate di formazione pratica in sede con Chiara. Per i pacchetti Base e Plus, all'interno del corso troverai la lista esatta dei materiali consigliati e i link per acquistarli al miglior prezzo."
               },
               {
                 question: "Per quanto tempo avrò accesso ai video?",

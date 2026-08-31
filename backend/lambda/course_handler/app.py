@@ -142,9 +142,9 @@ def normalize_course(course: dict[str, Any]) -> dict[str, Any]:
 
 
 def package_requires_shipping_address(package: dict[str, Any]) -> bool:
-    """A physical kit must be mailed to the buyer, so checkout must collect
-    an address for any package that includes one."""
-    return normalize_bool(package.get('includes_kit', False))
+    """Kits are handed over in-person during studio training with Chiara, so no shipping is required."""
+    del package
+    return False
 
 
 def find_package(course: dict[str, Any], package_id: Optional[str]) -> Optional[dict[str, Any]]:
@@ -296,6 +296,37 @@ def filter_lesson_for_access(lesson: dict[str, Any], has_access: bool, is_user_a
     lesson_copy['is_locked'] = not (has_access or lesson_copy['is_free_preview'])
     if lesson_copy['is_locked'] and not is_user_admin:
         lesson_copy.pop('video_s3_key', None)
+
+    # Process attachments
+    raw_attachments = lesson_copy.get('attachments') or []
+    processed_attachments = []
+    can_download = (not lesson_copy['is_locked']) or is_user_admin
+    for att in raw_attachments:
+        if not isinstance(att, dict):
+            continue
+        att_copy = dict(att)
+        s3_key = att_copy.get('s3_key')
+        if can_download and s3_key and video_bucket_name:
+            try:
+                safe_filename = att_copy.get('file_name') or 'document'
+                download_url = s3_client.generate_presigned_url(
+                    'get_object',
+                    Params={
+                        'Bucket': video_bucket_name,
+                        'Key': s3_key,
+                        'ResponseContentDisposition': f'inline; filename="{safe_filename}"',
+                    },
+                    ExpiresIn=7200,
+                )
+                att_copy['download_url'] = download_url
+            except Exception as exc:
+                print(f'Error generating presigned url for attachment {s3_key}: {exc}')
+                att_copy['download_url'] = None
+        else:
+            att_copy.pop('s3_key', None)
+            att_copy['download_url'] = None
+        processed_attachments.append(att_copy)
+    lesson_copy['attachments'] = processed_attachments
     return lesson_copy
 
 
@@ -423,11 +454,13 @@ def get_free_previews():
 
 
 dynamodb = boto3.resource('dynamodb')
+s3_client = boto3.client('s3')
 courses_table = dynamodb.Table(os.environ.get('COURSES_TABLE'))
 chapters_table = dynamodb.Table(os.environ.get('CHAPTERS_TABLE'))
 lessons_table = dynamodb.Table(os.environ.get('LESSONS_TABLE'))
 purchases_table = dynamodb.Table(os.environ.get('PURCHASES_TABLE'))
 users_table = dynamodb.Table(os.environ.get('USERS_TABLE'))
+video_bucket_name = os.environ.get('VIDEO_BUCKET')
 
 def lambda_handler(event, context):
     del context

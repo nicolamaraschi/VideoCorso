@@ -132,6 +132,9 @@ def delete_lesson_assets(lesson: dict[str, Any]) -> None:
         THUMBNAIL_BUCKET,
         get_owned_s3_key(lesson.get('thumbnail_url'), THUMBNAIL_BUCKET),
     )
+    for att in (lesson.get('attachments') or []):
+        if isinstance(att, dict) and att.get('s3_key'):
+            delete_s3_object_safely(VIDEO_BUCKET, att['s3_key'])
 
 
 def delete_chapter_assets(chapter: dict[str, Any]) -> None:
@@ -1274,6 +1277,19 @@ def create_lesson(body):
         return create_response(400, {'error': 'Lesson duration must be numeric'})
 
     existing = get_chapter_lessons(chapter_id)
+    attachments = []
+    for att in (body.get('attachments') or []):
+        if isinstance(att, dict) and att.get('s3_key'):
+            attachments.append({
+                'id': str(att.get('id') or uuid.uuid4()),
+                'title': str(att.get('title') or att.get('file_name') or 'Allegato').strip(),
+                'file_name': str(att.get('file_name') or 'file').strip(),
+                's3_key': str(att.get('s3_key')).strip(),
+                'file_size': int(att.get('file_size') or 0),
+                'file_type': str(att.get('file_type') or 'application/octet-stream').strip(),
+                'created_at': str(att.get('created_at') or now_iso()),
+            })
+
     item = {
         'lesson_id': str(uuid.uuid4()),
         'chapter_id': chapter_id,
@@ -1284,6 +1300,7 @@ def create_lesson(body):
         'video_s3_key': body.get('video_s3_key', ''),
         'thumbnail_url': body.get('thumbnail_url', ''),
         'is_free_preview': normalize_bool(body.get('is_free_preview', False)),
+        'attachments': attachments,
         'asset_version': body.get('asset_version') or None,
         'transcode_job_id': None,
         'created_at': now_iso(),
@@ -1310,10 +1327,24 @@ def update_lesson(lesson_id, body):
     expression_names = {}
     replacing_video = body.get('video_s3_key') and body.get('video_s3_key') != lesson.get('video_s3_key')
     pending_replacement = False
-    for key in ('title', 'description', 'duration_seconds', 'thumbnail_url', 'is_free_preview'):
+    for key in ('title', 'description', 'duration_seconds', 'thumbnail_url', 'is_free_preview', 'attachments'):
         if key not in body:
             continue
         value = body[key]
+        if key == 'attachments':
+            normalized_attachments = []
+            for att in (value or []):
+                if isinstance(att, dict) and att.get('s3_key'):
+                    normalized_attachments.append({
+                        'id': str(att.get('id') or uuid.uuid4()),
+                        'title': str(att.get('title') or att.get('file_name') or 'Allegato').strip(),
+                        'file_name': str(att.get('file_name') or 'file').strip(),
+                        's3_key': str(att.get('s3_key')).strip(),
+                        'file_size': int(att.get('file_size') or 0),
+                        'file_type': str(att.get('file_type') or 'application/octet-stream').strip(),
+                        'created_at': str(att.get('created_at') or now_iso()),
+                    })
+            value = normalized_attachments
         expression_names[f'#{key}'] = key
         fields.append(f'#{key} = :{key}')
         values[f':{key}'] = value
@@ -1504,6 +1535,30 @@ def get_presigned_image_upload_url(body):
         'image_s3_key': s3_key,
         'image_url': build_public_s3_url(THUMBNAIL_BUCKET, s3_key),
         'expires_at': now_iso(),
+    })
+
+
+def get_presigned_material_upload_url(body):
+    file_name = body.get('file_name')
+    file_type = body.get('file_type')
+    lesson_id = (body.get('lesson_id') or 'general').strip()
+    if not file_name or not file_type:
+        return create_response(400, {'error': 'file_name and file_type are required'})
+
+    safe_name = os.path.basename(str(file_name)).replace(' ', '_')
+    s3_key = f"materials/{lesson_id}/{uuid.uuid4().hex}_{safe_name}"
+
+    url = s3_client.generate_presigned_url(
+        'put_object',
+        Params={'Bucket': VIDEO_BUCKET, 'Key': s3_key, 'ContentType': file_type},
+        ExpiresIn=3600,
+    )
+    return create_response(200, {
+        'upload_url': url,
+        's3_key': s3_key,
+        'file_name': safe_name,
+        'file_type': file_type,
+        'expires_at': (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat().replace('+00:00', 'Z'),
     })
 
 
@@ -3012,6 +3067,8 @@ def lambda_handler(event, context):
             return get_presigned_upload_url(body)
         if path == '/admin/image/upload' and http_method == 'POST':
             return get_presigned_image_upload_url(body)
+        if path == '/admin/material/upload' and http_method == 'POST':
+            return get_presigned_material_upload_url(body)
         if path.startswith('/admin/video/') and http_method == 'DELETE':
             return delete_video(path_parameters.get('videoId'))
         if path == '/admin/video/thumbnail' and http_method == 'POST':

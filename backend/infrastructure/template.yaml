@@ -677,6 +677,8 @@ Resources:
       Layers:
         - !Ref SharedLayer
       Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref VideoBucket
         - DynamoDBCrudPolicy:
             TableName: !Ref CoursesTable
         - DynamoDBCrudPolicy:
@@ -1243,6 +1245,12 @@ Resources:
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /admin/image/upload
+            Method: POST
+        UploadMaterial:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/material/upload
             Method: POST
         DeleteVideo:
           Type: Api

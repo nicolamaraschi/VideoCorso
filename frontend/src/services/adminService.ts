@@ -20,6 +20,8 @@ import type {
   UploadVideoResponse,
   UploadImageRequest,
   UploadImageResponse,
+  UploadMaterialRequest,
+  UploadMaterialResponse,
   CreateChapterRequest,
   CreateLessonRequest,
   User,
@@ -33,6 +35,18 @@ export const adminService = {
 
   async getImageUploadUrl(data: UploadImageRequest): Promise<UploadImageResponse> {
     return apiClient.post<UploadImageResponse>('/admin/image/upload', data);
+  },
+
+  async getMaterialUploadUrl(data: UploadMaterialRequest): Promise<UploadMaterialResponse> {
+    return apiClient.post<UploadMaterialResponse>('/admin/material/upload', data);
+  },
+
+  async uploadMaterialToS3(uploadUrl: string, file: File): Promise<void> {
+    await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+    });
   },
 
   async uploadVideoToS3(uploadUrl: string, file: File): Promise<void> {

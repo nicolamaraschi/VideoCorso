@@ -338,8 +338,9 @@ def find_package(course: dict[str, Any], package_id: Optional[str]) -> Optional[
 
 
 def package_requires_shipping_address(package: Optional[dict[str, Any]]) -> bool:
-    """A physical kit must be mailed to the buyer."""
-    return bool(package) and normalize_bool(package.get('includes_kit', False))
+    """Kits are handed over in-person during studio training with Chiara, so no shipping is required."""
+    del package
+    return False
 
 
 def get_package_effective_price(package: dict[str, Any]) -> Decimal:
