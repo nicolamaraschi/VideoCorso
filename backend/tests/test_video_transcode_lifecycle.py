@@ -76,8 +76,8 @@ def test_build_job_settings_respects_portrait_orientation():
     landscape_job = transcoder.build_job_settings("s3://bucket/source.mp4", "s3://bucket/out", is_portrait=False)
     portrait_job = transcoder.build_job_settings("s3://bucket/source.mp4", "s3://bucket/out", is_portrait=True)
 
-    land_720 = landscape_job['OutputGroups'][0]['Outputs'][0]['VideoDescription']
-    port_720 = portrait_job['OutputGroups'][0]['Outputs'][0]['VideoDescription']
+    land_1080 = landscape_job['OutputGroups'][0]['Outputs'][0]['VideoDescription']
+    port_1080 = portrait_job['OutputGroups'][0]['Outputs'][0]['VideoDescription']
 
-    assert land_720['Width'] == 1280 and land_720['Height'] == 720
-    assert port_720['Width'] == 720 and port_720['Height'] == 1280
+    assert land_1080['Width'] == 1920 and land_1080['Height'] == 1080
+    assert port_1080['Width'] == 1080 and port_1080['Height'] == 1920

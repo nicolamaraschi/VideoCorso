@@ -267,18 +267,17 @@ def mark_job_completion(detail: dict, bucket: str) -> None:
             source='video_transcode',
             error_message=str(detail.get('errorMessage') or ''),
         )
-        delete_prefix(bucket, prefix)
+ENABLE_TRANSCODING = os.environ.get('ENABLE_TRANSCODING', 'false').lower() == 'true'
 
 
 def lambda_handler(event, context):
     del context
-    bucket = os.environ['VIDEO_BUCKET']
-    role = os.environ['MEDIACONVERT_ROLE_ARN']
+    bucket = os.environ.get('VIDEO_BUCKET', '')
+    role = os.environ.get('MEDIACONVERT_ROLE_ARN', '')
+
     if event.get('source') == 'aws.mediaconvert' and event.get('detail-type') == 'MediaConvert Job State Change':
         mark_job_completion(event.get('detail') or {}, bucket)
         return {'statusCode': 200}
-
-    client = mediaconvert_client()
 
     records = event.get('Records', [])
     if event.get('source') == 'aws.s3' and event.get('detail-type') == 'Object Created':
@@ -286,6 +285,31 @@ def lambda_handler(event, context):
             'bucket': {'name': event['detail']['bucket']['name']},
             'object': {'key': event['detail']['object']['key']},
         }}]
+
+    if not ENABLE_TRANSCODING:
+        print("Auto-transcoding is DISABLED. Activating native resolution video (0.00€ MediaConvert cost).")
+        for record in records:
+            source_key = unquote_plus(record['s3']['object']['key'])
+            if not source_key.startswith('videos/') or not source_key.lower().endswith(VIDEO_EXTENSIONS):
+                continue
+            lesson_id, asset_version = parse_versioned_source_key(source_key)
+            if lesson_id:
+                try:
+                    lessons_table.update_item(
+                        Key={'lesson_id': lesson_id},
+                        UpdateExpression='SET video_s3_key = :source, asset_version = :version, transcode_status = :status REMOVE pending_video_s3_key, pending_asset_version, pending_transcode_status',
+                        ExpressionAttributeValues={
+                            ':source': source_key,
+                            ':version': asset_version or 'native',
+                            ':status': 'NATIVE',
+                        }
+                    )
+                    print(f"Directly activated native resolution video for lesson {lesson_id} ({source_key})")
+                except Exception as exc:
+                    print(f"Failed to directly activate native video for {lesson_id}: {exc}")
+        return {'statusCode': 200, 'message': 'Transcoding bypassed (native resolution active)'}
+
+    client = mediaconvert_client()
 
     for record in records:
         source_bucket = record['s3']['bucket']['name']

@@ -21,6 +21,13 @@ Parameters:
     Type: String
     Default: ""
     Description: Comma-separated pre-live test recipients; empty disables Resend delivery.
+  EnableTranscoding:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Whether to run AWS MediaConvert jobs on video upload (cost per minute). Default false (0.00€ cost).
 
 Globals:
   Function:
@@ -29,6 +36,7 @@ Globals:
     MemorySize: 512
     Environment:
       Variables:
+        ENABLE_TRANSCODING: !Ref EnableTranscoding
         ENVIRONMENT: !Ref Environment
         COURSES_TABLE: !Ref CoursesTable
         CHAPTERS_TABLE: !Ref ChaptersTable

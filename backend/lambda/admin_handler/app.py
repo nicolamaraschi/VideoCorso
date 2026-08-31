@@ -39,6 +39,8 @@ def load_secret(parameter_env_name: str, legacy_env_name: str) -> Optional[str]:
     return os.environ.get(legacy_env_name)
 
 
+ENABLE_TRANSCODING = os.environ.get('ENABLE_TRANSCODING', 'false').lower() == 'true'
+
 stripe.api_key = load_secret('STRIPE_SECRET_KEY_PARAMETER', 'STRIPE_SECRET_KEY')
 
 
@@ -1352,26 +1354,32 @@ def update_lesson(lesson_id, body):
         asset_version = extract_asset_version(body['video_s3_key'], lesson_id)
         if not asset_version:
             return create_response(400, {'error': 'Replacement video must use videos/<lesson_id>/<asset_version>/source.ext'})
-        # The upload URL endpoint records the pending asset before the browser
-        # uploads it. The following lesson PUT normally arrives afterwards;
-        # preserve its in-flight transcode rather than resetting its job state.
         pending_replacement = (
             lesson.get('pending_video_s3_key') == body['video_s3_key']
             and lesson.get('pending_asset_version') == asset_version
         )
-        if asset_version and not pending_replacement:
-            expression_names['#asset_version'] = 'pending_asset_version'
-            expression_names['#video_s3_key'] = 'pending_video_s3_key'
-            expression_names['#transcode_job_id'] = 'transcode_job_id'
-            expression_names['#transcode_status'] = 'transcode_status'
-            values[':asset_version'] = asset_version
-            values[':video_s3_key'] = body['video_s3_key']
-            values[':transcode_job_id'] = None
-            values[':transcode_status'] = 'PENDING_UPLOAD'
-            fields.extend([
-                '#asset_version = :asset_version', '#video_s3_key = :video_s3_key', '#transcode_job_id = :transcode_job_id',
-                '#transcode_status = :transcode_status',
-            ])
+        if not pending_replacement:
+            if not ENABLE_TRANSCODING:
+                expression_names['#video_s3_key'] = 'video_s3_key'
+                expression_names['#asset_version'] = 'asset_version'
+                expression_names['#transcode_status'] = 'transcode_status'
+                values[':video_s3_key'] = body['video_s3_key']
+                values[':asset_version'] = asset_version or 'native'
+                values[':transcode_status'] = 'NATIVE'
+                fields.extend(['#video_s3_key = :video_s3_key', '#asset_version = :asset_version', '#transcode_status = :transcode_status'])
+            else:
+                expression_names['#asset_version'] = 'pending_asset_version'
+                expression_names['#video_s3_key'] = 'pending_video_s3_key'
+                expression_names['#transcode_job_id'] = 'transcode_job_id'
+                expression_names['#transcode_status'] = 'transcode_status'
+                values[':asset_version'] = asset_version
+                values[':video_s3_key'] = body['video_s3_key']
+                values[':transcode_job_id'] = None
+                values[':transcode_status'] = 'PENDING_UPLOAD'
+                fields.extend([
+                    '#asset_version = :asset_version', '#video_s3_key = :video_s3_key', '#transcode_job_id = :transcode_job_id',
+                    '#transcode_status = :transcode_status',
+                ])
     if not fields:
         if pending_replacement:
             return create_response(200, {'success': True, 'data': lesson})
