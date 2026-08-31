@@ -11,7 +11,6 @@ import {
   Paperclip,
   FileText,
   Upload,
-  Download,
   Loader2,
   ExternalLink,
 } from 'lucide-react';

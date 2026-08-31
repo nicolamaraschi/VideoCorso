@@ -218,6 +218,7 @@ export const CheckoutPage: React.FC = () => {
   const baseTotal = hasPackages
     ? Number(selectedPackage?.discounted_price ?? selectedPackage?.price ?? 0)
     : Number(course?.discounted_price ?? course?.price ?? 0);
+  const checkoutTotal = couponQuote?.final_total ?? baseTotal;
   const requiresShippingAddress = false;
 
   const handleSelectCourse = (nextCourse: CourseListItem) => {
