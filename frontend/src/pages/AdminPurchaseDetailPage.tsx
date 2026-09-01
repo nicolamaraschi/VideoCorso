@@ -76,12 +76,12 @@ DATI DELLA TRANSAZIONE CONTESTATA:
 • ID Pagamento Stripe (PaymentIntent): ${p.stripe_payment_intent_id || p.purchase_id}
 • ID Addebito Stripe (Charge ID): ${p.stripe_charge_id || 'n/d'}
 • ID Sessione Checkout: ${p.stripe_session_id || 'n/d'}
-• Data e Ora Transazione: ${formatDateTime(p.created_at)} (UTC: ${p.created_at})
+• Data e Ora Transazione: ${p.created_at ? formatDateTime(p.created_at) : 'n/d'} (UTC: ${p.created_at || 'n/d'})
 • Email Acquirente Registrata: ${p.customer_email}
-• Nome / Username Registrato: ${p.customer_name || p.user_id || p.customer_email}
+• Nome / Username Registrato: ${p.user_name || p.user_id || p.customer_email}
 • Corso / Masterclass Acquistata: ${p.course_title}
 • Importo Transato: ${p.amount} ${p.currency}
-• Stato Accesso Piattaforma: ${currentDetail.derived_state.course_access_active ? 'ATTIVO (Fruizione Erogata)' : 'REVOCATO'}
+• Stato Accesso Piattaforma: ${!p.access_revoked ? 'ATTIVO (Fruizione Erogata)' : 'REVOCATO'}
 
 --------------------------------------------------------------------------------
 1. OGGETTO DELLA FORNITURA E ACCETTAZIONE CONTRATTUALE:
@@ -122,10 +122,10 @@ Si richiede pertanto a Stripe e all'istituto emittente della carta il rigetto in
       const text = buildDisputeDossierText(detail);
       await navigator.clipboard.writeText(text);
       setCopiedDossier(true);
-      showSuccess('Dossier legale copiato negli appunti! Pronto da incollare su Stripe Dispute.');
+      showSuccess('Dossier Copiato', 'Dossier legale copiato negli appunti! Pronto da incollare su Stripe Dispute.');
       setTimeout(() => setCopiedDossier(false), 3500);
     } catch {
-      showError('Impossibile copiare il dossier negli appunti.');
+      showError('Errore Copia', 'Impossibile copiare il dossier negli appunti.');
     }
   };
 
@@ -142,9 +142,9 @@ Si richiede pertanto a Stripe e all'istituto emittente della carta il rigetto in
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      showSuccess('Dossier legale scaricato in formato .txt!');
+      showSuccess('Download Completato', 'Dossier legale scaricato in formato .txt!');
     } catch {
-      showError('Impossibile scaricare il file del dossier.');
+      showError('Errore Download', 'Impossibile scaricare il file del dossier.');
     }
   };
 
