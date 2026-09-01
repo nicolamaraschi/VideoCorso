@@ -351,7 +351,7 @@ def send_welcome_email(email: str, temp_password: str, password_reset: bool = Fa
             paragraphs=paragraphs,
             email=email,
             temp_password=temp_password,
-            cta_url='https://main.d26u0xz2smmxfz.amplifyapp.com/login',
+            cta_url='https://chiaramorocuttiacademy.it/login',
             cta_text='Accedi alla Masterclass',
             note='👉 Al tuo primo accesso ti verrà richiesto di confermare questa password temporanea e sceglierne una tua personale e definitiva.',
         )
@@ -376,7 +376,7 @@ def send_admin_welcome_email(email: str, temp_password: str) -> bool:
             ],
             email=email,
             temp_password=temp_password,
-            cta_url='https://main.d26u0xz2smmxfz.amplifyapp.com/login',
+            cta_url='https://chiaramorocuttiacademy.it/login',
             cta_text='Accedi al Pannello Admin',
             note='👉 Al tuo primo accesso ti verrà richiesto di confermare la password temporanea e sceglierne una tua personale.',
         )

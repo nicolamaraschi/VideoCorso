@@ -360,9 +360,14 @@ def test_checkout_requires_versioned_explicit_digital_content_acceptance(configu
 
 def test_checkout_redirects_allow_only_the_configured_amplify_origins(configured_payment):
     configured_payment.ALLOWED_CHECKOUT_ORIGINS = {
+        "https://chiaramorocuttiacademy.it",
+        "https://www.chiaramorocuttiacademy.it",
         "https://main.d26u0xz2smmxfz.amplifyapp.com",
         "https://development.d26u0xz2smmxfz.amplifyapp.com",
     }
+    assert configured_payment.validate_checkout_redirect_url(
+        "https://chiaramorocuttiacademy.it/checkout?payment=success", "success_url",
+    ).startswith("https://chiaramorocuttiacademy.it")
     assert configured_payment.validate_checkout_redirect_url(
         "https://main.d26u0xz2smmxfz.amplifyapp.com/checkout?payment=success", "success_url",
     ).startswith("https://main.d26u0xz2smmxfz.amplifyapp.com")
