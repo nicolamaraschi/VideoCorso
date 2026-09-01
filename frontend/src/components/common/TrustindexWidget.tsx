@@ -19,16 +19,26 @@ export const TrustindexWidget: React.FC<TrustindexWidgetProps> = ({
     const existingScript = currentContainer.querySelector(`script[src="${scriptSrc}"]`);
     if (existingScript) return;
 
-    const script = document.createElement('script');
-    script.src = scriptSrc;
-    script.defer = true;
-    script.async = true;
-    currentContainer.appendChild(script);
+    let scriptAdded = false;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !scriptAdded) {
+        scriptAdded = true;
+        const script = document.createElement('script');
+        script.src = scriptSrc;
+        script.defer = true;
+        script.async = true;
+        currentContainer.appendChild(script);
+        observer.disconnect();
+      }
+    }, { rootMargin: '200px' });
+
+    observer.observe(currentContainer);
 
     return () => {
-      // Clean up script on unmount if appropriate
-      if (currentContainer && currentContainer.contains(script)) {
-        currentContainer.removeChild(script);
+      observer.disconnect();
+      if (currentContainer && currentContainer.contains(currentContainer.querySelector(`script[src="${scriptSrc}"]`))) {
+        const s = currentContainer.querySelector(`script[src="${scriptSrc}"]`);
+        if (s) currentContainer.removeChild(s);
       }
     };
   }, [scriptSrc]);

@@ -7,6 +7,11 @@ export default defineConfig({
   build: {
     target: 'esnext',
     minify: 'esbuild',
+    modulePreload: {
+      resolveDependencies(_filename, deps) {
+        return deps.filter((dep) => !dep.includes('video-engine') && !dep.includes('dash') && !dep.includes('hls'));
+      },
+    },
     rollupOptions: {
       output: {
         manualChunks(id) {
