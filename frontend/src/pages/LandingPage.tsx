@@ -378,13 +378,20 @@ export const LandingPage: React.FC = () => {
             <p className="mt-4 text-lg text-gray-600">Guarda la precisione e l'effetto UltraRealistic Brows prendere vita nelle lezioni.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 justify-center max-w-5xl mx-auto">
-            {['/video-1.mp4', '/video-2.mp4', '/video-3.mp4', '/video-4.mp4'].map((src, i) => (
-              <div key={i} className="w-full rounded-2xl overflow-hidden shadow-md border-4 border-white bg-primary-50 aspect-video relative group">
+            {[
+              { src: '/video-1-opt.mp4', poster: '/poster-video-1.jpg' },
+              { src: '/video-2-opt.mp4', poster: '/poster-video-2.jpg' },
+              { src: '/video-3-opt.mp4', poster: '/poster-video-3.jpg' },
+              { src: '/video-4-opt.mp4', poster: '/poster-video-4.jpg' },
+            ].map((item, i) => (
+              <div key={i} className="w-full rounded-2xl overflow-hidden shadow-md border-4 border-white bg-primary-950 aspect-video relative group">
                 <video 
                   className="w-full h-full object-cover" 
                   controls 
                   playsInline
-                  src={src}
+                  preload="none"
+                  poster={item.poster}
+                  src={item.src}
                 >
                   Il tuo browser non supporta i video.
                 </video>
