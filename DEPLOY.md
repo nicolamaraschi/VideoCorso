@@ -8,7 +8,7 @@ operativo e la gestione degli incidenti consultare anche
 
 1. Usare esclusivamente il profilo AWS `personale`, account `170884089098`,
    region `us-east-1`.
-2. Non passare segreti di Stripe o Resend sulla riga di comando.
+2. Non passare segreti sulla riga di comando (i segreti Stripe risiedono in SSM Parameter Store; le email transazionali sono inviate nativamente via AWS SES dal dominio verificato `chiaramorocuttiacademy.it`).
 3. Per il backend creare sempre un change set, ispezionarlo e non eseguirlo se
    sostituisce o rimuove risorse persistenti (Cognito, API Gateway, bucket,
    CloudFront o DynamoDB).

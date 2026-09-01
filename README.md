@@ -12,6 +12,8 @@ Il frontend React è distribuito a livello globale tramite **AWS Amplify**; il b
 | `main` | **Produzione** | [https://main.d26u0xz2smmxfz.amplifyapp.com](https://main.d26u0xz2smmxfz.amplifyapp.com) |
 | `development` | Collaudo prima del merge | [https://development.d26u0xz2smmxfz.amplifyapp.com](https://development.d26u0xz2smmxfz.amplifyapp.com) |
 
+* **Dominio Ufficiale**: `chiaramorocuttiacademy.it` (Hosted Zone Route 53 `Z05326521WTI2F8WSWCGI`)
+* **Email Transazionale Ufficiale**: `Chiara Morocutti Academy <noreply@chiaramorocuttiacademy.it>` (AWS SES `us-east-1`, DKIM + SPF + DMARC)
 * **Repository**: `github.com/nicolamaraschi/VideoCorso`
 * **Amplify App ID**: `d26u0xz2smmxfz`
 * **Stack CloudFormation Backend**: `corso-video-chiara`
@@ -42,19 +44,19 @@ VideoCorso/
 │   └── src/services/          # Client API, authService, adminService, courseService
 ├── backend/
 │   ├── infrastructure/        # template.yaml (AWS SAM CloudFormation con 8 Lambda)
-│   ├── layers/shared/         # Layer Python condiviso (purchase_access, audit_logger)
+│   ├── layers/shared/         # Layer Python condiviso (purchase_access, audit_logger, email_sender)
 │   ├── lambda/                # I microservizi serverless:
 │   │   ├── admin_handler/     # Gestione studenti, acquisti, catalogo, statistiche, log
-│   │   ├── payment_handler/   # Checkout Stripe, webhook idempotenti, coupon
+│   │   ├── payment_handler/   # Checkout Stripe, webhook idempotenti, coupon, email SES
 │   │   ├── provisioning_outbox_handler/ # Provisioning automatico Cognito & email
 │   │   ├── video_handler/     # URL firmati streaming, controllo permessi, watermark
 │   │   ├── progress_handler/  # Tracciamento avanzamento lezioni corsiste
 │   │   ├── course_handler/    # Catalogo corsi, capitoli e lezioni pubbliche
 │   │   ├── coupon_reservation_recovery_handler/ # Cron recupero coupon scaduti
 │   │   └── video_transcode_handler/ # Pipeline MediaConvert per rendizioni 1080p-360p
-│   └── tests/                 # Suite di test pytest unitari e di integrazione
+│   └── tests/                 # Suite di 264 test pytest unitari e di integrazione
 ├── docs/
-│   ├── OPERATIONS.md          # Runbook operativo, incident recovery, gestione Cognito
+│   ├── OPERATIONS.md          # Runbook operativo, incident recovery, gestione Cognito & SES
 │   └── GUIDA_CARICAMENTO_VIDEO_SSD.md # Istruzioni transcodifica e caricamento S3
 └── Relazione_Opere_Chiara_Morocutti_Academy.pdf # Documentazione tecnico-economica per il cliente
 ```
@@ -106,6 +108,19 @@ Tutte le **8 funzioni Lambda** scrivono in modo asincrono e non bloccante nella 
 * **Ispezione Diagnostica**: Visualizzazione istantanea del payload JSON e dello Stack Trace Python dell'errore.
 * **Pulsante "Copia Report per Assistenza"**: Generazione in 1 clic del report di debug per risoluzione immediata dei problemi.
 * **Protezione Automatica PII/PCI (Layer v4)**: Sanitizzazione automatica di password, carte, token e chiavi API prima della scrittura a database.
+
+---
+
+## 📧 Infrastruttura Email Transazionale & AWS SES (`chiaramorocuttiacademy.it`)
+
+Tutte le comunicazioni transazionali (credenziali corsiste, ricevute acquisto, recupero password, inviti admin) sono gestite tramite **AWS Simple Email Service (SES)** in `us-east-1` con firma digitale e allineamento SPF:
+* **Mittente Ufficiale**: `Chiara Morocutti Academy <noreply@chiaramorocuttiacademy.it>`
+* **Reply-To**: `info@chiaramorocuttiacademy.it`
+* **Easy DKIM (RSA 2048-bit)**: 3 record CNAME gestiti su Route 53.
+* **Custom MAIL FROM**: Sottodominio `mail.chiaramorocuttiacademy.it` con MX `feedback-smtp.us-east-1.amazonses.com` e SPF `v=spf1 include:amazonses.com ~all` (garantisce il 100% di deliverability su Gmail, Yahoo, Apple Mail).
+* **DMARC**: Policy attiva su `_dmarc.chiaramorocuttiacademy.it`.
+* **Cognito User Pool Integration**: Cognito configurato in modalità `DEVELOPER` collegato all'ARN dell'identità SES per invio nativo del template HTML personalizzato.
+* **Modulo Lambda Condiviso**: [email_sender.py](file:///Users/nicolamaraschi/Documents/lezioniChiara/VideoCorso/backend/layers/shared/python/shared/email_sender.py) con template HTML responsive e invio nativo con `boto3`.
 
 ---
 
