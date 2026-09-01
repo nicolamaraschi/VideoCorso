@@ -23,6 +23,14 @@ from shared.purchase_access import (
     sync_purchase_access as _shared_sync_purchase_access,
 )
 try:
+    from shared.email_sender import render_academy_email_html, send_ses_email
+except Exception:
+    def render_academy_email_html(*args, **kwargs):
+        return ""
+    def send_ses_email(*args, **kwargs):
+        return False
+
+try:
     from shared.audit_logger import record_audit_log
 except Exception:
     def record_audit_log(*args, **kwargs):
@@ -142,10 +150,7 @@ ALLOWED_CHECKOUT_ORIGINS = {
     if origin.strip()
 }
 
-try:
-    import resend
-except ImportError:
-    resend = None
+
 
 
 def create_response(status_code: int, body: Any):
@@ -244,42 +249,28 @@ def generate_temp_password(length: int = 12) -> str:
     return f'{password}A1!'
 
 
-def send_welcome_email(email: str, temp_password: str, course_title: str):
-    allowed_recipients = {
-        recipient.strip().lower()
-        for recipient in os.environ.get('RESEND_TEST_RECIPIENTS', '').split(',')
-        if recipient.strip()
-    }
-    if email.strip().lower() not in allowed_recipients:
-        print('Welcome email skipped: recipient is not in the pre-live test allowlist.')
-        return False
-    if not resend:
-        print('Welcome email skipped: Resend library unavailable.')
-        return False
+def send_welcome_email(email: str, temp_password: str, course_title: str) -> bool:
     try:
-        resend.api_key = get_configured_secret('RESEND_API_KEY_PARAMETER', 'RESEND_API_KEY')
-    except RuntimeError:
-        # Account creation is already complete; an absent email secret must
-        # not make payment or webhook processing unavailable.
-        print('Welcome email skipped: Resend credential unavailable.')
-        return False
-
-    try:
-        resend.Emails.send({
-            'from': 'Team VideoCorso <onboarding@resend.dev>',
-            'to': email,
-            'subject': f'Accesso attivato: {course_title}',
-            'html': (
-                '<h1>Benvenuto!</h1>'
-                f'<p>Il tuo acquisto per <strong>{course_title}</strong> e stato confermato.</p>'
-                '<p>Ecco le tue credenziali temporanee:</p>'
-                f'<p>Email: {email}<br />Password temporanea: {temp_password}</p>'
-                '<p>Ti verra chiesto di cambiare password al primo accesso.</p>'
-            ),
-        })
-        return True
+        html_body = render_academy_email_html(
+            title='Accesso Masterclass Attivato',
+            subtitle='Formazione d’Eccellenza Microblading',
+            paragraphs=[
+                f'Benvenuta nella Masterclass! Il tuo acquisto per <strong>{course_title}</strong> è stato confermato con successo.',
+                'Il tuo account è stato creato e l’accesso alla piattaforma è ora attivo.',
+            ],
+            email=email,
+            temp_password=temp_password,
+            cta_url='https://main.d26u0xz2smmxfz.amplifyapp.com/login',
+            cta_text='Accedi alla Masterclass',
+            note='👉 Al tuo primo accesso ti verrà richiesto di confermare questa password temporanea e sceglierne una tua personale e definitiva.',
+        )
+        return send_ses_email(
+            to_address=email,
+            subject='Benvenuta in Chiara Morocutti Academy - Le tue credenziali di accesso',
+            html_body=html_body,
+        )
     except Exception as exc:
-        print(f'Email send failed: {exc}')
+        print(f'[EMAIL ERROR] Failed to send welcome email via SES to {email}: {exc}')
         return False
 
 

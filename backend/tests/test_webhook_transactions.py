@@ -372,18 +372,10 @@ def test_checkout_redirects_allow_only_the_configured_amplify_origins(configured
         configured_payment.validate_checkout_redirect_url("https://development.evil.example/checkout", "success_url")
 
 
-def test_email_without_resend_key_is_scoped_and_never_logs_secret(configured_payment, monkeypatch, capsys):
-    configured_payment._secret_cache.clear()
-    monkeypatch.setenv("RESEND_API_KEY_PARAMETER", "/videocorso/dev/resend/api-key")
-    monkeypatch.setenv("RESEND_TEST_RECIPIENTS", "student@example.test")
-    secret = "do-not-log-this-secret"
-    monkeypatch.setattr(configured_payment.ssm_client, "get_parameter", lambda **_kwargs: (_ for _ in ()).throw(
-        ClientError({"Error": {"Code": "ParameterNotFound"}}, "GetParameter")
-    ))
+def test_email_send_via_ses_handles_errors_gracefully(configured_payment, monkeypatch, capsys):
     assert configured_payment.send_welcome_email("student@example.test", "password", "Course") is False
     output = capsys.readouterr().out
-    assert "/videocorso/dev/resend/api-key" in output
-    assert secret not in output
+    assert "[SES EMAIL ERROR]" in output or "Failed to send email" in output
 
 
 def test_coupon_purchase_id_is_deterministic_and_user_scoped(configured_payment):

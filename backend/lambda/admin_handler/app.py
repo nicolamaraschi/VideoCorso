@@ -23,6 +23,11 @@ from shared.purchase_access import (  # type: ignore[import]
     purchase_grants_access as _shared_purchase_grants_access,
     sync_purchase_access as _shared_sync_purchase_access,
 )
+try:
+    from shared.email_sender import send_ses_email
+except Exception:
+    def send_ses_email(*args, **kwargs):
+        return False
 
 
 LEGACY_COURSE_ID = 'legacy-default-course'
@@ -330,11 +335,7 @@ def render_academy_email_html(
     '''
 
 
-def send_welcome_email(email: str, temp_password: str, password_reset: bool = False):
-    if not resend or not getattr(resend, 'api_key', None):
-        print('Welcome email skipped: Resend not configured.')
-        return
-
+def send_welcome_email(email: str, temp_password: str, password_reset: bool = False) -> bool:
     try:
         subject = (
             'Password reimpostata - Chiara Morocutti Academy'
@@ -354,22 +355,17 @@ def send_welcome_email(email: str, temp_password: str, password_reset: bool = Fa
             cta_text='Accedi alla Masterclass',
             note='👉 Al tuo primo accesso ti verrà richiesto di confermare questa password temporanea e sceglierne una tua personale e definitiva.',
         )
-        resp = resend.Emails.send({
-            'from': 'Chiara Morocutti Academy <onboarding@resend.dev>',
-            'to': email,
-            'subject': subject,
-            'html': html_body,
-        })
-        print(f'[EMAIL SUCCESS] Welcome email sent via Resend to {email}: {resp}')
+        return send_ses_email(
+            to_address=email,
+            subject=subject,
+            html_body=html_body,
+        )
     except Exception as exc:
-        print(f'[EMAIL ERROR] Failed to send email via Resend to {email}: {exc}')
+        print(f'[EMAIL ERROR] Failed to send email via SES to {email}: {exc}')
+        return False
 
 
-def send_admin_welcome_email(email: str, temp_password: str):
-    if not resend or not getattr(resend, 'api_key', None):
-        print('Admin invite skipped: Resend not configured.')
-        return
-
+def send_admin_welcome_email(email: str, temp_password: str) -> bool:
     try:
         html_body = render_academy_email_html(
             title='Account Amministratore',
@@ -384,15 +380,14 @@ def send_admin_welcome_email(email: str, temp_password: str):
             cta_text='Accedi al Pannello Admin',
             note='👉 Al tuo primo accesso ti verrà richiesto di confermare la password temporanea e sceglierne una tua personale.',
         )
-        resp = resend.Emails.send({
-            'from': 'Chiara Morocutti Academy <onboarding@resend.dev>',
-            'to': email,
-            'subject': 'Accesso Amministratore - Chiara Morocutti Academy',
-            'html': html_body,
-        })
-        print(f'[EMAIL SUCCESS] Admin invite sent via Resend to {email}: {resp}')
+        return send_ses_email(
+            to_address=email,
+            subject='Accesso Amministratore - Chiara Morocutti Academy',
+            html_body=html_body,
+        )
     except Exception as exc:
-        print(f'[EMAIL ERROR] Failed to send admin invite via Resend to {email}: {exc}')
+        print(f'[EMAIL ERROR] Failed to send admin invite via SES to {email}: {exc}')
+        return False
 
 
 def list_admin_accounts():
@@ -1030,9 +1025,7 @@ def validate_course_payload(course: dict[str, Any], current_course_id: Optional[
     slug = str(course.get('public_slug') or '').strip()
     if not slug or not all(char.isalnum() or char == '-' for char in slug):
         return 'public_slug can contain only lowercase letters, numbers and hyphens'
-    if slug != slug.lower():
-        return 'public_slug must be lowercase'
-    for existing in list_all_items(TABLES['COURSES']):
+    for existing in list_all_items(TABLES.get('COURSES')):
         if existing.get('course_id') != current_course_id and str(existing.get('public_slug') or '') == slug:
             return 'Esiste già un corso con questo URL pubblico'
     return None
@@ -2865,13 +2858,6 @@ def get_stats():
         'course_health': course_health,
     })
 
-
-try:
-    import resend
-
-    resend.api_key = load_secret('RESEND_API_KEY_PARAMETER', 'RESEND_API_KEY')
-except ImportError:
-    resend = None
 
 dynamodb = boto3.resource('dynamodb')
 s3_client = boto3.client('s3')

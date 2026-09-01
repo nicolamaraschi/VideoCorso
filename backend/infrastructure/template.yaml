@@ -59,6 +59,8 @@ Globals:
         STRIPE_WEBHOOK_SECRET_PARAMETER: !Sub "/videocorso/${Environment}/stripe/webhook-secret"
         RESEND_API_KEY_PARAMETER: !Sub "/videocorso/${Environment}/resend/api-key"
         RESEND_TEST_RECIPIENTS: !Ref ResendTestRecipients
+        SES_SENDER_EMAIL: "Chiara Morocutti Academy <noreply@chiaramorocuttiacademy.it>"
+        SES_REPLY_TO_EMAIL: "info@chiaramorocuttiacademy.it"
         ALLOWED_CHECKOUT_ORIGINS: !Ref AllowedCheckoutOrigins
         # FIX: Aggiunta variabile d'ambiente globale per Cognito
         COGNITO_USER_POOL_ID: !Ref UserPool
@@ -479,6 +481,11 @@ Resources:
     UpdateReplacePolicy: Retain
     Properties:
       UserPoolName: !Sub "${Environment}-videocorso-users"
+      EmailConfiguration:
+        EmailSendingAccount: DEVELOPER
+        SourceArn: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/chiaramorocuttiacademy.it"
+        From: "Chiara Morocutti Academy <noreply@chiaramorocuttiacademy.it>"
+        ReplyToEmailAddress: "info@chiaramorocuttiacademy.it"
       AdminCreateUserConfig:
         UnusedAccountValidityDays: 365
         InviteMessageTemplate:
@@ -641,6 +648,7 @@ Resources:
             - Effect: Allow
               Action:
                 - ses:SendEmail
+                - ses:SendRawEmail
               Resource: "*"
       Events:
         CreateCheckout:
@@ -1175,6 +1183,11 @@ Resources:
               Action:
                 - ssm:GetParameter
               Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/videocorso/${Environment}/*"
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: "*"
       Events:
         GetAdminAccounts:
           Type: Api
