@@ -861,7 +861,7 @@ def get_user_progress_items(user_id: str) -> list[dict[str, Any]]:
 
 
 def get_purchase_video_access_events(purchase_id: str) -> list[dict[str, Any]]:
-    """Return recent append-only video URL issuance evidence for one sale."""
+    """Return recent append-only video URL issuance evidence for one sale, enriched with titles."""
     table = TABLES.get('VIDEO_ACCESS_LOGS')
     if not table or not purchase_id:
         return []
@@ -871,7 +871,44 @@ def get_purchase_video_access_events(purchase_id: str) -> list[dict[str, Any]]:
         ScanIndexForward=False,
         Limit=50,
     )
-    return response.get('Items') or []
+    items = response.get('Items') or []
+    if not items:
+        return []
+
+    lessons_table = TABLES.get('LESSONS')
+    chapters_table = TABLES.get('CHAPTERS')
+    lesson_cache: dict[str, Any] = {}
+    chapter_cache: dict[str, Any] = {}
+
+    enriched = []
+    for it in items:
+        event = dict(it)
+        lid = event.get('lesson_id')
+        if lid and lessons_table:
+            if lid not in lesson_cache:
+                try:
+                    res = lessons_table.get_item(Key={'lesson_id': lid})
+                    lesson_cache[lid] = res.get('Item')
+                except Exception:
+                    lesson_cache[lid] = None
+            lesson_item = lesson_cache[lid]
+            if lesson_item:
+                event['lesson_title'] = lesson_item.get('title', '')
+                event['lesson_display_order'] = lesson_item.get('display_order', 0)
+                cid = lesson_item.get('chapter_id')
+                if cid and chapters_table:
+                    if cid not in chapter_cache:
+                        try:
+                            cres = chapters_table.get_item(Key={'chapter_id': cid})
+                            chapter_cache[cid] = cres.get('Item')
+                        except Exception:
+                            chapter_cache[cid] = None
+                    chap_item = chapter_cache[cid]
+                    if chap_item:
+                        event['chapter_title'] = chap_item.get('title', '')
+                        event['chapter_display_order'] = chap_item.get('display_order', 0)
+        enriched.append(event)
+    return enriched
 
 
 def user_has_global_access(user_item: dict[str, Any]) -> bool:

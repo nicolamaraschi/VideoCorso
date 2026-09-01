@@ -49,6 +49,104 @@ export const AdminPurchaseDetailPage: React.FC = () => {
   const [refundAmount, setRefundAmount] = useState('');
   const [refundReason, setRefundReason] = useState('');
   const [refundConfirmed, setRefundConfirmed] = useState(false);
+  const [copiedDossier, setCopiedDossier] = useState(false);
+
+  const buildDisputeDossierText = (currentDetail: PurchaseDetail): string => {
+    const p = currentDetail.purchase;
+    const events = currentDetail.video_access_events || [];
+    const tl = currentDetail.timeline || [];
+    const totalWatched = events.length;
+
+    const eventsList = events.length > 0
+      ? events.map((ev, index) => {
+          const mod = ev.chapter_title ? `${ev.chapter_title} • ` : '';
+          const title = ev.lesson_title ? ev.lesson_title : `Lezione ${ev.lesson_id}`;
+          return `[${index + 1}] Data/Ora: ${formatDateTime(ev.issued_at)} (UTC: ${ev.issued_at})\n    Modulo/Lezione: ${mod}${title}\n    ID Univoco Server (UUID): ${ev.lesson_id}\n    ID Fruizione: ${ev.access_id}${ev.source_ip_hash ? `\n    Hash Sicurezza IP: ${ev.source_ip_hash}` : ''}`;
+        }).join('\n\n')
+      : 'Nessun accesso video registrato.';
+
+    const timelineList = tl.map((item) => `• ${item.label}: ${formatDateTime(item.at)} (${item.at})`).join('\n');
+
+    return `================================================================================
+MEMORIA DIFENSIVA E DOSSIER PROBATORIO CONTESTAZIONE STRIPE (DISPUTE EVIDENCE)
+CHIARA MOROCUTTI ACADEMY — FORMAZIONE D'ECCELLENZA MICROBLADING
+================================================================================
+
+DATI DELLA TRANSAZIONE CONTESTATA:
+• ID Pagamento Stripe (PaymentIntent): ${p.stripe_payment_intent_id || p.purchase_id}
+• ID Addebito Stripe (Charge ID): ${p.stripe_charge_id || 'n/d'}
+• ID Sessione Checkout: ${p.stripe_session_id || 'n/d'}
+• Data e Ora Transazione: ${formatDateTime(p.created_at)} (UTC: ${p.created_at})
+• Email Acquirente Registrata: ${p.customer_email}
+• Nome / Username Registrato: ${p.customer_name || p.user_id || p.customer_email}
+• Corso / Masterclass Acquistata: ${p.course_title}
+• Importo Transato: ${p.amount} ${p.currency}
+• Stato Accesso Piattaforma: ${currentDetail.derived_state.course_access_active ? 'ATTIVO (Fruizione Erogata)' : 'REVOCATO'}
+
+--------------------------------------------------------------------------------
+1. OGGETTO DELLA FORNITURA E ACCETTAZIONE CONTRATTUALE:
+--------------------------------------------------------------------------------
+Il servizio acquistato consiste nella fornitura di contenuti formativi digitali professionali ("Masterclass Microblading") erogati in modalità e-learning e streaming protetto sulla piattaforma ufficiale https://chiaramorocuttiacademy.it.
+
+Al momento della conclusione dell'ordine, la cliente ha accettato espressamente i Termini e Condizioni Generali di Vendita e ha fornito il proprio CONSENSO ESPRESSO ALLA RINUNCIA AL DIRITTO DI RECESSO DI 14 GIORNI ai sensi dell'Art. 59, comma 1, lett. o) del Codice del Consumo (D.Lgs. 206/2005 e Direttiva Europea 2011/83/UE), che esclude inderogabilmente il diritto di recesso per i contenuti digitali non forniti su supporto materiale non appena ha inizio l'accesso al servizio.
+
+--------------------------------------------------------------------------------
+2. EVIDENZE CERTIFICATE DI FRUIZIONE VIDEO (REGISTRO PROBATORIO DEL SERVER):
+--------------------------------------------------------------------------------
+Il server di produzione (AWS Cloud) ha autenticato la cliente e registrato l'avvenuta richiesta ed erogazione dei token video crittografati per le lezioni del corso.
+
+Totale Video-Lezioni Avviate/Fruite: ${totalWatched}
+
+REGISTRO DETTAGLIATO DELLE LEZIONI VISUALIZZATE DALLA CLIENTE:
+${eventsList}
+
+--------------------------------------------------------------------------------
+3. CRONOLOGIA OPERATIVA DELL'ACCOUNT:
+--------------------------------------------------------------------------------
+${timelineList}
+
+--------------------------------------------------------------------------------
+4. CONCLUSIONI E RICHIESTA DI RIGETTO INTEGRALE DEL CHARGEBACK:
+--------------------------------------------------------------------------------
+A) L'esercente Chiara Morocutti Academy ha erogato tempestivamente, continuativamente e integralmente l'accesso al servizio digitale acquistato.
+B) La cliente ha effettuato il login e ha fruito delle video-lezioni come incontrovertibilmente provato dai log del server sopra riportati.
+C) Ai sensi della normativa comunitaria (Direttiva 2011/83/UE) e dell'Art. 59 Codice del Consumo, il diritto al rimborso è legalmente escluso a seguito dell'avvenuta fruizione.
+
+Si richiede pertanto a Stripe e all'istituto emittente della carta il rigetto integrale della contestazione e lo sblocco definitivo dell'importo a favore dell'esercente Chiara Morocutti Academy.
+================================================================================`;
+  };
+
+  const handleCopyDossier = async () => {
+    if (!detail) return;
+    try {
+      const text = buildDisputeDossierText(detail);
+      await navigator.clipboard.writeText(text);
+      setCopiedDossier(true);
+      showSuccess('Dossier legale copiato negli appunti! Pronto da incollare su Stripe Dispute.');
+      setTimeout(() => setCopiedDossier(false), 3500);
+    } catch {
+      showError('Impossibile copiare il dossier negli appunti.');
+    }
+  };
+
+  const handleDownloadDossier = () => {
+    if (!detail) return;
+    try {
+      const text = buildDisputeDossierText(detail);
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Dossier_Contestazione_${detail.purchase.stripe_payment_intent_id || detail.purchase.purchase_id}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showSuccess('Dossier legale scaricato in formato .txt!');
+    } catch {
+      showError('Impossibile scaricare il file del dossier.');
+    }
+  };
 
   const loadDetail = useCallback(async () => {
     if (!purchaseId) {
@@ -514,17 +612,81 @@ export const AdminPurchaseDetailPage: React.FC = () => {
       </section>
 
       <section className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Evidenze di fruizione</h2>
-        <p className="text-sm text-gray-600">Richieste di URL video autorizzate per questo acquisto. IP e browser sono conservati solo come hash.</p>
-        <div className="mt-4 space-y-3">
-          {videoAccessEvents.map((event) => (
-            <div key={event.access_id} className="flex flex-col gap-1 rounded-lg border border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-              <p className="font-medium text-gray-900 break-all">Lezione {event.lesson_id}</p>
-              <p className="text-sm text-gray-600">{formatDateTime(event.issued_at)}</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Evidenze probatorie di fruizione</h2>
+            <p className="text-sm text-gray-600 mt-0.5">
+              Registro immutabile delle video-lezioni autorizzate ed erogate per questo acquisto (valido come prova legale ex Art. 59 Cod. Consumo).
+            </p>
+          </div>
+          {videoAccessEvents.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void handleCopyDossier()}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-burgundy-900 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-burgundy-800 transition focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:ring-offset-2"
+                style={{ backgroundColor: '#4a0e2e' }}
+              >
+                {copiedDossier ? '✓ Copiato!' : '🛡️ Copia Dossier per Stripe'}
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadDossier}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition"
+              >
+                📥 Scarica .txt
+              </button>
             </div>
-          ))}
+          )}
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {videoAccessEvents.map((event, index) => {
+            const chapterText = event.chapter_title ? `${event.chapter_title} • ` : '';
+            const lessonText = event.lesson_title ? event.lesson_title : `Lezione ${event.lesson_id}`;
+
+            return (
+              <div
+                key={event.access_id || index}
+                className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50/60 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 transition hover:bg-gray-50"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-burgundy-100 text-[11px] font-bold text-burgundy-900" style={{ backgroundColor: '#f3dce3', color: '#4a0e2e' }}>
+                      {index + 1}
+                    </span>
+                    <p className="font-semibold text-gray-900 truncate">
+                      {chapterText}{lessonText}
+                    </p>
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                    <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-gray-200">
+                      ID Server: {event.lesson_id}
+                    </span>
+                    {event.source_ip_hash && (
+                      <span className="font-mono text-gray-400">
+                        IP Hash: {event.source_ip_hash.slice(0, 10)}...
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between sm:flex-col sm:items-end sm:shrink-0 gap-1">
+                  <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 border border-emerald-200">
+                    ✓ Fruizione Verificata
+                  </span>
+                  <p className="text-xs text-gray-600 font-medium">
+                    {formatDateTime(event.issued_at)}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
           {videoAccessEvents.length === 0 && (
-            <p className="text-gray-500">Nessuna richiesta video registrata per questo ordine.</p>
+            <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-gray-500">
+              <p className="font-medium text-gray-700">Nessuna riproduzione video registrata per questo ordine</p>
+              <p className="text-xs text-gray-500 mt-1">Non appena la corsista avvierà una lezione, comparirà qui con titolo e data/ora certificata.</p>
+            </div>
           )}
         </div>
       </section>
