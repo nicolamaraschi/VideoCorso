@@ -99,7 +99,7 @@ export const LandingPage: React.FC = () => {
                     controls
                     playsInline
                     preload="none"
-                    poster="/poster-welcome.jpg"
+                    poster="/poster-welcome.webp"
                   >
                     Il tuo browser non supporta il tag video.
                   </video>
@@ -380,10 +380,10 @@ export const LandingPage: React.FC = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 justify-center max-w-5xl mx-auto">
             {[
-              { src: '/video-1-opt.mp4', poster: '/poster-video-1.jpg' },
-              { src: '/video-2-opt.mp4', poster: '/poster-video-2.jpg' },
-              { src: '/video-3-opt.mp4', poster: '/poster-video-3.jpg' },
-              { src: '/video-4-opt.mp4', poster: '/poster-video-4.jpg' },
+              { src: '/video-1-opt.mp4', poster: '/poster-video-1.webp' },
+              { src: '/video-2-opt.mp4', poster: '/poster-video-2.webp' },
+              { src: '/video-3-opt.mp4', poster: '/poster-video-3.webp' },
+              { src: '/video-4-opt.mp4', poster: '/poster-video-4.webp' },
             ].map((item, i) => (
               <div key={i} className="w-full rounded-2xl overflow-hidden shadow-md border-4 border-white bg-primary-950 aspect-video relative group">
                 <video 
