@@ -95,10 +95,11 @@ export const LandingPage: React.FC = () => {
                 <div className="relative overflow-hidden rounded-3xl shadow-2xl border-4 border-white aspect-[4/5] bg-primary-950 group">
                   <video
                     className="w-full h-full object-cover"
-                    src="/welcome.mp4"
+                    src="/welcome-opt.mp4"
                     controls
                     playsInline
-                    poster="/hero-microblading.webp"
+                    preload="none"
+                    poster="/poster-welcome.jpg"
                   >
                     Il tuo browser non supporta il tag video.
                   </video>
