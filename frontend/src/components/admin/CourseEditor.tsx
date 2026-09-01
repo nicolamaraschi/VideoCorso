@@ -189,6 +189,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewMissing, setPreviewMissing] = useState(false);
   const [replacingThumbnail, setReplacingThumbnail] = useState(false);
+  const [replacingChapterImage, setReplacingChapterImage] = useState(false);
   const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
   const [uploadingMaterial, setUploadingMaterial] = useState(false);
   const [materialError, setMaterialError] = useState<string | null>(null);
@@ -274,6 +275,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
 
   const handleEditChapter = (chapter: Chapter) => {
     setEditingChapter(chapter);
+    setReplacingChapterImage(false);
     setChapterForm({
       title: chapter.title,
       description: chapter.description,
@@ -409,6 +411,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         <Button
           onClick={() => {
             setEditingChapter(null);
+            setReplacingChapterImage(false);
             setChapterForm({ title: '', description: '', image_url: '' });
             setShowChapterModal(true);
           }}
@@ -661,34 +664,60 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             />
           </div>
           <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Chapter Image
-              </label>
-              <input
-                type="text"
-                value={chapterForm.image_url}
-                onChange={(e) =>
-                  setChapterForm({ ...chapterForm, image_url: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="URL immagine capitolo oppure carica da PC"
-              />
-            </div>
-            {chapterForm.image_url && (
-              <img
-                src={chapterForm.image_url}
-                alt="Anteprima immagine capitolo"
-                width={400}
-                height={160}
-                className="max-h-40 w-auto rounded-lg border border-gray-200 object-contain mx-auto"
-              />
+            <label className="block text-sm font-medium text-gray-700">
+              Copertina capitolo
+            </label>
+            {chapterForm.image_url && !replacingChapterImage ? (
+              <div className="space-y-3">
+                <img
+                  src={chapterForm.image_url}
+                  alt="Anteprima copertina capitolo"
+                  width={400}
+                  height={160}
+                  className="max-h-40 w-auto rounded-lg border border-gray-200 object-contain mx-auto shadow-xs"
+                />
+                <div className="flex items-center justify-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setReplacingChapterImage(true)}
+                  >
+                    Sostituisci copertina
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setChapterForm((prev) => ({ ...prev, image_url: '' }))}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    Rimuovi
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <ImageUploader
+                  folder="chapters"
+                  label="Copertina capitolo"
+                  onUploadComplete={(imageUrl) => {
+                    setChapterForm((prev) => ({ ...prev, image_url: imageUrl }));
+                    setReplacingChapterImage(false);
+                  }}
+                />
+                {editingChapter?.image_url && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setReplacingChapterImage(false)}
+                  >
+                    Annulla sostituzione
+                  </Button>
+                )}
+              </div>
             )}
-            <ImageUploader
-              folder="chapters"
-              label="Copertina capitolo"
-              onUploadComplete={(imageUrl) => setChapterForm((prev) => ({ ...prev, image_url: imageUrl }))}
-            />
           </div>
           <Button
             onClick={editingChapter ? handleUpdateChapter : handleCreateChapter}
