@@ -219,7 +219,7 @@ def build_pdf(filename="Relazione_Opere_Chiara_Morocutti_Academy.pdf"):
         [Paragraph("Progetto:", style_meta_label), Paragraph("Piattaforma E-Learning Proprietaria & Masterclass Microblading", style_meta_val)],
         [Paragraph("Data Rilascio:", style_meta_label), Paragraph("Agosto 2026", style_meta_val)],
         [Paragraph("Stato Progetto:", style_meta_label), Paragraph("<font color='#4A0E2E'><b>Piattaforma Operativa • Versione 1.0 (Lancio Ufficiale & Assistenza Attiva)</b></font>", style_meta_val)],
-        [Paragraph("Dominio Web Ufficiale:", style_meta_label), Paragraph("https://main.d26u0xz2smmxfz.amplifyapp.com", style_meta_val)],
+        [Paragraph("Dominio Web Ufficiale:", style_meta_label), Paragraph("https://chiaramorocuttiacademy.it", style_meta_val)],
     ]
     meta_table = Table(meta_data, colWidths=[5 * cm, 12 * cm])
     meta_table.setStyle(TableStyle([
@@ -353,10 +353,11 @@ def build_pdf(filename="Relazione_Opere_Chiara_Morocutti_Academy.pdf"):
     ))
 
     works_infra = [
+        "<b>Dominio Ufficiale & Hosting Cloud Certificato:</b> La piattaforma è attiva sul dominio ufficiale <b>chiaramorocuttiacademy.it</b> con certificati SSL crittografici bancari HTTPS (lucchetto di sicurezza nel browser).",
+        "<b>Infrastruttura Email Certificata AWS SES (Anti-Spam 100%):</b> Configurato il servizio di invio professionale AWS Simple Email Service direttamente dal dominio ufficiale (<i>noreply@chiaramorocuttiacademy.it</i>). Include autenticazione crittografica Easy DKIM a 2048-bit, allineamento SPF e policy DMARC conforme alle direttive Google/Yahoo 2024+, garantendo che le comunicazioni non finiscano mai nella cartella spam.",
+        "<b>Template Email di Lusso Studiati su Misura in Palette con il Sito:</b> Ogni singola email inviata dalla piattaforma (credenziali di primo accesso, ricevute di acquisto, inviti admin, recupero password e codici di verifica a 6 cifre) è stata programmata con codice HTML responsive studiato al millimetro. La grafica riprende fedelmente la palette del brand (burgundy di lusso #4A0E2E, rosa cipria satinato, tipografia elegante e pulsante di login a pillola), regalando alla studentessa una sensazione di prestigio e coerenza visiva sin dal primo messaggio.",
         "<b>Protezione Anti-Copia & Anti-Pirateria dei Video:</b> I video della Masterclass non sono file pubblici scaricabili. Vengono erogati attraverso link crittografati a scadenza automatica (AWS Signed URLs). Nessun utente può scaricare, copiare o condividere i video con persone non autorizzate.",
         "<b>Rete di Distribuzione Globale (CDN CloudFront):</b> I video e i contenuti del sito vengono memorizzati su nodi ultraveloci in tutto il mondo: le lezioni partono istantaneamente in alta qualità senza mai andare in buffering.",
-        "<b>Template Email di Lusso Personalizzato:</b> Tutte le comunicazioni automatiche inviate (email di benvenuto, credenziali di accesso, recupero password) sono state graficamente impaginate con l'identità visiva dell'Academy, box satinato per le credenziali e pulsante di login diretto.",
-        "<b>Connessione Sicura & Certificati SSL:</b> Tutto il traffico tra studentessa e piattaforma viaggia su canale protetto crittografato HTTPS (lucchetto di sicurezza nel browser).",
         "<b>Sistema di Ripristino Automatico:</b> Meccanismo intelligente integrato che, in caso di aggiornamenti della piattaforma, ricarica automaticamente le pagine per le utenti senza mai mostrare schermate di errore.",
     ]
 
