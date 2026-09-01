@@ -25,9 +25,6 @@ export default defineConfig({
             if (id.includes('lucide-react') || id.includes('framer-motion')) {
               return 'vendor-ui';
             }
-            if (id.includes('hls.js') || id.includes('dashjs') || id.includes('react-player')) {
-              return 'video-engine';
-            }
           }
         },
       },

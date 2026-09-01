@@ -1,5 +1,4 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import ReactPlayer from 'react-player';
 import {
   Play,
   Pause,
@@ -134,6 +133,29 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       ambient.pause();
     }
   }, [isPlaying]);
+
+  useEffect(() => {
+    const video = playerRef.current;
+    if (!video) return;
+    if (isPlaying) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [isPlaying]);
+
+  useEffect(() => {
+    const video = playerRef.current;
+    if (!video) return;
+    video.volume = volume;
+    video.muted = isMuted;
+  }, [volume, isMuted]);
+
+  useEffect(() => {
+    const video = playerRef.current;
+    if (!video) return;
+    video.playbackRate = playbackRate;
+  }, [playbackRate]);
 
   const handleQualitySelect = (newQuality: VideoQuality) => {
     if (newQuality === quality) {
@@ -486,17 +508,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             : 'w-full h-full'
         }`}
       >
-        <ReactPlayer
+        <video
           ref={playerRef}
           src={videoUrl}
-          width="100%"
-          height="100%"
-          playing={isPlaying}
-          volume={volume}
-          muted={isMuted}
-          playbackRate={playbackRate}
+          playsInline
           preload="metadata"
-          playsInline={true}
           onWaiting={() => setIsBuffering(true)}
           onPlaying={() => {
             setIsBuffering(false);
@@ -527,6 +543,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   position: 'absolute',
                   top: 0,
                   left: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
                 }
               : {
                   position: 'absolute',
@@ -535,14 +554,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   width: `${aspectRatio * 100}%`,
                   height: `${100 / aspectRatio}%`,
                   transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+                  objectFit: 'contain',
                 }
           }
-          config={{
-            youtube: {
-              rel: 0,
-              iv_load_policy: 3,
-            },
-          }}
         />
       </div>
 
