@@ -237,3 +237,36 @@ Per eseguire l'upload:
 * ✅ **Lezione 7:** Che tipi di stories fare (`16eba908-6e69-4b90-8ea8-12cba0a7da46`) — 6m 29s *(Caricato Nativo)*
 * ✅ **Lezione 8:** Cosa sono i contenuti personali (`c737d161-ba00-4a4c-aaad-606c8fd99e4a`) — 6m 59s *(Caricato Nativo)*
 * 🔴 **Lezione 9:** Quando è necessario fare la call strategica (`a2680f7a-f049-4716-98b8-1021213dd328`) — 0s **MANCANTE**
+
+---
+
+## ⚠️ 7. DISCREPANZA STRUTTURALE: Scaletta Iniziale Concordata vs Registrazioni Reali
+
+### 🔎 Analisi del Problema
+Nel database AWS DynamoDB è attualmente censita la **scaletta teorica concordata all'inizio del progetto (54 lezioni su 10 moduli)**.
+Tuttavia, durante la fase di registrazione sul campo, la cliente (Chiara Morocutti) ha adottato un approccio differente e più compatto rispetto alla scaletta originaria:
+
+1. **Accorpamento dei Contenuti (Meno lezioni ma più lunghe):**
+   * *Esempio Modulo 9 (Consulenza):* Erano previste lezioni separate per "Gestire le obiezioni" e "Risoluzione obiezioni". Chiara ha registrato un'unica sessione Live di ben **83 minuti (1h 23m)** che esaurisce l'intero argomento in un unico video, rendendo superflue le lezioni singole.
+2. **Sostituzione di Video con Risorse Documentali (PDF):**
+   * *Esempio Modulo 10 (Trovare Clienti):* La lezione 3 ("Come impostare correttamente una pagina social professionale") corrisponde sul suo disco a una cartella con una guida PDF (`Biografia e set up.pdf`) anziché a un filmato MP4.
+3. **Omissione di Argomenti Teorico-Motivazionali:**
+   * Lezioni previste come *"Mentalità"* (Mod. 1), *"Come superare i blocchi iniziali"* (Mod. 10), *"Come ho costruito un business da 15k al mese"* (Mod. 10) e *"Quando fare la call strategica"* (Mod. 10) non sono mai state registrate e non compaiono tra i file del disco esterno.
+4. **Moduli Pratici e Normative Attualmente Non Consegnati:**
+   * Sull'SSD non sono presenti le cartelle per il *Modulo 4 (Forma su modella)*, *Modulo 7 (Lavoro su modella)* e *Modulo 8 (Normative)*.
+
+---
+
+### 🛠️ Azione Pianificata: Riallineamento Finale Schema Corso (Fine Consegne)
+
+Quando la cliente comunicherà di aver **concluso tutte le registrazioni** e consegnato gli ultimi file:
+
+1. **Bonifica delle Lezioni Fantasma (Delete / Purge):**
+   * Le lezioni rimaste a durata 0 e senza video associato che la cliente ha deciso di non registrare andranno rimosse da `prod-videocorso-lessons`.
+2. **Ricompatattamento e Rinumerazione Sequenziale (`order_number`):**
+   * Reindicizzare gli indici di ordinamento (1, 2, 3, 4...) per ciascun capitolo, evitando che le corsiste vedano "buchi" di numerazione (es. saltare da Lezione 2 a Lezione 4 o Lezione 9).
+3. **Integrazione dei PDF come Risorse / Allegati:**
+   * Associare i file PDF (es. `Biografia e set up.pdf`) come allegati di lezione scaricabili o lezioni testuali native.
+4. **Aggiornamento Contatori e Marketing Copy:**
+   * Aggiornare il numero complessivo effettivo di lezioni e ore di formazione sulla landing page (`frontend/src/pages/LandingPage.tsx`) e nella dashboard corsiste per riflettere la realtà esatta del corso finale.
+
