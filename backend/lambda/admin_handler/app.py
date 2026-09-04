@@ -1001,19 +1001,30 @@ def summarize_student(user_item: dict[str, Any], catalog: Optional[dict[str, Any
     if purchases:
         latest_purchase = sorted(purchases, key=lambda item: item.get('purchase_date', ''), reverse=True)[0]
 
+    has_global = user_has_global_access(user_item)
+    accessible_count = len(accessible_courses)
+    purchased_count = len({normalize_purchase_course_id(p) for p in purchases})
+
+    if has_global or accessible_count > 0:
+        effective_status = 'active'
+    elif purchased_count > 0 and accessible_count == 0:
+        effective_status = 'revoked'
+    else:
+        effective_status = user_item.get('subscription_status', 'inactive')
+
     return {
         'user_id': user_item['user_id'],
         'email': user_item.get('email', ''),
         'full_name': user_item.get('full_name', ''),
-        'subscription_status': user_item.get('subscription_status', 'inactive'),
+        'subscription_status': effective_status,
         'subscription_end_date': user_item.get('sub_end_date') or user_item.get('subscription_end_date') or '',
-        'global_access': user_has_global_access(user_item),
+        'global_access': has_global,
         'total_watch_time': total_watch_time,
         'last_login': user_item.get('updated_at') or user_item.get('created_at') or '',
         'purchase_date': latest_purchase.get('purchase_date', '') if latest_purchase else user_item.get('created_at', ''),
         'completion_percentage': completion_percentage,
-        'accessible_courses_count': len(accessible_courses),
-        'purchased_courses_count': len({normalize_purchase_course_id(p) for p in purchases}),
+        'accessible_courses_count': accessible_count,
+        'purchased_courses_count': purchased_count,
     }
 
 
