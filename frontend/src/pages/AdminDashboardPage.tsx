@@ -8,6 +8,8 @@ import { StatsCards } from '../components/admin/StatsCards';
 import { formatCurrency, formatDate, formatPercentage } from '../utils/formatters';
 import { getErrorMessage } from '../utils/errors';
 
+import { BusinessAnalyticsChart } from '../components/admin/BusinessAnalyticsChart';
+
 const purchaseStatusLabels: Record<string, string> = {
   paid: 'Pagato', pending: 'In attesa', failed: 'Non riuscito', refunded: 'Rimborsato',
   disputed: 'Contestato', cancelled: 'Annullato', needs_review: 'Da verificare',
@@ -78,7 +80,6 @@ export const AdminDashboardPage: React.FC = () => {
     daily_access_chart: stats.daily_access_chart ?? [],
   };
   const hasOperationalMonitoring = Array.isArray(stats.attention_items);
-  const chartMaximum = Math.max(...dashboardStats.daily_access_chart.map((day) => day.active_users), 1);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -149,17 +150,8 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
       </section>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-5">
-        <h2 className="text-xl font-semibold text-gray-900">Partecipazione negli ultimi 7 giorni</h2>
-        <p className="mt-1 text-sm text-gray-600">Numero di studenti che hanno seguito almeno una lezione ogni giorno.</p>
-        <div className="mt-6 grid h-44 grid-cols-7 items-end gap-1 sm:gap-4">
-          {dashboardStats.daily_access_chart.map((day) => {
-            const height = Math.max((day.active_users / chartMaximum) * 100, day.active_users ? 10 : 2);
-            const label = new Date(`${day.date}T12:00:00Z`).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric' });
-            return <div key={day.date} className="flex h-full min-w-0 flex-col justify-end text-center"><span className="mb-2 text-xs font-semibold text-gray-800 sm:text-sm">{day.active_users || ''}</span><div className="rounded-t-md bg-primary-600" style={{ height: `${height}%` }} /><span className="mt-2 text-[10px] text-gray-500 sm:text-xs">{label}</span></div>;
-          })}
-        </div>
-      </section>
+      {/* Dynamic Multi-Metric Business Analytics */}
+      <BusinessAnalyticsChart data={dashboardStats.daily_access_chart} />
     </div>
   );
 };

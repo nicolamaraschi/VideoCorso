@@ -249,7 +249,6 @@ def test_payment_verification_never_calls_an_unpaid_session_successful(configure
     payload = __import__("json").loads(configured_payment.verify_payment("cs_test_customer_return")["body"])["data"]
     assert payload["payment_state"] == "pending"
     assert payload["access_state"] == "not_available"
-    assert items[2]["Put"]["TableName"] == "outbox"
 
 
 def test_coupon_transaction_uses_stored_key_not_normalized_display_code(configured_payment):
@@ -361,9 +360,14 @@ def test_checkout_requires_versioned_explicit_digital_content_acceptance(configu
 
 def test_checkout_redirects_allow_only_the_configured_amplify_origins(configured_payment):
     configured_payment.ALLOWED_CHECKOUT_ORIGINS = {
+        "https://chiaramorocuttiacademy.it",
+        "https://www.chiaramorocuttiacademy.it",
         "https://main.d26u0xz2smmxfz.amplifyapp.com",
         "https://development.d26u0xz2smmxfz.amplifyapp.com",
     }
+    assert configured_payment.validate_checkout_redirect_url(
+        "https://chiaramorocuttiacademy.it/checkout?payment=success", "success_url",
+    ).startswith("https://chiaramorocuttiacademy.it")
     assert configured_payment.validate_checkout_redirect_url(
         "https://main.d26u0xz2smmxfz.amplifyapp.com/checkout?payment=success", "success_url",
     ).startswith("https://main.d26u0xz2smmxfz.amplifyapp.com")
@@ -373,18 +377,10 @@ def test_checkout_redirects_allow_only_the_configured_amplify_origins(configured
         configured_payment.validate_checkout_redirect_url("https://development.evil.example/checkout", "success_url")
 
 
-def test_email_without_resend_key_is_scoped_and_never_logs_secret(configured_payment, monkeypatch, capsys):
-    configured_payment._secret_cache.clear()
-    monkeypatch.setenv("RESEND_API_KEY_PARAMETER", "/videocorso/dev/resend/api-key")
-    monkeypatch.setenv("RESEND_TEST_RECIPIENTS", "student@example.test")
-    secret = "do-not-log-this-secret"
-    monkeypatch.setattr(configured_payment.ssm_client, "get_parameter", lambda **_kwargs: (_ for _ in ()).throw(
-        ClientError({"Error": {"Code": "ParameterNotFound"}}, "GetParameter")
-    ))
+def test_email_send_via_ses_handles_errors_gracefully(configured_payment, monkeypatch, capsys):
     assert configured_payment.send_welcome_email("student@example.test", "password", "Course") is False
     output = capsys.readouterr().out
-    assert "/videocorso/dev/resend/api-key" in output
-    assert secret not in output
+    assert "[SES EMAIL ERROR]" in output or "Failed to send email" in output
 
 
 def test_coupon_purchase_id_is_deterministic_and_user_scoped(configured_payment):

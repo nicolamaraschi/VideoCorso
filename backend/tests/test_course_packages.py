@@ -248,14 +248,14 @@ class TestFindPackageAndPricing:
 
 
 # ---------------------------------------------------------------------------
-# 3. Shipping address requirement
+# 3. Shipping address requirement (kits handed over in person, no shipping)
 # ---------------------------------------------------------------------------
 
 class TestShippingAddressRequirement:
 
-    def test_package_with_kit_requires_shipping_address(self):
+    def test_package_with_kit_does_not_require_shipping_address(self):
         package = {"includes_kit": True}
-        assert _payment.package_requires_shipping_address(package) is True
+        assert _payment.package_requires_shipping_address(package) is False
 
     def test_package_without_kit_does_not_require_address(self):
         package = {"includes_kit": False}
@@ -264,10 +264,10 @@ class TestShippingAddressRequirement:
     def test_no_package_does_not_require_address(self):
         assert _payment.package_requires_shipping_address(None) is False
 
-    def test_all_three_tiers_require_shipping_address(self):
-        """Every tier in this brief includes the kit, so all three require an address."""
+    def test_all_three_tiers_do_not_require_shipping_address(self):
+        """Kits are handed over in person at the studio, so checkout does not require shipping address."""
         for package in make_packages():
-            assert _payment.package_requires_shipping_address(package) is True
+            assert _payment.package_requires_shipping_address(package) is False
 
 
 class TestValidateShippingAddress:
@@ -280,23 +280,10 @@ class TestValidateShippingAddress:
         "country": "IT",
     }
 
-    def test_valid_address_accepted_for_kit_package(self):
+    def test_address_not_required_for_kit_package(self):
         package = {"includes_kit": True}
-        result = _payment.validate_shipping_address(self.VALID_ADDRESS, package)
-        assert result["full_name"] == "Maria Rossi"
-        assert result["country"] == "IT"
-
-    def test_missing_address_rejected_for_kit_package(self):
-        package = {"includes_kit": True}
-        with pytest.raises(ValueError, match="shipping_address is required"):
-            _payment.validate_shipping_address(None, package)
-
-    def test_incomplete_address_rejected(self):
-        package = {"includes_kit": True}
-        incomplete = dict(self.VALID_ADDRESS)
-        del incomplete["postal_code"]
-        with pytest.raises(ValueError, match="postal_code"):
-            _payment.validate_shipping_address(incomplete, package)
+        result = _payment.validate_shipping_address(None, package)
+        assert result is None
 
     def test_address_ignored_when_package_has_no_kit(self):
         package = {"includes_kit": False}
@@ -306,13 +293,6 @@ class TestValidateShippingAddress:
     def test_address_ignored_when_no_package_at_all(self):
         result = _payment.validate_shipping_address(None, None)
         assert result is None
-
-    def test_optional_fields_default_to_empty_string(self):
-        package = {"includes_kit": True}
-        result = _payment.validate_shipping_address(self.VALID_ADDRESS, package)
-        assert result["address_line2"] == ""
-        assert result["province"] == ""
-        assert result["phone"] == ""
 
 
 # ---------------------------------------------------------------------------

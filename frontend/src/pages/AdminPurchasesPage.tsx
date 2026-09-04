@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Trash2 } from 'lucide-react';
 import { adminService } from '../services/adminService';
 import type { Course, PurchaseRecord } from '../types';
 import { Loading } from '../components/common/Loading';
@@ -7,6 +8,7 @@ import { ErrorMessage } from '../components/common/ErrorMessage';
 import { Button } from '../components/common/Button';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 import { getErrorMessage } from '../utils/errors';
+import { useAdminOperationBanner } from '../components/common/AdminOperationBanner';
 
 const statusStyles: Record<string, string> = {
   paid: 'bg-emerald-100 text-emerald-700',
@@ -28,10 +30,12 @@ const originLabels: Record<string, string> = {
 };
 
 export const AdminPurchasesPage: React.FC = () => {
+  const { showSuccess, showError } = useAdminOperationBanner();
   const [purchases, setPurchases] = useState<PurchaseRecord[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     status: '',
     course_id: '',
@@ -74,6 +78,24 @@ export const AdminPurchasesPage: React.FC = () => {
   useEffect(() => {
     void loadPurchases();
   }, [loadPurchases]);
+
+  const handleDeletePurchase = async (purchaseId: string, email?: string) => {
+    const confirmed = window.confirm(
+      `Sei sicuro di voler eliminare definitivamente questo acquisto (${email || purchaseId})?\n\nQuesta operazione rimuoverà la riga dallo storico acquisti.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setDeletingId(purchaseId);
+      await adminService.deleteStripeTestPurchase(purchaseId);
+      setPurchases((prev) => prev.filter((p) => p.purchase_id !== purchaseId));
+      showSuccess('Acquisto eliminato', 'L’acquisto è stato rimosso dallo storico.');
+    } catch (err) {
+      showError('Errore eliminazione', getErrorMessage(err, 'Impossibile eliminare l’acquisto'));
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   if (loading) {
     return <Loading fullScreen text="Caricamento acquisti..." />;
@@ -170,8 +192,19 @@ export const AdminPurchasesPage: React.FC = () => {
                   <div><dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Accesso</dt><dd className="mt-1 text-gray-800">{purchase.access_unlocked && !purchase.access_revoked ? 'Sbloccato' : 'Non attivo'}</dd></div>
                   <div className="col-span-2"><dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Data</dt><dd className="mt-1 text-gray-800">{formatDateTime(purchase.purchase_date || purchase.created_at || '')}</dd></div>
                 </dl>
-                <div className="mt-4 border-t border-gray-100 pt-3">
-                  <Link to={`/admin/purchases/${purchase.purchase_id}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-primary-700 hover:text-primary-800">Apri dettaglio pagamento</Link>
+                <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
+                  <Link to={`/admin/purchases/${purchase.purchase_id}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-primary-700 hover:text-primary-800">
+                    Apri dettaglio
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => void handleDeletePurchase(purchase.purchase_id, email)}
+                    disabled={deletingId === purchase.purchase_id}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-800 disabled:opacity-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Elimina
+                  </button>
                 </div>
               </article>
             );
@@ -190,40 +223,66 @@ export const AdminPurchasesPage: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Accesso</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origine</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Importo</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Dettaglio</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Azioni</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {purchases.map((purchase) => (
-                <tr key={purchase.purchase_id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900">{purchase.user_name || 'Cliente'}</div>
-                    <div className="text-sm text-gray-500">{purchase.customer_email || purchase.user_email || 'Non disponibile'}</div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{purchase.course_title || purchase.course_id}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{formatDateTime(purchase.purchase_date || purchase.created_at || '')}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-2">
-                      <span className={`inline-flex w-fit px-2 py-1 text-xs font-semibold rounded-full ${statusStyles[purchase.local_status || purchase.status] || statusStyles.needs_review}`}>
-                        {statusLabels[purchase.local_status || purchase.status] || purchase.local_status || purchase.status}
-                      </span>
-                      <span className="text-xs text-gray-500">Stripe: {statusLabels[purchase.stripe_status || ''] || purchase.stripe_status || 'Non disponibile'}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
-                    {purchase.access_unlocked && !purchase.access_revoked ? 'Sbloccato' : 'Non attivo'}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{originLabels[purchase.purchase_origin || ''] || 'Checkout pubblico'}</td>
-                  <td className="px-6 py-4 text-right font-medium text-gray-900">
-                    {formatCurrency(Number(purchase.amount_gross ?? purchase.amount ?? 0))}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <Link to={`/admin/purchases/${purchase.purchase_id}`} className="text-sm font-medium text-primary-600 hover:text-primary-700">
-                      Apri
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+              {purchases.map((purchase) => {
+                const email = purchase.customer_email || purchase.user_email || '';
+                return (
+                  <tr key={purchase.purchase_id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-900">{purchase.user_name || 'Cliente'}</div>
+                      <div className="text-sm text-gray-500">{email || 'Non disponibile'}</div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      <div className="font-medium text-gray-900">{purchase.course_title || purchase.course_id}</div>
+                      {purchase.package_name && (
+                        <div className="text-xs text-primary-700 font-semibold mt-0.5">
+                          {purchase.package_name}
+                        </div>
+                      )}
+                      {purchase.shipping_address && (
+                        <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                          📦 Kit fisico da spedire
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{formatDateTime(purchase.purchase_date || purchase.created_at || '')}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-2">
+                        <span className={`inline-flex w-fit px-2 py-1 text-xs font-semibold rounded-full ${statusStyles[purchase.local_status || purchase.status] || statusStyles.needs_review}`}>
+                          {statusLabels[purchase.local_status || purchase.status] || purchase.local_status || purchase.status}
+                        </span>
+                        <span className="text-xs text-gray-500">Stripe: {statusLabels[purchase.stripe_status || ''] || purchase.stripe_status || 'Non disponibile'}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {purchase.access_unlocked && !purchase.access_revoked ? 'Sbloccato' : 'Non attivo'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{originLabels[purchase.purchase_origin || ''] || 'Checkout pubblico'}</td>
+                    <td className="px-6 py-4 text-right font-medium text-gray-900">
+                      {formatCurrency(Number(purchase.amount_gross ?? purchase.amount ?? 0))}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-3">
+                        <Link to={`/admin/purchases/${purchase.purchase_id}`} className="text-sm font-medium text-primary-600 hover:text-primary-700">
+                          Apri
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeletePurchase(purchase.purchase_id, email)}
+                          disabled={deletingId === purchase.purchase_id}
+                          className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                          title="Elimina acquisto"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 

@@ -173,6 +173,10 @@ export interface PurchaseDetail {
   video_access_events?: Array<{
     access_id: string;
     lesson_id: string;
+    lesson_title?: string;
+    chapter_title?: string;
+    lesson_display_order?: number;
+    chapter_display_order?: number;
     issued_at: string;
     source_ip_hash?: string;
     user_agent_hash?: string;

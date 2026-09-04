@@ -20,9 +20,12 @@ import type {
   UploadVideoResponse,
   UploadImageRequest,
   UploadImageResponse,
+  UploadMaterialRequest,
+  UploadMaterialResponse,
   CreateChapterRequest,
   CreateLessonRequest,
   User,
+  AuditLogsResponse,
 } from '../types';
 
 export const adminService = {
@@ -32,6 +35,18 @@ export const adminService = {
 
   async getImageUploadUrl(data: UploadImageRequest): Promise<UploadImageResponse> {
     return apiClient.post<UploadImageResponse>('/admin/image/upload', data);
+  },
+
+  async getMaterialUploadUrl(data: UploadMaterialRequest): Promise<UploadMaterialResponse> {
+    return apiClient.post<UploadMaterialResponse>('/admin/material/upload', data);
+  },
+
+  async uploadMaterialToS3(uploadUrl: string, file: File): Promise<void> {
+    await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+    });
   },
 
   async uploadVideoToS3(uploadUrl: string, file: File): Promise<void> {
@@ -244,5 +259,20 @@ export const adminService = {
       video_s3_key: videoKey,
       timestamp,
     });
+  },
+
+  async getAuditLogs(params?: { level?: string; source?: string; search?: string; limit?: number }): Promise<AuditLogsResponse> {
+    const query = new URLSearchParams();
+    query.set('logs', 'true');
+    if (params?.level) query.set('level', params.level);
+    if (params?.source) query.set('source', params.source);
+    if (params?.search) query.set('search', params.search);
+    if (params?.limit) query.set('limit', String(params.limit));
+    const qs = query.toString();
+    try {
+      return await apiClient.get<AuditLogsResponse>(`/admin/stats?${qs}`);
+    } catch {
+      return await apiClient.get<AuditLogsResponse>(`/admin/audit-logs?${qs}`);
+    }
   },
 };

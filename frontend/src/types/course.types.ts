@@ -1,6 +1,7 @@
 export interface CoursePackage {
   package_id: string;
   name: string;
+  description?: string;
   price: number;
   discounted_price?: number | null;
   display_order?: number;
@@ -51,6 +52,17 @@ export interface Chapter {
   lessons?: Lesson[];
 }
 
+export interface LessonAttachment {
+  id: string;
+  title: string;
+  file_name: string;
+  s3_key?: string;
+  file_size?: number;
+  file_type?: string;
+  download_url?: string | null;
+  created_at?: string;
+}
+
 export interface Lesson {
   lesson_id: string;
   chapter_id: string;
@@ -62,6 +74,7 @@ export interface Lesson {
   thumbnail_url: string;
   created_at: string;
   is_free_preview?: boolean;
+  attachments?: LessonAttachment[];
 }
 
 export interface Progress {

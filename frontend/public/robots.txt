@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Allow: /login
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /dashboard
+Disallow: /dashboard/*
+Disallow: /course/*
+Disallow: /checkout/*
+
+Sitemap: https://chiaramorocuttiacademy.it/sitemap.xml

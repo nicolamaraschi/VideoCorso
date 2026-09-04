@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, CheckCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, CheckCircle, Sparkles } from 'lucide-react';
 import type { Chapter, Lesson, Progress } from '../../types';
 import { LessonCard } from './LessonCard';
 
@@ -18,8 +18,13 @@ export const ChapterList: React.FC<ChapterListProps> = ({
   currentLessonId,
   isPreview = false,
 }) => {
-  // Keep long courses easy to scan: students open only the module they need.
-  const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
+  // By default, expand the first chapter (or all chapters with 0 progress)
+  const [expandedChapters, setExpandedChapters] = useState<Set<string>>(() => {
+    if (chapters.length > 0) {
+      return new Set([chapters[0].chapter_id]);
+    }
+    return new Set();
+  });
 
   const toggleChapter = (chapterId: string) => {
     const newExpanded = new Set(expandedChapters);
@@ -47,75 +52,93 @@ export const ChapterList: React.FC<ChapterListProps> = ({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 sm:space-y-4">
       {chapters.map((chapter) => {
         const isExpanded = expandedChapters.has(chapter.chapter_id);
         const chapterProgress = getChapterProgress(chapter);
+        const isAllDone = chapterProgress.total > 0 && chapterProgress.completed === chapterProgress.total;
 
         return (
           <div
             key={chapter.chapter_id}
-            className="border border-gray-200 rounded-lg overflow-hidden"
+            className="border border-primary-100 rounded-2xl overflow-hidden bg-white shadow-xs transition-all"
           >
-            {/* Chapter Header */}
+            {/* Chapter Header Button */}
             <button
+              type="button"
               onClick={() => toggleChapter(chapter.chapter_id)}
               aria-expanded={isExpanded}
-              className="w-full flex flex-col items-stretch gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+              className={`w-full flex items-center justify-between gap-3 p-3.5 sm:p-4 text-left transition-colors ${
+                isExpanded ? 'bg-primary-50/50' : 'bg-white hover:bg-gray-50/80'
+              }`}
             >
-              <div className="flex min-w-0 items-start gap-2 sm:items-center sm:gap-3 flex-1 text-left">
-                {isExpanded ? (
-                  <ChevronDown className="w-5 h-5 text-gray-600 flex-shrink-0" />
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                
+                {/* Chapter Cover Thumbnail (Compact on mobile, wider on tablet/desktop) */}
+                {chapter.image_url ? (
+                  <div className="w-16 h-12 sm:w-28 sm:h-20 rounded-xl overflow-hidden bg-primary-100 border border-primary-200/80 flex-shrink-0 shadow-xs">
+                    <img
+                      src={chapter.image_url}
+                      alt={`Copertina ${chapter.title}`}
+                      loading="lazy"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                 ) : (
-                  <ChevronRight className="w-5 h-5 text-gray-600 flex-shrink-0" />
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-primary-100 border border-primary-200 flex items-center justify-center flex-shrink-0 text-primary-800 font-bold">
+                    <Sparkles className="w-5 h-5 text-primary-700" />
+                  </div>
                 )}
 
-                <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
-                  {chapter.image_url && (
-                    <div className="w-full sm:w-64 flex-shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white">
-                      <img
-                        src={chapter.image_url}
-                        alt={`Copertina ${chapter.title}`}
-                        loading="lazy"
-                        className="w-full aspect-video object-cover shadow-sm"
+                {/* Chapter Titles & Progress Bar */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-primary-800 bg-primary-100/80 px-2 py-0.5 rounded-md">
+                      Modulo {chapter.order_number}
+                    </span>
+                    {isAllDone && (
+                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        <CheckCircle className="w-3 h-3" />
+                        Completato
+                      </span>
+                    )}
+                  </div>
+
+                  <h3
+                    className="text-sm sm:text-base font-bold text-gray-900 leading-snug break-normal line-clamp-2"
+                    style={{ fontFamily: 'Abhaya Libre, serif' }}
+                  >
+                    {chapter.title}
+                  </h3>
+
+                  {/* Progress Indicator */}
+                  <div className="flex items-center gap-2.5 mt-1.5">
+                    <div className="w-20 sm:w-32 h-1.5 bg-gray-200 rounded-full overflow-hidden flex-shrink-0">
+                      <div
+                        className="h-full bg-primary-600 rounded-full transition-all duration-300"
+                        style={{ width: `${chapterProgress.percentage}%` }}
                       />
                     </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-gray-900">
-                        Modulo {chapter.order_number}
-                      </span>
-                      {chapterProgress.percentage === 100 && (
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                      )}
-                    </div>
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mt-1 break-words">
-                      {chapter.title}
-                    </h3>
-                    {chapter.description && (
-                      <p className="text-sm text-gray-600 mt-1">{chapter.description}</p>
-                    )}
+                    <span className="text-[11px] sm:text-xs font-medium text-gray-500 whitespace-nowrap">
+                      {chapterProgress.completed}/{chapterProgress.total} lezioni
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <div className="ml-7 w-[calc(100%_-_1.75rem)] text-left sm:ml-4 sm:w-32 sm:text-right">
-                <div className="text-sm font-medium text-gray-700">
-                  {chapterProgress.completed} / {chapterProgress.total} lessons
-                </div>
-                <div className="w-full h-2 bg-gray-200 rounded-full mt-2">
-                  <div
-                    className="h-full bg-primary-600 rounded-full transition-all"
-                    style={{ width: `${chapterProgress.percentage}%` }}
-                  />
-                </div>
+              {/* Chevron icon */}
+              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 text-gray-600 ml-1">
+                {isExpanded ? (
+                  <ChevronDown className="w-4 h-4 text-primary-900" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-gray-500" />
+                )}
               </div>
             </button>
 
-            {/* Lessons */}
+            {/* Lessons List */}
             {isExpanded && chapter.lessons && chapter.lessons.length > 0 && (
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y divide-primary-100/60 border-t border-primary-100/60 bg-white">
                 {chapter.lessons.map((lesson) => {
                   const lessonProgress = progress[lesson.lesson_id];
                   const isLocked = isPreview && !lesson.is_free_preview;

@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertCircle, Award, CheckCircle, Clock3, RefreshCw, Shield, Video } from 'lucide-react';
+import { AlertCircle, Award, Check, CheckCircle, RefreshCw, Shield, Sparkles, Video } from 'lucide-react';
 import { useAuthContext } from '../components/auth/useAuthContext';
 import { paymentService } from '../services/paymentService';
 import { courseService } from '../services/courseService';
@@ -90,6 +90,12 @@ export const CheckoutPage: React.FC = () => {
   useEffect(() => {
     void loadCourse();
   }, [loadCourse]);
+
+  useEffect(() => {
+    if (user?.email && !emailInput) {
+      setEmailInput(user.email);
+    }
+  }, [user?.email, emailInput]);
 
   const verifyReturnedPayment = useCallback(async () => {
     if (paymentReturn !== 'success') return;
@@ -208,16 +214,12 @@ export const CheckoutPage: React.FC = () => {
     }
   };
 
-  const selectedCourseIndex = useMemo(
-    () => catalog.findIndex((item) => item.course_id === course?.course_id),
-    [catalog, course]
-  );
   const hasPackages = !!(course?.packages && course.packages.length > 0);
   const baseTotal = hasPackages
     ? Number(selectedPackage?.discounted_price ?? selectedPackage?.price ?? 0)
     : Number(course?.discounted_price ?? course?.price ?? 0);
   const checkoutTotal = couponQuote?.final_total ?? baseTotal;
-  const requiresShippingAddress = !!selectedPackage?.includes_kit;
+  const requiresShippingAddress = false;
 
   const handleSelectCourse = (nextCourse: CourseListItem) => {
     setCourse(nextCourse);
@@ -260,8 +262,6 @@ export const CheckoutPage: React.FC = () => {
   if (paymentReturn === 'success') {
     const title = paymentVerification?.course_title || course.title;
     const isPaid = paymentVerification?.payment_state === 'paid';
-    const accessIsActive = paymentVerification?.access_state === 'active';
-    const isProcessing = isPaid && paymentVerification?.access_state === 'processing';
     const isExpired = paymentVerification?.payment_state === 'expired';
 
     return (
@@ -279,22 +279,48 @@ export const CheckoutPage: React.FC = () => {
             </>
           )}
           {!checkingPayment && !paymentVerificationError && paymentVerification && isPaid && (
-            <>
-              {accessIsActive ? <CheckCircle className="w-12 h-12 mx-auto text-emerald-600" /> : <Clock3 className="w-12 h-12 mx-auto text-amber-600" />}
-              <h1 className="mt-4 text-2xl font-serif font-bold text-gray-900">Pagamento confermato</h1>
-              <p className="mt-3 text-gray-600">Il pagamento per <strong>{title}</strong> è stato confermato da Stripe.</p>
-              {accessIsActive ? (
-                <p className="mt-2 text-emerald-700">L’accesso al corso è attivo. Accedi con l’email usata per l’acquisto.</p>
-              ) : isProcessing ? (
-                <p className="mt-2 text-amber-800">Stiamo attivando il tuo account e l’accesso al corso. Riceverai le credenziali via email: non devi pagare di nuovo.</p>
-              ) : (
-                <p className="mt-2 text-amber-800">Il pagamento è confermato ma l’accesso richiede una verifica. Non effettuare un secondo pagamento; contatta l’assistenza.</p>
-              )}
-              <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-                <Button className="w-full sm:w-auto" variant="primary" onClick={() => navigate('/login')}>Vai al login</Button>
-                {isProcessing && <Button className="w-full sm:w-auto" variant="secondary" onClick={() => void verifyReturnedPayment()}><RefreshCw className="w-4 h-4 mr-2" /> Aggiorna accesso</Button>}
+            <div className="text-left sm:text-center">
+              <div className="flex justify-center mb-2">
+                <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center shadow-sm">
+                  <CheckCircle className="w-10 h-10 text-emerald-600" />
+                </div>
               </div>
-            </>
+              <h1 className="mt-3 text-2xl sm:text-3xl font-serif font-bold text-gray-900">
+                Pagamento Confermato 🎉
+              </h1>
+              <p className="mt-2 text-gray-600 text-base">
+                Grazie per il tuo acquisto! Il tuo ordine per <strong>{title}</strong> è andato a buon fine.
+              </p>
+
+              <div className="my-6 rounded-2xl bg-primary-50/70 border border-primary-100 p-5 text-left text-sm text-gray-800 space-y-3">
+                <h3 className="font-semibold text-primary-950 flex items-center gap-2">
+                  <span>📬</span> Come accedere subito al tuo corso:
+                </h3>
+                <ol className="list-decimal list-inside space-y-2 text-gray-700">
+                  <li>
+                    Controlla la tua casella email (anche nella cartella <em>Spam / Promozioni</em>).
+                  </li>
+                  <li>
+                    Troverai un'email con la tua <strong>password temporanea</strong> di primo accesso.
+                  </li>
+                  <li>
+                    Clicca su <strong>Vai al Login</strong> qui sotto, inserisci la tua email e la password temporanea ricevuta.
+                  </li>
+                  <li>
+                    Al primo accesso ti verrà chiesto di impostare la tua <strong>nuova password personale e definitiva</strong>.
+                  </li>
+                </ol>
+                <div className="pt-2 border-t border-primary-200/60 text-xs text-primary-800 italic">
+                  💡 Fatto questo, sarai subito dentro la tua area riservata con tutti i moduli e video sbloccati.
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+                <Button className="w-full sm:w-auto px-8 py-3.5 shadow-md" variant="primary" onClick={() => navigate('/login')}>
+                  Vai al Login e Accedi al Corso
+                </Button>
+              </div>
+            </div>
           )}
           {!checkingPayment && !paymentVerificationError && paymentVerification && !isPaid && (
             <>
@@ -323,115 +349,161 @@ export const CheckoutPage: React.FC = () => {
             Il pagamento è stato annullato: Stripe non ha confermato alcun acquisto. Puoi riprovare quando vuoi.
           </div>
         )}
-        <section className="rounded-2xl border border-primary-100 bg-white p-5 shadow-soft sm:p-8">
-          <div className="mb-8 flex flex-col items-start justify-between gap-2 sm:flex-row sm:gap-6">
-            <div className="min-w-0">
-              <h1 className="mb-2 text-3xl font-serif font-bold text-gray-900 md:text-4xl">Scegli la tua Masterclass</h1>
-              <p className="text-gray-500">
-                Seleziona il percorso formativo più adatto alle tue esigenze.
+        {/* 1. Header & Course / Package Selection */}
+        {hasPackages && (
+          <section className="rounded-3xl border border-primary-100 bg-white p-5 sm:p-8 shadow-sm">
+            <div className="text-center max-w-3xl mx-auto mb-8">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-50 border border-primary-200/80 text-primary-800 text-xs font-semibold tracking-wide uppercase mb-3">
+                <Sparkles className="w-3.5 h-3.5 text-primary-600" />
+                <span>{course.title}</span>
+              </span>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold text-gray-900 leading-tight">
+                Scegli il tuo pacchetto
+              </h1>
+              <p className="mt-2 text-sm sm:text-base text-gray-500 font-light">
+                Tutti i pacchetti danno accesso allo stesso corso completo con 10 moduli e 54 video-lezioni: cambiano i servizi di tutoraggio e la pratica in presenza.
               </p>
             </div>
-            <div className="text-sm text-gray-500">
-              {catalog.length} {catalog.length === 1 ? 'corso disponibile' : 'corsi disponibili'}
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {catalog.map((item, index) => {
-              const isSelected = item.course_id === course?.course_id;
-              return (
-                <button
-                  key={item.course_id}
-                  type="button"
-                  onClick={() => handleSelectCourse(item)}
-                  className={`text-left rounded-xl border p-5 transition-all ${
-                    isSelected
-                      ? 'border-primary-400 bg-primary-50 shadow-md ring-1 ring-primary-400'
-                      : 'border-gray-200 bg-white hover:border-primary-200 hover:shadow-sm'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3 mb-3">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Corso {index + 1}
-                    </span>
-                    {isSelected && (
-                      <span className="inline-flex px-2.5 py-1 rounded-full bg-primary-600 text-white text-xs font-medium">
-                        Selezionato
-                      </span>
-                    )}
-                  </div>
-
-                  <h2 className="text-lg font-semibold text-gray-900">{item.title}</h2>
-                  <p className="text-sm text-gray-600 mt-2 line-clamp-3">{item.short_description || item.description}</p>
-                  <div className="mt-4 flex items-end justify-between gap-3">
-                    <div>
-                      {item.packages && item.packages.length > 0 ? (
-                        // The exact price depends on which package is chosen below,
-                        // so showing a number here would just repeat (and risk
-                        // looking inconsistent with) the package price shown in
-                        // the "Scegli il tuo pacchetto" section.
-                        <span className="text-sm font-medium text-gray-600">
-                          {item.packages.length} pacchetti disponibili
-                        </span>
-                      ) : (
-                        <>
-                          {item.discounted_price && Number(item.discounted_price) < Number(item.price) && (
-                            <span className="block text-sm text-gray-400 line-through">€ {Number(item.price).toFixed(2)}</span>
-                          )}
-                          <span className="text-2xl font-bold text-gray-900">
-                            € {Number(item.discounted_price ?? item.price).toFixed(2)}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                    <span className={`text-sm font-medium ${isSelected ? 'text-primary-700' : 'text-gray-500'}`}>
-                      {selectedCourseIndex === index ? 'Pronto al checkout' : 'Seleziona'}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {hasPackages && (
-          <section className="rounded-2xl border border-primary-100 bg-white p-5 shadow-soft sm:p-8">
-            <h2 className="mb-2 text-2xl font-serif font-bold text-gray-900">Scegli il tuo pacchetto</h2>
-            <p className="mb-6 text-gray-500">
-              Tutti i pacchetti danno accesso allo stesso corso completo: cambiano solo i servizi e i benefit aggiuntivi inclusi.
-            </p>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            {/* 3-Column Perfectly Symmetrical Grid on Tablet/iPad & Desktop */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 items-stretch">
               {course.packages!.map((pkg) => {
                 const isSelected = selectedPackage?.package_id === pkg.package_id;
                 const pkgPrice = Number(pkg.discounted_price ?? pkg.price);
+                const hasDiscount = pkg.discounted_price && Number(pkg.discounted_price) < Number(pkg.price);
+                const isPlus = pkg.name.toLowerCase().includes('plus') || pkg.name.toLowerCase().includes('intermedio');
+                const isBase = pkg.name.toLowerCase().includes('base');
+
+                return (
+                  <div
+                    key={pkg.package_id}
+                    onClick={() => handleSelectPackage(pkg)}
+                    className={`relative flex flex-col justify-between rounded-2xl border-2 p-5 sm:p-6 cursor-pointer transition-all duration-200 ${
+                      isSelected
+                        ? 'border-primary-600 bg-gradient-to-b from-primary-50/60 via-white to-primary-50/20 shadow-xl ring-2 ring-primary-500/20'
+                        : 'border-gray-200 bg-white hover:border-primary-200 hover:shadow-md'
+                    }`}
+                  >
+                    {/* Top Tier Structure */}
+                    <div className="flex flex-col flex-1">
+                      
+                      {/* 1. Badge Row (Uniform Height across all cards) */}
+                      <div className="h-7 mb-3 flex items-center justify-between">
+                        {isBase && (
+                          <span className="inline-flex px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 text-[11px] font-semibold uppercase tracking-wider">
+                            Autonomia
+                          </span>
+                        )}
+                        {isPlus && (
+                          <span className="inline-flex px-3 py-1 rounded-full bg-primary-950 text-white text-[11px] font-bold uppercase tracking-wider shadow-sm">
+                            ★ Più Richiesto
+                          </span>
+                        )}
+                        {!isBase && !isPlus && hasDiscount && (
+                          <span className="inline-flex px-3 py-1 rounded-full bg-amber-400 text-gray-950 text-[11px] font-extrabold uppercase tracking-wider shadow-sm">
+                            💎 Lancio -500€
+                          </span>
+                        )}
+                        
+                        {isSelected && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary-600 text-white text-[10px] font-bold uppercase tracking-wider ml-auto">
+                            Attivo
+                          </span>
+                        )}
+                      </div>
+
+                      {/* 2. Package Title */}
+                      <h2 className="text-2xl font-serif font-bold text-gray-900 leading-tight mb-3">
+                        {pkg.name}
+                      </h2>
+
+                      {/* 3. Normalized Price Box (Identical Height & Baseline on all 3 cards) */}
+                      <div className="mb-5 p-4 rounded-xl bg-gray-50/90 border border-gray-100 min-h-[108px] flex flex-col justify-center">
+                        {hasDiscount ? (
+                          <span className="block text-xs font-semibold text-gray-400 line-through leading-tight">
+                            € {Number(pkg.price).toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="block text-xs text-transparent select-none leading-tight" aria-hidden="true">
+                            € 0.00
+                          </span>
+                        )}
+                        <div className="flex items-baseline gap-1 mt-0.5">
+                          <span className="text-3xl font-serif font-bold text-gray-900 leading-none">
+                            € {pkgPrice.toFixed(2)}
+                          </span>
+                        </div>
+                        <span className="block text-[11px] text-gray-500 mt-1.5 leading-tight">
+                          + IVA • rateizzabile con Klarna/Scalapay
+                        </span>
+                      </div>
+
+                      {/* 4. Benefits Checklist (Aligned across all cards) */}
+                      <div className="space-y-2.5 flex-1">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-gray-800">
+                          Cosa include:
+                        </p>
+                        <ul className="space-y-2 text-xs sm:text-sm text-gray-700">
+                          {pkg.benefits.map((benefit, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                              <span className="leading-snug">{benefit}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* 5. Symmetrical Bottom Action Button */}
+                    <div className="mt-6 pt-4 border-t border-gray-100">
+                      {isSelected ? (
+                        <div className="w-full h-11 rounded-xl bg-primary-950 text-white text-center text-xs sm:text-sm font-bold shadow-md flex items-center justify-center gap-1.5">
+                          <Check className="w-4 h-4 text-emerald-400" />
+                          <span>Pacchetto Selezionato</span>
+                        </div>
+                      ) : (
+                        <div className="w-full h-11 rounded-xl bg-gray-100 text-gray-700 text-center text-xs sm:text-sm font-semibold hover:bg-primary-100 hover:text-primary-900 transition-colors flex items-center justify-center">
+                          Seleziona questo piano
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Multi-course catalog switcher (if more than 1 course available) */}
+        {!hasPackages && catalog.length > 1 && (
+          <section className="rounded-2xl border border-primary-100 bg-white p-5 shadow-soft sm:p-8">
+            <h2 className="mb-4 text-2xl font-serif font-bold text-gray-900">Scegli la tua Masterclass</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {catalog.map((item, index) => {
+                const isSelected = item.course_id === course?.course_id;
                 return (
                   <button
-                    key={pkg.package_id}
+                    key={item.course_id}
                     type="button"
-                    onClick={() => handleSelectPackage(pkg)}
+                    onClick={() => handleSelectCourse(item)}
                     className={`text-left rounded-xl border p-5 transition-all ${
                       isSelected
                         ? 'border-primary-400 bg-primary-50 shadow-md ring-1 ring-primary-400'
                         : 'border-gray-200 bg-white hover:border-primary-200 hover:shadow-sm'
                     }`}
                   >
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <h3 className="text-lg font-semibold text-gray-900">{pkg.name}</h3>
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Corso {index + 1}
+                      </span>
                       {isSelected && (
                         <span className="inline-flex px-2.5 py-1 rounded-full bg-primary-600 text-white text-xs font-medium">
                           Selezionato
                         </span>
                       )}
                     </div>
-                    <span className="block text-2xl font-bold text-gray-900 mb-3">€ {pkgPrice.toFixed(2)}</span>
-                    <ul className="space-y-1.5 text-sm text-gray-600">
-                      {pkg.benefits.map((benefit) => (
-                        <li key={benefit} className="flex items-start gap-2">
-                          <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary-600" />
-                          <span>{benefit}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
+                    <p className="text-sm text-gray-600 mt-2 line-clamp-3">{item.short_description || item.description}</p>
                   </button>
                 );
               })}
@@ -445,25 +517,60 @@ export const CheckoutPage: React.FC = () => {
             Riepilogo Ordine
           </h2>
 
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-800">
-              {course.title}
-              {selectedPackage && ` - ${selectedPackage.name}`}
-            </h3>
-            <p className="text-gray-600">{course.short_description || course.description}</p>
-          </div>
+          {selectedPackage ? (
+            <div className="mb-6 rounded-2xl bg-primary-50/70 border-2 border-primary-200 p-5">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <span className="inline-flex px-3 py-1 rounded-full bg-primary-950 text-white text-xs font-bold uppercase tracking-wider">
+                  Piano Selezionato
+                </span>
+                {selectedPackage.discounted_price && Number(selectedPackage.discounted_price) < Number(selectedPackage.price) && (
+                  <span className="inline-flex px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-950 text-xs font-extrabold uppercase tracking-wide">
+                    Offerta Lancio -500€
+                  </span>
+                )}
+              </div>
+              <h3 className="text-xl font-serif font-bold text-gray-900">
+                {selectedPackage.name}
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                {selectedPackage.description || course.title}
+              </p>
 
-          <ul className="space-y-4 mb-8">
-            {benefits.map((item) => {
-              const Icon = item.icon;
-              return (
-                <li key={item.text} className="flex items-center gap-3">
-                  <Icon className="w-5 h-5 text-primary-600 flex-shrink-0" />
-                  <span className="text-gray-700">{item.text}</span>
-                </li>
-              );
-            })}
-          </ul>
+              <div className="mt-4 pt-4 border-t border-primary-200/60">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-primary-900 mb-3">
+                  Cosa include il tuo piano:
+                </h4>
+                <ul className="space-y-2.5 text-sm text-gray-800">
+                  {selectedPackage.benefits.map((benefit, idx) => (
+                    <li key={idx} className="flex items-start gap-2.5">
+                      <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <span className="leading-snug">{benefit}</span>
+                    </li>
+                  ))}
+                  <li className="flex items-start gap-2.5 text-primary-900 font-medium">
+                    <Video className="w-4 h-4 text-primary-600 shrink-0 mt-0.5" />
+                    <span>Accesso illimitato e a vita ai 10 moduli on demand</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-800">{course.title}</h3>
+              <p className="text-gray-600">{course.short_description || course.description}</p>
+              <ul className="space-y-4 my-6">
+                {benefits.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <li key={item.text} className="flex items-center gap-3">
+                      <Icon className="w-5 h-5 text-primary-600 flex-shrink-0" />
+                      <span className="text-gray-700">{item.text}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
 
           {requiresShippingAddress && (
             <div className="mb-8 rounded-xl border border-gray-200 bg-gray-50 p-4 sm:p-6">
@@ -578,10 +685,32 @@ export const CheckoutPage: React.FC = () => {
         <div className="h-fit rounded-2xl border border-primary-100 bg-white p-5 shadow-soft sm:p-8">
           <h2 className="text-2xl font-serif font-bold text-gray-900 mb-6">Pagamento Sicuro</h2>
 
-          <div className="space-y-3 mb-6">
-            <div className="flex flex-col gap-1 text-gray-600 sm:flex-row sm:justify-between sm:gap-4">
-              <span>Corso selezionato</span>
-              <span className="break-words text-right sm:max-w-[55%]">{course.title}</span>
+          <div className="space-y-4 mb-6">
+            <div className="rounded-xl bg-gray-50 border border-gray-200 p-4 space-y-2.5 text-sm">
+              <div className="flex justify-between items-center text-gray-600">
+                <span>Corso:</span>
+                <span className="font-semibold text-gray-900 text-right">{course.title}</span>
+              </div>
+              {selectedPackage && (
+                <div className="flex justify-between items-center text-gray-600 pt-2 border-t border-gray-200/60">
+                  <span>Pacchetto:</span>
+                  <span className="font-bold text-primary-950 bg-primary-100/70 px-2.5 py-0.5 rounded-md text-right">
+                    {selectedPackage.name}
+                  </span>
+                </div>
+              )}
+              {selectedPackage && selectedPackage.discounted_price && Number(selectedPackage.discounted_price) < Number(selectedPackage.price) && (
+                <div className="flex justify-between items-center text-gray-500 pt-1">
+                  <span>Prezzo di listino:</span>
+                  <span className="line-through">€ {Number(selectedPackage.price).toFixed(2)}</span>
+                </div>
+              )}
+              {selectedPackage && selectedPackage.discounted_price && Number(selectedPackage.discounted_price) < Number(selectedPackage.price) && (
+                <div className="flex justify-between items-center text-emerald-700 font-medium">
+                  <span>Sconto Lancio:</span>
+                  <span>- € {(Number(selectedPackage.price) - Number(selectedPackage.discounted_price)).toFixed(2)}</span>
+                </div>
+              )}
             </div>
             
             {!user && (
@@ -625,13 +754,19 @@ export const CheckoutPage: React.FC = () => {
                 )}
               </div>
             </div>
-            <div className="flex justify-between text-2xl font-bold text-gray-900 pt-3 border-t">
-              <span>Totale</span>
+
+            <div className="flex justify-between items-baseline text-2xl font-bold text-gray-900 pt-3 border-t">
+              <div>
+                <span>Totale</span>
+                {selectedPackage && (
+                  <span className="block text-xs font-normal text-gray-500">+ IVA inclusa ove applicabile</span>
+                )}
+              </div>
               <div className="text-right">
                 {couponQuote && checkoutTotal < baseTotal && (
                   <span className="mr-2 text-base font-normal text-gray-400 line-through">€ {baseTotal.toFixed(2)}</span>
                 )}
-                <span>€ {checkoutTotal.toFixed(2)}</span>
+                <span className="text-primary-950 font-serif font-bold text-3xl">€ {checkoutTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -650,10 +785,12 @@ export const CheckoutPage: React.FC = () => {
             <Loading text="Stiamo reindirizzando al pagamento sicuro..." />
           ) : (
             <>
-              <Button onClick={handleCheckout} variant="primary" fullWidth size="lg" className="transform hover:scale-105">
+              <Button onClick={handleCheckout} variant="primary" fullWidth size="lg" className="transform hover:scale-[1.02] shadow-lg py-4 text-base font-semibold">
                 {checkoutTotal === 0
                   ? 'Accedi Gratis' 
-                  : `Paga € ${checkoutTotal.toFixed(2)}`}
+                  : selectedPackage
+                    ? `Paga € ${checkoutTotal.toFixed(2)} • ${selectedPackage.name}`
+                    : `Paga € ${checkoutTotal.toFixed(2)}`}
               </Button>
               <div className="mt-5 space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 text-left text-sm text-gray-700">
                 <label className="flex cursor-pointer items-start gap-3">

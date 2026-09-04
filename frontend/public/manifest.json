@@ -1,0 +1,26 @@
+{
+  "short_name": "CM Academy",
+  "name": "Chiara Morocutti Academy - Videocorso Microblading",
+  "icons": [
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/dashboard",
+  "background_color": "#FAF7F8",
+  "theme_color": "#381B21",
+  "display": "standalone",
+  "orientation": "portrait"
+}

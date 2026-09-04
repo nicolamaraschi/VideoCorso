@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, CheckCircle, Circle, Lock, Clock } from 'lucide-react';
+import { Play, CheckCircle, Lock, Clock, Paperclip } from 'lucide-react';
 import type { Lesson, Progress } from '../../types';
 import { formatDuration } from '../../utils/formatters';
 
@@ -19,109 +19,122 @@ export const LessonCard: React.FC<LessonCardProps> = ({
   onClick,
 }) => {
   const isCompleted = progress?.completed || false;
-  const watchedPercentage = progress
-    ? (progress.watched_seconds / progress.total_seconds) * 100
+  const watchedPercentage = progress && progress.total_seconds > 0
+    ? Math.min(100, Math.max(0, (progress.watched_seconds / progress.total_seconds) * 100))
     : 0;
 
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={isLocked}
-      className={`w-full flex items-center gap-2 p-3 sm:gap-4 sm:p-4 text-left transition-colors ${
+      className={`w-full flex items-center gap-3 p-2.5 sm:p-4 text-left transition-all ${
         isActive
-          ? 'bg-primary-50 border-l-4 border-primary-600'
-          : 'hover:bg-gray-50 border-l-4 border-transparent'
+          ? 'bg-primary-100/70 border-l-4 border-primary-700'
+          : 'hover:bg-primary-50/40 border-l-4 border-transparent'
       } ${isLocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
     >
-      {lesson.thumbnail_url ? (
-        <div className="w-16 h-10 sm:w-28 sm:h-16 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 flex-shrink-0">
+      {/* Thumbnail Container with Integrated Play/Status Badge */}
+      <div className="w-24 sm:w-44 md:w-52 aspect-video rounded-xl overflow-hidden bg-primary-100 border border-primary-200/80 flex-shrink-0 relative shadow-xs group/thumb">
+        {lesson.thumbnail_url ? (
           <img
             src={lesson.thumbnail_url}
             alt={`Copertina ${lesson.title}`}
             loading="lazy"
-            width={112}
-            height={64}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300"
           />
-        </div>
-      ) : null}
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-primary-50">
+            <Play className="w-5 h-5 text-primary-300" />
+          </div>
+        )}
 
-      {/* Icon */}
-      <div className="flex-shrink-0">
+        {/* Video Duration Badge (Overlay bottom-right of thumbnail on mobile) */}
+        {lesson.duration_seconds > 0 && (
+          <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-white text-[9px] sm:text-[10px] font-mono font-medium leading-none">
+            {formatDuration(lesson.duration_seconds)}
+          </div>
+        )}
+
+        {/* Status Overlay Badge (Top-left of thumbnail) */}
         {isLocked ? (
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-200 rounded-full flex items-center justify-center">
-            <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+          <div className="absolute top-1 left-1 w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-black/70 backdrop-blur-xs flex items-center justify-center text-white">
+            <Lock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
           </div>
         ) : isCompleted ? (
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center">
-            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+          <div className="absolute top-1 left-1 w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-emerald-600/90 text-white flex items-center justify-center shadow-xs">
+            <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
-        ) : (
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary-100 rounded-full flex items-center justify-center">
-            {watchedPercentage > 0 ? (
-              <div className="relative w-full h-full flex items-center justify-center">
-                <svg className="absolute inset-0 w-full h-full -rotate-90">
-                  <circle
-                    cx="20"
-                    cy="20"
-                    r="16"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    fill="none"
-                    className="text-primary-600"
-                    strokeDasharray={`${watchedPercentage} 100`}
-                  />
-                </svg>
-                <Play className="w-4 h-4 text-primary-600" />
-              </div>
-            ) : (
-              <Circle className="w-5 h-5 text-gray-400" />
-            )}
+        ) : isActive ? (
+          <div className="absolute top-1 left-1 w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-primary-700 text-white flex items-center justify-center shadow-xs">
+            <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
+          </div>
+        ) : null}
+
+        {/* Bottom watched progress bar inside thumbnail */}
+        {!isLocked && !isCompleted && watchedPercentage > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/40">
+            <div
+              className="h-full bg-primary-500"
+              style={{ width: `${watchedPercentage}%` }}
+            />
           </div>
         )}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-[11px] sm:text-xs font-medium text-gray-500">
-            Lesson {lesson.order_number}
+      {/* Lesson Content Column (Takes 100% of remaining width with zero cramped wrapping) */}
+      <div className="min-w-0 flex-1 flex flex-col justify-center">
+        {/* Top Metadata: Lesson number + Preview Tag + Attachments */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+          <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-primary-800">
+            Lezione {lesson.order_number}
           </span>
           {lesson.is_free_preview && (
-            <span className="text-xs font-medium text-primary-600 bg-primary-50 px-2 py-0.5 rounded">
-              Free Preview
+            <span className="text-[10px] sm:text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded">
+              Anteprima Gratuita
+            </span>
+          )}
+          {lesson.attachments && lesson.attachments.length > 0 && (
+            <span className="text-[10px] sm:text-xs font-medium text-primary-700 bg-primary-50 border border-primary-200 px-1.5 py-0.2 rounded inline-flex items-center gap-1">
+              <Paperclip className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+              <span>{lesson.attachments.length} {lesson.attachments.length === 1 ? 'risorsa' : 'risorse'}</span>
             </span>
           )}
         </div>
+
+        {/* Lesson Title: Clear, robust, un-hyphenated */}
         <h4
-          className={`font-medium ${
-            isActive ? 'text-primary-700' : 'text-gray-900'
-          } break-words sm:truncate`}
+          className={`text-xs sm:text-sm md:text-base font-bold leading-snug break-normal line-clamp-2 ${
+            isActive ? 'text-primary-950' : 'text-gray-900 hover:text-primary-900'
+          }`}
         >
           {lesson.title}
         </h4>
+
+        {/* Description (Desktop only) */}
         {lesson.description && (
-          <p className="hidden sm:block text-sm text-gray-600 mt-1 line-clamp-2">
+          <p className="hidden sm:block text-xs text-gray-500 mt-1 line-clamp-1">
             {lesson.description}
           </p>
         )}
 
-        {/* Progress Bar */}
-        {!isLocked && !isCompleted && watchedPercentage > 0 && (
-          <div className="mt-2">
-            <div className="w-full h-1 bg-gray-200 rounded-full">
-              <div
-                className="h-full bg-primary-600 rounded-full transition-all"
-                style={{ width: `${watchedPercentage}%` }}
-              />
-            </div>
-          </div>
-        )}
+        {/* Mobile completion badge / resume indicator */}
+        <div className="flex sm:hidden items-center gap-2 mt-1">
+          {isCompleted ? (
+            <span className="text-[10px] text-emerald-700 font-medium flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" /> Completata
+            </span>
+          ) : watchedPercentage > 0 ? (
+            <span className="text-[10px] text-primary-700 font-medium">
+              In corso ({Math.round(watchedPercentage)}%)
+            </span>
+          ) : null}
+        </div>
       </div>
 
-      {/* Duration */}
-      <div className="flex-shrink-0 flex items-center gap-1 text-xs sm:text-sm text-gray-500">
-        <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+      {/* Desktop Right Duration Badge */}
+      <div className="hidden sm:flex flex-shrink-0 items-center gap-1 text-xs font-medium text-gray-500">
+        <Clock className="w-3.5 h-3.5 text-gray-400" />
         <span>{formatDuration(lesson.duration_seconds)}</span>
       </div>
     </button>

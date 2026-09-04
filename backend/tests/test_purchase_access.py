@@ -307,6 +307,9 @@ class _AdminMemoryTable:
     def put_item(self, **kwargs):
         self.puts.append(kwargs)
 
+    def scan(self, **kwargs):
+        return {"Items": [self.item] if self.item else []}
+
 
 class TestAdminOperationGuards:
     """Regression tests for destructive and payment-affecting admin actions."""
@@ -379,7 +382,7 @@ class TestAdminOperationGuards:
         assert table.puts[0]["Item"]["local_status"] == "refunded"
 
     def test_hiding_a_published_course_also_clears_is_active(self, monkeypatch):
-        table = _AdminMemoryTable({"course_id": "course-1", "status": "published", "is_active": True})
+        table = _AdminMemoryTable({"course_id": "course-1", "title": "Corso 1", "public_slug": "course-1", "status": "published", "is_active": True})
         monkeypatch.setitem(_admin.TABLES, "COURSES", table)
         monkeypatch.setattr(_admin, "get_course", lambda _course_id: table.item)
 

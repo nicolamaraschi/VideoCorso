@@ -4,11 +4,18 @@ import hashlib
 import os
 import secrets
 import string
+import traceback
 from datetime import datetime, timedelta, timezone
 
 import boto3
 from boto3.dynamodb.types import TypeDeserializer
 from botocore.exceptions import ClientError
+
+try:
+    from shared.audit_logger import record_audit_log
+except Exception:
+    def record_audit_log(*args, **kwargs):
+        pass
 
 
 def now_iso() -> str:
@@ -56,8 +63,12 @@ def ensure_cognito_user(email: str, full_name: str) -> str:
         try:
             response = cognito.admin_create_user(
                 UserPoolId=USER_POOL_ID, Username=email, TemporaryPassword=generate_temp_password(),
-                UserAttributes=[{'Name': 'email', 'Value': email}, {'Name': 'custom:subscription_status', 'Value': 'active'},
-                                *([{'Name': 'custom:full_name', 'Value': full_name}] if full_name else [])],
+                UserAttributes=[
+                    {'Name': 'email', 'Value': email},
+                    {'Name': 'email_verified', 'Value': 'true'},
+                    {'Name': 'custom:subscription_status', 'Value': 'active'},
+                    *([{'Name': 'custom:full_name', 'Value': full_name}] if full_name else [])
+                ],
                 DesiredDeliveryMediums=['EMAIL'],
             )
             existing = next(attribute['Value'] for attribute in response['User']['Attributes'] if attribute['Name'] == 'sub')
@@ -67,8 +78,11 @@ def ensure_cognito_user(email: str, full_name: str) -> str:
                 raise
     cognito.admin_update_user_attributes(
         UserPoolId=USER_POOL_ID, Username=email,
-        UserAttributes=[{'Name': 'custom:subscription_status', 'Value': 'active'},
-                        *([{'Name': 'custom:full_name', 'Value': full_name}] if full_name else [])],
+        UserAttributes=[
+            {'Name': 'email_verified', 'Value': 'true'},
+            {'Name': 'custom:subscription_status', 'Value': 'active'},
+            *([{'Name': 'custom:full_name', 'Value': full_name}] if full_name else [])
+        ],
     )
     cognito.admin_add_user_to_group(UserPoolId=USER_POOL_ID, Username=email, GroupName='students')
     return existing
@@ -127,6 +141,22 @@ def process_outbox(item: dict, worker_id: str) -> None:
         ExpressionAttributeValues={':completed': 'COMPLETED', ':now': now, ':worker': worker_id},
     )
 
+    record_audit_log(
+        action='student_account_provisioned',
+        target_type='student',
+        target_id=user_id,
+        details={
+            'email': email,
+            'full_name': item.get('full_name'),
+            'purchase_id': item.get('purchase_id'),
+            'course_title': item.get('course_title'),
+            'outbox_id': item.get('outbox_id'),
+        },
+        level='INFO',
+        source='provisioning_outbox',
+        actor=email,
+    )
+
 
 def lambda_handler(event, context):
     worker_id = getattr(context, 'aws_request_id', None) or secrets.token_hex(12)
@@ -137,5 +167,25 @@ def lambda_handler(event, context):
         if image:
             item = deserialize_image(image)
             if item.get('status') in {'PENDING', 'FAILED'}:
-                process_outbox(item, worker_id)
+                try:
+                    process_outbox(item, worker_id)
+                except Exception as exc:
+                    trace = traceback.format_exc()
+                    print(f'process_outbox error for item {item.get("outbox_id")}: {exc}')
+                    record_audit_log(
+                        action='provisioning_outbox_failed',
+                        target_type='student',
+                        target_id=item.get('customer_email', ''),
+                        details={
+                            'email': item.get('customer_email'),
+                            'purchase_id': item.get('purchase_id'),
+                            'outbox_id': item.get('outbox_id'),
+                            'error': str(exc),
+                        },
+                        level='ERROR',
+                        source='provisioning_outbox',
+                        actor=item.get('customer_email', 'system'),
+                        error_message=str(exc),
+                        stack_trace=trace,
+                    )
     return {'statusCode': 200}

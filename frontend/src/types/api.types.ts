@@ -71,7 +71,7 @@ export interface GetVideoUrlResponse {
   available_qualities?: string[];
 }
 
-export type VideoQuality = 'high' | 'medium' | 'low';
+export type VideoQuality = '1080p' | '720p' | '480p' | '360p' | 'high' | 'medium' | 'low';
 
 // Progress API types
 export interface UpdateProgressRequest {
@@ -111,6 +111,20 @@ export interface UploadImageResponse {
   expires_at: string;
 }
 
+export interface UploadMaterialRequest {
+  file_name: string;
+  file_type: string;
+  lesson_id?: string;
+}
+
+export interface UploadMaterialResponse {
+  upload_url: string;
+  s3_key: string;
+  file_name: string;
+  file_type: string;
+  expires_at: string;
+}
+
 export interface AdminCourseRequest {
   title: string;
   description: string;
@@ -146,6 +160,7 @@ export interface CreateLessonRequest {
   video_s3_key: string;
   thumbnail_url?: string;
   is_free_preview?: boolean;
+  attachments?: import('./course.types').LessonAttachment[];
 }
 
 export interface ReorderRequest {
@@ -179,6 +194,9 @@ export interface AdminStats {
   daily_access_chart: Array<{
     date: string;
     active_users: number;
+    revenue?: number;
+    orders_count?: number;
+    lessons_completed?: number;
   }>;
   active_students_last_7_days: number;
   revenue_last_30_days: number;
@@ -219,3 +237,25 @@ export interface CouponRequest {
   is_active: boolean;
   is_free_access: boolean;
 }
+
+export interface AuditLogEntry {
+  audit_id: string;
+  created_at: string;
+  level: 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
+  source?: string;
+  admin_email?: string;
+  actor?: string;
+  action: string;
+  target_type?: string;
+  target_id?: string;
+  error_message?: string;
+  stack_trace?: string;
+  details?: Record<string, unknown>;
+}
+
+export interface AuditLogsResponse {
+  items: AuditLogEntry[];
+  total: number;
+  server_time?: string;
+}
+

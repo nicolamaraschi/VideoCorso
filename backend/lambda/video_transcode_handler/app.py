@@ -7,6 +7,12 @@ from urllib.parse import unquote_plus
 import boto3
 from botocore.exceptions import ClientError
 
+try:
+    from shared.audit_logger import record_audit_log
+except Exception:
+    def record_audit_log(*args, **kwargs):
+        pass
+
 
 VIDEO_EXTENSIONS = ('.mp4', '.mov', '.m4v')
 TERMINAL_STATUSES = {'COMPLETE', 'ERROR', 'CANCELED'}
@@ -25,6 +31,14 @@ def mediaconvert_client():
 # fit for course footage (talking head, slides, low motion).
 # Bitrates follow AWS's own QVBR reference points for each resolution tier.
 RENDITIONS = [
+    {
+        'name_modifier': '_1080p',
+        'width': 1920,
+        'height': 1080,
+        'qvbr_quality_level': 8,
+        'max_bitrate': 4500000,
+        'audio_bitrate': 128000,
+    },
     {
         'name_modifier': '_720p',
         'width': 1280,
@@ -55,6 +69,14 @@ RENDITIONS = [
 def get_renditions_for_orientation(is_portrait: bool) -> list[dict]:
     if is_portrait:
         return [
+            {
+                'name_modifier': '_1080p',
+                'width': 1080,
+                'height': 1920,
+                'qvbr_quality_level': 8,
+                'max_bitrate': 4500000,
+                'audio_bitrate': 128000,
+            },
             {
                 'name_modifier': '_720p',
                 'width': 720,
@@ -217,6 +239,14 @@ def mark_job_completion(detail: dict, bucket: str) -> None:
                     ':version': asset_version, ':job_id': job_id,
                 },
             )
+            record_audit_log(
+                action='video_transcode_complete',
+                target_type='lesson',
+                target_id=lesson_id,
+                details={'job_id': job_id, 'asset_version': asset_version},
+                level='INFO',
+                source='video_transcode',
+            )
         except ClientError as exc:
             if exc.response.get('Error', {}).get('Code') == 'ConditionalCheckFailedException':
                 delete_prefix(bucket, prefix)
@@ -228,18 +258,26 @@ def mark_job_completion(detail: dict, bucket: str) -> None:
             UpdateExpression='SET transcode_status=:status, transcode_completed_at=:now, transcode_error_message=:error',
             ConditionExpression='pending_asset_version=:version AND transcode_job_id=:job_id',
             ExpressionAttributeValues={':status':status, ':now':detail.get('timestamp') or '', ':error':str(detail.get('errorMessage') or ''), ':version':asset_version, ':job_id':job_id})
-        delete_prefix(bucket, prefix)
+        record_audit_log(
+            action='video_transcode_failed',
+            target_type='lesson',
+            target_id=lesson_id,
+            details={'job_id': job_id, 'asset_version': asset_version, 'status': status, 'error': detail.get('errorMessage')},
+            level='ERROR',
+            source='video_transcode',
+            error_message=str(detail.get('errorMessage') or ''),
+        )
+ENABLE_TRANSCODING = os.environ.get('ENABLE_TRANSCODING', 'false').lower() == 'true'
 
 
 def lambda_handler(event, context):
     del context
-    bucket = os.environ['VIDEO_BUCKET']
-    role = os.environ['MEDIACONVERT_ROLE_ARN']
+    bucket = os.environ.get('VIDEO_BUCKET', '')
+    role = os.environ.get('MEDIACONVERT_ROLE_ARN', '')
+
     if event.get('source') == 'aws.mediaconvert' and event.get('detail-type') == 'MediaConvert Job State Change':
         mark_job_completion(event.get('detail') or {}, bucket)
         return {'statusCode': 200}
-
-    client = mediaconvert_client()
 
     records = event.get('Records', [])
     if event.get('source') == 'aws.s3' and event.get('detail-type') == 'Object Created':
@@ -247,6 +285,31 @@ def lambda_handler(event, context):
             'bucket': {'name': event['detail']['bucket']['name']},
             'object': {'key': event['detail']['object']['key']},
         }}]
+
+    if not ENABLE_TRANSCODING:
+        print("Auto-transcoding is DISABLED. Activating native resolution video (0.00€ MediaConvert cost).")
+        for record in records:
+            source_key = unquote_plus(record['s3']['object']['key'])
+            if not source_key.startswith('videos/') or not source_key.lower().endswith(VIDEO_EXTENSIONS):
+                continue
+            lesson_id, asset_version = parse_versioned_source_key(source_key)
+            if lesson_id:
+                try:
+                    lessons_table.update_item(
+                        Key={'lesson_id': lesson_id},
+                        UpdateExpression='SET video_s3_key = :source, asset_version = :version, transcode_status = :status REMOVE pending_video_s3_key, pending_asset_version, pending_transcode_status',
+                        ExpressionAttributeValues={
+                            ':source': source_key,
+                            ':version': asset_version or 'native',
+                            ':status': 'NATIVE',
+                        }
+                    )
+                    print(f"Directly activated native resolution video for lesson {lesson_id} ({source_key})")
+                except Exception as exc:
+                    print(f"Failed to directly activate native video for {lesson_id}: {exc}")
+        return {'statusCode': 200, 'message': 'Transcoding bypassed (native resolution active)'}
+
+    client = mediaconvert_client()
 
     for record in records:
         source_bucket = record['s3']['bucket']['name']
@@ -316,6 +379,19 @@ def lambda_handler(event, context):
                     continue
                 raise
         print(f"Started MediaConvert job {response['Job']['Id']} for {source_key}")
+        record_audit_log(
+            action='video_transcode_job_started',
+            target_type='lesson',
+            target_id=lesson_id or source_key,
+            details={
+                'job_id': response['Job']['Id'],
+                'source_key': source_key,
+                'lesson_id': lesson_id,
+                'asset_version': asset_version,
+            },
+            level='INFO',
+            source='video_transcode',
+        )
 
     return {'statusCode': 200}
 

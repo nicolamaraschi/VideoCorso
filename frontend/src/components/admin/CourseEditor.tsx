@@ -1,7 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, GripVertical, Save, Play, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+  Plus,
+  Edit,
+  Trash2,
+  GripVertical,
+  Save,
+  Play,
+  ArrowUp,
+  ArrowDown,
+  Paperclip,
+  FileText,
+  Upload,
+  Loader2,
+  ExternalLink,
+} from 'lucide-react';
 import { Reorder } from 'framer-motion';
-import type { Chapter, Lesson, VideoQuality } from '../../types';
+import type { Chapter, Lesson, LessonAttachment, VideoQuality } from '../../types';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { VideoUploader } from './VideoUploader';
@@ -9,6 +23,7 @@ import { ImageUploader } from './ImageUploader';
 // FIX: Importa i componenti necessari per l'anteprima
 import { VideoPlayer } from '../course/VideoPlayer';
 import { courseService } from '../../services/courseService';
+import { adminService } from '../../services/adminService';
 import { Loading } from '../common/Loading';
 
 type LessonFormData = {
@@ -18,6 +33,7 @@ type LessonFormData = {
   video_s3_key: string;
   thumbnail_url?: string;
   is_free_preview: boolean;
+  attachments?: LessonAttachment[];
 };
 
 interface CourseEditorProps {
@@ -71,6 +87,11 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   };
 
   const handleSaveChapterOrder = () => {
+    const confirmed = window.confirm("Sei sicuro di voler salvare la nuova posizione dei capitoli?");
+    if (!confirmed) {
+      setLocalChapters(chapters);
+      return;
+    }
     const updates = localChapters.map((c, i) => ({
       id: c.chapter_id,
       order_number: i + 1,
@@ -79,6 +100,11 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   };
 
   const handleSaveLessonOrder = (chapterId: string) => {
+    const confirmed = window.confirm("Sei sicuro di voler salvare la nuova posizione delle lezioni?");
+    if (!confirmed) {
+      setLocalChapters(chapters);
+      return;
+    }
     const chapter = localChapters.find(c => c.chapter_id === chapterId);
     if (!chapter || !chapter.lessons) return;
 
@@ -98,6 +124,11 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     const targetIndex = index + direction;
     if (index === -1 || targetIndex < 0 || targetIndex >= localChapters.length) return;
 
+    const currentTitle = localChapters[index]?.title || 'questo capitolo';
+    const directionText = direction === -1 ? 'sopra' : 'sotto';
+    const confirmed = window.confirm(`Sei sicuro di voler spostare "${currentTitle}" ${directionText}?`);
+    if (!confirmed) return;
+
     const reordered = [...localChapters];
     [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
     const reindexed = reindexChapters(reordered);
@@ -112,6 +143,11 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     const index = chapter.lessons.findIndex((l) => l.lesson_id === lessonId);
     const targetIndex = index + direction;
     if (index === -1 || targetIndex < 0 || targetIndex >= chapter.lessons.length) return;
+
+    const currentTitle = chapter.lessons[index]?.title || 'questa lezione';
+    const directionText = direction === -1 ? 'sopra' : 'sotto';
+    const confirmed = window.confirm(`Sei sicuro di voler spostare la lezione "${currentTitle}" ${directionText}?`);
+    if (!confirmed) return;
 
     const reordered = [...chapter.lessons];
     [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
@@ -153,18 +189,75 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewMissing, setPreviewMissing] = useState(false);
   const [replacingThumbnail, setReplacingThumbnail] = useState(false);
+  const [replacingChapterImage, setReplacingChapterImage] = useState(false);
+  const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
+  const [uploadingMaterial, setUploadingMaterial] = useState(false);
+  const [materialError, setMaterialError] = useState<string | null>(null);
 
   const [chapterForm, setChapterForm] = useState({ title: '', description: '', image_url: '' });
-  const [lessonForm, setLessonForm] = useState({
+  const [lessonForm, setLessonForm] = useState<LessonFormData>({
     title: '',
     description: '',
     duration_seconds: 0,
     video_s3_key: '',
     thumbnail_url: '',
     is_free_preview: false,
+    attachments: [],
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleMaterialUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploadingMaterial(true);
+    setMaterialError(null);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const res = await adminService.getMaterialUploadUrl({
+          file_name: file.name,
+          file_type: file.type || 'application/octet-stream',
+          lesson_id: editingLesson?.lesson_id || selectedChapterId || 'general',
+        });
+        await adminService.uploadMaterialToS3(res.upload_url, file);
+        const newAttachment: LessonAttachment = {
+          id: `att-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          title: file.name.replace(/\.[^/.]+$/, ''),
+          file_name: res.file_name,
+          s3_key: res.s3_key,
+          file_size: file.size,
+          file_type: file.type || 'application/octet-stream',
+          download_url: null,
+          created_at: new Date().toISOString(),
+        };
+        setLessonForm((prev) => ({
+          ...prev,
+          attachments: [...(prev.attachments || []), newAttachment],
+        }));
+      }
+    } catch (err) {
+      console.error('Material upload error:', err);
+      setMaterialError('Impossibile caricare il materiale. Riprova con un altro file.');
+    } finally {
+      setUploadingMaterial(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveAttachment = (attId: string) => {
+    setLessonForm((prev) => ({
+      ...prev,
+      attachments: (prev.attachments || []).filter((a) => a.id !== attId),
+    }));
+  };
+
+  const handleUpdateAttachmentTitle = (attId: string, title: string) => {
+    setLessonForm((prev) => ({
+      ...prev,
+      attachments: (prev.attachments || []).map((a) => (a.id === attId ? { ...a, title } : a)),
+    }));
+  };
 
   const handleCreateChapter = async () => {
     if (isSubmitting) return;
@@ -182,6 +275,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
 
   const handleEditChapter = (chapter: Chapter) => {
     setEditingChapter(chapter);
+    setReplacingChapterImage(false);
     setChapterForm({
       title: chapter.title,
       description: chapter.description,
@@ -208,6 +302,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const handleCreateLesson = (chapterId: string) => {
     setSelectedChapterId(chapterId);
     setReplacingThumbnail(false);
+    setMaterialError(null);
     setLessonForm({
       title: '',
       description: '',
@@ -215,6 +310,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       video_s3_key: '',
       thumbnail_url: '',
       is_free_preview: false,
+      attachments: [],
     });
     setShowLessonModal(true);
   };
@@ -229,6 +325,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         duration_seconds: lessonForm.duration_seconds,
         thumbnail_url: lessonForm.thumbnail_url || '',
         is_free_preview: lessonForm.is_free_preview,
+        attachments: lessonForm.attachments || [],
       };
 
       if (lessonForm.video_s3_key) {
@@ -314,6 +411,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         <Button
           onClick={() => {
             setEditingChapter(null);
+            setReplacingChapterImage(false);
             setChapterForm({ title: '', description: '', image_url: '' });
             setShowChapterModal(true);
           }}
@@ -361,20 +459,29 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                     </button>
                   </div>
                   {chapter.image_url ? (
-                    <img
-                      src={chapter.image_url}
-                      alt={chapter.title}
-                      loading="lazy"
-                      width={112}
-                      height={80}
-                      className="h-14 w-20 sm:h-20 sm:w-28 rounded-lg border border-gray-200 object-cover bg-white"
-                    />
+                    <div
+                      onClick={() => setZoomImage({ url: chapter.image_url!, title: `Capitolo ${chapter.order_number}: ${chapter.title}` })}
+                      className="group relative cursor-pointer flex-shrink-0"
+                      title="Clicca per ingrandire la copertina"
+                    >
+                      <img
+                        src={chapter.image_url}
+                        alt={chapter.title}
+                        loading="lazy"
+                        width={192}
+                        height={108}
+                        className="aspect-video h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 rounded-xl border border-gray-200 object-contain bg-white shadow-sm group-hover:shadow-md group-hover:scale-[1.02] transition-all"
+                      />
+                      <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[9px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                        🔍 Zoom
+                      </span>
+                    </div>
                   ) : null}
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-gray-900 truncate">
+                    <h3 className="font-semibold text-gray-900 truncate text-base sm:text-lg">
                       Chapter {chapter.order_number}: {chapter.title}
                     </h3>
-                    <p className="text-sm text-gray-600 truncate">{chapter.description}</p>
+                    <p className="text-sm text-gray-600 truncate mt-0.5">{chapter.description}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-end sm:justify-start">
@@ -409,16 +516,16 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                     axis="y"
                     values={chapter.lessons}
                     onReorder={(newLessons) => handleReorderLessonsLocal(chapter.chapter_id, newLessons)}
-                    className="space-y-2"
+                    className="space-y-3"
                   >
                     {chapter.lessons.map((lesson) => (
                       <Reorder.Item
                         key={lesson.lesson_id}
                         value={lesson}
                         onDragEnd={() => handleSaveLessonOrder(chapter.chapter_id)}
-                        className="flex flex-col items-stretch gap-2 p-2.5 sm:flex-row sm:items-center sm:justify-between sm:p-3 bg-white rounded border border-gray-200 shadow-sm"
+                        className="flex flex-col items-stretch gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
                       >
-                        <div className="flex min-w-0 items-center gap-2 sm:gap-3 flex-1">
+                        <div className="flex min-w-0 items-center gap-3 sm:gap-4 flex-1">
                           <div className="cursor-move p-1 hover:bg-gray-100 rounded text-gray-400 flex-shrink-0">
                             <GripVertical className="w-4 h-4" />
                           </div>
@@ -430,7 +537,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                               className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
                               aria-label={`Sposta lezione "${lesson.title}" su`}
                             >
-                              <ArrowUp className="w-3 h-3" />
+                              <ArrowUp className="w-3.5 h-3.5" />
                             </button>
                             <button
                               type="button"
@@ -439,20 +546,29 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                               className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
                               aria-label={`Sposta lezione "${lesson.title}" giù`}
                             >
-                              <ArrowDown className="w-3 h-3" />
+                              <ArrowDown className="w-3.5 h-3.5" />
                             </button>
                           </div>
                           {lesson.thumbnail_url ? (
-                            <img
-                              src={lesson.thumbnail_url}
-                              alt={lesson.title}
-                              loading="lazy"
-                              width={96}
-                              height={64}
-                              className="h-12 w-16 sm:h-16 sm:w-24 rounded-lg border border-gray-200 object-cover bg-gray-50 flex-shrink-0"
-                            />
+                            <div
+                              onClick={() => setZoomImage({ url: lesson.thumbnail_url!, title: `Lezione ${lesson.order_number}: ${lesson.title}` })}
+                              className="group relative cursor-pointer flex-shrink-0"
+                              title="Clicca per ingrandire la copertina"
+                            >
+                              <img
+                                src={lesson.thumbnail_url}
+                                alt={lesson.title}
+                                loading="lazy"
+                                width={192}
+                                height={108}
+                                className="aspect-video h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 rounded-xl border border-gray-200 object-contain bg-white shadow-sm group-hover:shadow-md group-hover:scale-[1.02] transition-all"
+                              />
+                              <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[9px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                🔍 Zoom
+                              </span>
+                            </div>
                           ) : (
-                            <div className="flex h-12 w-16 sm:h-16 sm:w-24 flex-shrink-0 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-[10px] sm:text-[11px] font-medium text-gray-400">
+                            <div className="flex aspect-video h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-xs font-medium text-gray-400">
                               No cover
                             </div>
                           )}
@@ -481,6 +597,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                             onClick={() => {
                               setEditingLesson(lesson);
                               setReplacingThumbnail(false);
+                              setMaterialError(null);
                               setLessonForm({
                                 title: lesson.title,
                                 description: lesson.description,
@@ -488,6 +605,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                                 video_s3_key: lesson.video_s3_key,
                                 thumbnail_url: lesson.thumbnail_url || '',
                                 is_free_preview: lesson.is_free_preview || false,
+                                attachments: lesson.attachments ? [...lesson.attachments] : [],
                               });
                               setShowLessonModal(true);
                             }}
@@ -546,34 +664,60 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             />
           </div>
           <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Chapter Image
-              </label>
-              <input
-                type="text"
-                value={chapterForm.image_url}
-                onChange={(e) =>
-                  setChapterForm({ ...chapterForm, image_url: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="URL immagine capitolo oppure carica da PC"
-              />
-            </div>
-            {chapterForm.image_url && (
-              <img
-                src={chapterForm.image_url}
-                alt="Anteprima immagine capitolo"
-                width={400}
-                height={160}
-                className="max-h-40 w-auto rounded-lg border border-gray-200 object-contain mx-auto"
-              />
+            <label className="block text-sm font-medium text-gray-700">
+              Copertina capitolo
+            </label>
+            {chapterForm.image_url && !replacingChapterImage ? (
+              <div className="space-y-3">
+                <img
+                  src={chapterForm.image_url}
+                  alt="Anteprima copertina capitolo"
+                  width={400}
+                  height={160}
+                  className="max-h-40 w-auto rounded-lg border border-gray-200 object-contain mx-auto shadow-xs"
+                />
+                <div className="flex items-center justify-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setReplacingChapterImage(true)}
+                  >
+                    Sostituisci copertina
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setChapterForm((prev) => ({ ...prev, image_url: '' }))}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    Rimuovi
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <ImageUploader
+                  folder="chapters"
+                  label="Copertina capitolo"
+                  onUploadComplete={(imageUrl) => {
+                    setChapterForm((prev) => ({ ...prev, image_url: imageUrl }));
+                    setReplacingChapterImage(false);
+                  }}
+                />
+                {editingChapter?.image_url && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setReplacingChapterImage(false)}
+                  >
+                    Annulla sostituzione
+                  </Button>
+                )}
+              </div>
             )}
-            <ImageUploader
-              folder="chapters"
-              label="Copertina capitolo"
-              onUploadComplete={(imageUrl) => setChapterForm((prev) => ({ ...prev, image_url: imageUrl }))}
-            />
           </div>
           <Button
             onClick={editingChapter ? handleUpdateChapter : handleCreateChapter}
@@ -714,7 +858,134 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             value={lessonForm.duration_seconds}
           />
 
-          <div className="flex items-center gap-2">
+          {/* Sezione Materiali Didattici e Allegati */}
+          <div className="space-y-3 pt-2 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                  <Paperclip className="w-4 h-4 text-primary-600" />
+                  Materiali Didattici e Allegati (PDF, PowerPoint, Dispense)
+                </label>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Documenti e risorse di studio scaricabili dai corsisti che hanno acquistato il corso.
+                </p>
+              </div>
+              <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                uploadingMaterial
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-primary-50 text-primary-700 hover:bg-primary-100 border border-primary-200'
+              }`}>
+                {uploadingMaterial ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Caricamento...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>+ Aggiungi file</span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.zip,.rar,.png,.jpg,.jpeg"
+                  className="hidden"
+                  disabled={uploadingMaterial}
+                  onChange={handleMaterialUpload}
+                />
+              </label>
+            </div>
+
+            {materialError && (
+              <p className="text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-200">
+                {materialError}
+              </p>
+            )}
+
+            {lessonForm.attachments && lessonForm.attachments.length > 0 ? (
+              <div className="space-y-2">
+                {lessonForm.attachments.map((att, idx) => {
+                  const isPdf = att.file_name.toLowerCase().endsWith('.pdf') || att.file_type?.includes('pdf');
+                  const isPpt = att.file_name.toLowerCase().match(/\.(ppt|pptx)$/) || att.file_type?.includes('presentation');
+                  const isDoc = att.file_name.toLowerCase().match(/\.(doc|docx)$/) || att.file_type?.includes('word');
+                  const isZip = att.file_name.toLowerCase().match(/\.(zip|rar)$/);
+
+                  const badgeColor = isPdf
+                    ? 'bg-red-50 text-red-700 border-red-200'
+                    : isPpt
+                    ? 'bg-orange-50 text-orange-700 border-orange-200'
+                    : isDoc
+                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                    : isZip
+                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                    : 'bg-gray-50 text-gray-700 border-gray-200';
+
+                  const formatSize = (bytes?: number) => {
+                    if (!bytes || bytes <= 0) return '';
+                    const k = 1024;
+                    const sizes = ['B', 'KB', 'MB', 'GB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+                  };
+
+                  return (
+                    <div
+                      key={att.id || idx}
+                      className="flex items-center justify-between gap-3 p-3 bg-gray-50/80 rounded-xl border border-gray-200 hover:border-gray-300 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className={`p-2 rounded-lg border flex-shrink-0 ${badgeColor}`}>
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <input
+                            type="text"
+                            value={att.title}
+                            onChange={(e) => handleUpdateAttachmentTitle(att.id, e.target.value)}
+                            placeholder="Titolo documento (es. Dispensa Modulo 1)"
+                            className="w-full text-xs font-semibold text-gray-900 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-primary-500 focus:bg-white focus:outline-hidden px-1 py-0.5 rounded transition-all"
+                          />
+                          <p className="text-[11px] text-gray-500 px-1 truncate">
+                            {att.file_name} {att.file_size ? `• ${formatSize(att.file_size)}` : ''}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        {att.download_url && (
+                          <a
+                            href={att.download_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                            title="Apri file"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAttachment(att.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Rimuovi allegato"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-4 border border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+                <FileText className="w-6 h-6 text-gray-300 mx-auto mb-1" />
+                <p className="text-xs text-gray-400">Nessun materiale didattico allegato a questa lezione.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
             <input
               type="checkbox"
               id="freePreview"
@@ -791,6 +1062,31 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
           <p>Error loading video.</p>
         )}
       </Modal>
+
+      {/* Image Zoom Modal */}
+      {zoomImage && (
+        <Modal
+          isOpen={true}
+          onClose={() => setZoomImage(null)}
+          title={zoomImage.title}
+          size="2xl"
+        >
+          <div className="space-y-4">
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-black/5 p-2 flex items-center justify-center">
+              <img
+                src={zoomImage.url}
+                alt={zoomImage.title}
+                className="max-h-[70vh] w-auto max-w-full rounded-lg object-contain shadow-md"
+              />
+            </div>
+            <div className="flex justify-end">
+              <Button variant="secondary" onClick={() => setZoomImage(null)}>
+                Chiudi
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

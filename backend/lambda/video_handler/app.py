@@ -13,6 +13,11 @@ from botocore.exceptions import ClientError
 
 # ---------------------------------------------------------------------------
 from shared.purchase_access import purchase_grants_access
+try:
+    from shared.audit_logger import record_audit_log
+except Exception:
+    def record_audit_log(*args, **kwargs):
+        pass
 
 
 LEGACY_COURSE_ID = 'legacy-default-course'
@@ -93,11 +98,15 @@ def is_external_video_url(value: Any) -> bool:
 # a higher one, and only fall back to the legacy single "_1080p" output as
 # the last resort for videos transcoded before multi-quality support existed.
 FALLBACK_CHAINS = {
-    'high': ['720p', '480p', '360p', '1080p'],
-    'medium': ['480p', '360p', '720p', '1080p'],
+    '1080p': ['1080p', '720p', '480p', '360p'],
+    'high': ['1080p', '720p', '480p', '360p'],
+    '720p': ['720p', '1080p', '480p', '360p'],
+    'medium': ['480p', '720p', '360p', '1080p'],
+    '480p': ['480p', '720p', '360p', '1080p'],
     'low': ['360p', '480p', '720p', '1080p'],
+    '360p': ['360p', '480p', '720p', '1080p'],
 }
-DEFAULT_QUALITY_ORDER = ['720p', '480p', '360p', '1080p']
+DEFAULT_QUALITY_ORDER = ['1080p', '720p', '480p', '360p']
 _rendition_cache: dict[str, tuple[float, dict[str, str]]] = {}
 _RENDITION_CACHE_TTL_SECONDS = 30
 
@@ -154,12 +163,27 @@ def get_user_item(user_id: str) -> dict[str, Any]:
     return response.get('Item') or {}
 
 
-def get_user_purchases(user_id: str) -> list[dict[str, Any]]:
-    return query_all(
+def get_user_purchases(user_id: str, email: Optional[str] = None) -> list[dict[str, Any]]:
+    if not user_id:
+        return []
+    purchases = query_all(
         purchases_table,
         IndexName='UserIndex',
         KeyConditionExpression=Key('user_id').eq(user_id),
     )
+    if not email:
+        user_item = get_user_item(user_id)
+        email = user_item.get('email')
+    if email:
+        pending_id = f"pending-{hashlib.sha256(email.strip().lower().encode('utf-8')).hexdigest()[:32]}"
+        if pending_id != user_id:
+            pending_purchases = query_all(
+                purchases_table,
+                IndexName='UserIndex',
+                KeyConditionExpression=Key('user_id').eq(pending_id),
+            )
+            purchases.extend(pending_purchases)
+    return purchases
 
 
 def user_has_global_access(user_item: dict[str, Any]) -> bool:
@@ -172,25 +196,31 @@ def normalize_purchase_course_id(purchase: dict[str, Any]) -> str:
     return purchase.get('course_id') or LEGACY_COURSE_ID
 
 
-def can_access_course(user_id: str, course_id: str) -> bool:
-    if user_has_global_access(get_user_item(user_id)):
-        return True
-
-    for purchase in get_user_purchases(user_id):
-        if normalize_purchase_course_id(purchase) == course_id and purchase_grants_access(purchase):
-            return True
-
-    return False
-
-
 def find_access_purchase(user_id: str, course_id: str) -> Optional[dict[str, Any]]:
-    """Return the entitlement used for a video request, if it is a purchase."""
-    if user_has_global_access(get_user_item(user_id)):
-        return None
+    """Return the matching active purchase, if the entitlement is a purchase."""
     for purchase in get_user_purchases(user_id):
         if normalize_purchase_course_id(purchase) == course_id and purchase_grants_access(purchase):
             return purchase
     return None
+
+
+def get_course_access(user_id: str, course_id: str) -> tuple[bool, Optional[dict[str, Any]]]:
+    """Return whether access is granted and the purchase to audit, when present.
+
+    Global access is an explicit entitlement and deliberately has no purchase
+    record.  Keep that distinction so callers do not mistake ``None`` for a
+    denied request.
+    """
+    if user_has_global_access(get_user_item(user_id)):
+        return True, None
+
+    purchase = find_access_purchase(user_id, course_id)
+    return purchase is not None, purchase
+
+
+
+def can_access_course(user_id: str, course_id: str) -> bool:
+    return get_course_access(user_id, course_id)[0]
 
 
 def request_value_hash(value: Any) -> Optional[str]:
@@ -254,8 +284,17 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requ
     is_free_preview = normalize_bool(lesson.get('is_free_preview', False))
     access_purchase = None
     if not is_free_preview and not admin_bypass:
-        access_purchase = find_access_purchase(user_id, course_id)
-        if not access_purchase:
+        access_granted, access_purchase = get_course_access(user_id, course_id)
+        if not access_granted:
+            record_audit_log(
+                action='video_access_unauthorized',
+                target_type='lesson',
+                target_id=lesson_id,
+                details={'course_id': course_id, 'chapter_id': lesson.get('chapter_id'), 'user_id': user_id},
+                level='WARNING',
+                source='video_handler',
+                actor=user_id,
+            )
             return create_response(403, {'error': 'Course access required'})
 
     video_s3_key = lesson.get('video_s3_key')
@@ -276,7 +315,7 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requ
         presigned_url = s3_client.generate_presigned_url(
             'get_object',
             Params={'Bucket': video_bucket_name, 'Key': served_video_key},
-            ExpiresIn=600,
+            ExpiresIn=7200,
         )
     except ClientError as exc:
         print(f'generate_presigned_url error: {exc}')
@@ -288,7 +327,7 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requ
 
     return create_response(200, {
         'video_url': presigned_url,
-        'expires_at': (datetime.utcnow() + timedelta(minutes=10)).isoformat() + 'Z',
+        'expires_at': (datetime.utcnow() + timedelta(hours=2)).isoformat() + 'Z',
         'course_id': course_id,
         'video_quality': served_quality or 'source',
         'available_qualities': available_qualities,
@@ -336,9 +375,18 @@ def lambda_handler(event, context):
 
         return create_response(404, {'error': 'Not found'})
     except Exception as exc:  # noqa: BLE001 - last-resort guard, see below
-        # Without this, any unexpected error (e.g. an S3/DynamoDB throttling
-        # exception not already caught locally) becomes a raw Lambda failure
-        # instead of a controlled JSON response. Log server-side, keep the
-        # client-facing message generic.
+        import traceback
+        trace = traceback.format_exc()
         print(f'Unhandled error in video_handler: {exc}')
+        record_audit_log(
+            action='video_handler_error',
+            target_type='endpoint',
+            target_id=path,
+            details={'error': str(exc), 'user_id': user_id},
+            level='ERROR',
+            source='video_handler',
+            actor=user_id or 'unknown',
+            error_message=str(exc),
+            stack_trace=trace,
+        )
         return create_response(500, {'error': 'Internal server error'})

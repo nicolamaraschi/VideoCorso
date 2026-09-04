@@ -3,6 +3,7 @@ import math
 import os
 import secrets
 import string
+import traceback
 import uuid
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
@@ -22,6 +23,11 @@ from shared.purchase_access import (  # type: ignore[import]
     purchase_grants_access as _shared_purchase_grants_access,
     sync_purchase_access as _shared_sync_purchase_access,
 )
+try:
+    from shared.email_sender import send_ses_email
+except Exception:
+    def send_ses_email(*args, **kwargs):
+        return False
 
 
 LEGACY_COURSE_ID = 'legacy-default-course'
@@ -37,6 +43,8 @@ def load_secret(parameter_env_name: str, legacy_env_name: str) -> Optional[str]:
         return ssm_client.get_parameter(Name=parameter_name, WithDecryption=True)['Parameter']['Value']
     return os.environ.get(legacy_env_name)
 
+
+ENABLE_TRANSCODING = os.environ.get('ENABLE_TRANSCODING', 'false').lower() == 'true'
 
 stripe.api_key = load_secret('STRIPE_SECRET_KEY_PARAMETER', 'STRIPE_SECRET_KEY')
 
@@ -131,6 +139,9 @@ def delete_lesson_assets(lesson: dict[str, Any]) -> None:
         THUMBNAIL_BUCKET,
         get_owned_s3_key(lesson.get('thumbnail_url'), THUMBNAIL_BUCKET),
     )
+    for att in (lesson.get('attachments') or []):
+        if isinstance(att, dict) and att.get('s3_key'):
+            delete_s3_object_safely(VIDEO_BUCKET, att['s3_key'])
 
 
 def delete_chapter_assets(chapter: dict[str, Any]) -> None:
@@ -219,22 +230,52 @@ def get_current_admin_email(event) -> str:
 
 def get_current_admin_username(event) -> str:
     claims = get_claims(event)
-    return str(claims.get('cognito:username', '')).strip()
+    return str(claims.get('cognito:username') or claims.get('email') or claims.get('sub') or '').strip().lower()
 
 
-def record_audit_log(action: str, target_type: str, target_id: str, details: Optional[dict[str, Any]] = None):
+def record_audit_log(
+    action: str,
+    target_type: str = 'system',
+    target_id: str = '',
+    details: Optional[dict[str, Any]] = None,
+    level: str = 'INFO',
+    source: str = 'admin_handler',
+    actor: Optional[str] = None,
+    error_message: Optional[str] = None,
+    stack_trace: Optional[str] = None,
+):
     table = TABLES.get('AUDIT_LOGS')
     if not table:
         return
-    table.put_item(Item={
+    safe_details = {}
+    if details:
+        try:
+            safe_details = json.loads(json.dumps(details, default=str), parse_float=Decimal)
+        except Exception:
+            safe_details = {k: str(v) for k, v in details.items()}
+
+    admin_actor = actor or current_admin_email or 'system'
+    item = {
         'audit_id': str(uuid.uuid4()),
         'created_at': now_iso(),
-        'admin_email': current_admin_email or 'admin',
+        'level': str(level).upper(),
+        'source': str(source),
+        'admin_email': admin_actor,
+        'actor': admin_actor,
         'action': action,
-        'target_type': target_type,
-        'target_id': str(target_id),
-        'details': details or {},
-    })
+        'target_type': str(target_type),
+        'target_id': str(target_id or ''),
+        'details': safe_details,
+    }
+    if error_message:
+        item['error_message'] = str(error_message)
+    if stack_trace:
+        item['stack_trace'] = str(stack_trace)
+
+    try:
+        table.put_item(Item=item)
+    except Exception as exc:
+        print(f'Error recording audit log: {exc}')
 
 
 def generate_temp_password(length: int = 12) -> str:
@@ -242,60 +283,111 @@ def generate_temp_password(length: int = 12) -> str:
     return ''.join(secrets.choice(alphabet) for _ in range(length)) + 'A1!'
 
 
-def send_welcome_email(email: str, temp_password: str, password_reset: bool = False):
-    if not resend or not getattr(resend, 'api_key', None):
-        print('Welcome email skipped: Resend not configured.')
-        return
+def render_academy_email_html(
+    title: str,
+    subtitle: str,
+    paragraphs: list[str],
+    email: Optional[str] = None,
+    temp_password: Optional[str] = None,
+    cta_url: Optional[str] = None,
+    cta_text: Optional[str] = None,
+    note: Optional[str] = None,
+) -> str:
+    paragraphs_html = ''.join(
+        f'<p style="color: #374151; font-size: 15px; line-height: 1.6; margin: 0 0 14px 0;">{p}</p>'
+        for p in paragraphs
+    )
 
+    credentials_html = ''
+    if email or temp_password:
+        email_row = f'<p style="margin: 0 0 12px 0; color: #4b5563; font-size: 14px;"><strong style="color: #111827;">Email / Username:</strong><br><span style="color: #4a0e2e; font-size: 15px; font-weight: 600;">{email}</span></p>' if email else ''
+        pass_row = f'<p style="margin: 0; color: #4b5563; font-size: 14px;"><strong style="color: #111827;">Password temporanea:</strong></p><div style="font-family: monospace; font-size: 18px; font-weight: bold; color: #4a0e2e; background-color: #ffffff; padding: 12px 16px; border-radius: 8px; border: 1px dashed #d1a4b1; margin-top: 6px; letter-spacing: 1px; display: inline-block;">{temp_password}</div>' if temp_password else ''
+        credentials_html = f'''
+        <div style="background-color: #faf5f7; border: 1px solid #f3dce3; border-radius: 12px; padding: 20px; margin: 24px 0;">
+            {email_row}
+            {pass_row}
+        </div>
+        '''
+
+    cta_html = ''
+    if cta_url and cta_text:
+        cta_html = f'''
+        <div style="text-align: center; margin: 32px 0 24px 0;">
+            <a href="{cta_url}" style="background-color: #4a0e2e; color: #ffffff; padding: 14px 36px; text-decoration: none; border-radius: 50px; font-weight: 600; font-size: 15px; display: inline-block; box-shadow: 0 4px 10px rgba(74, 14, 46, 0.25);">{cta_text}</a>
+        </div>
+        '''
+
+    note_html = f'<p style="color: #6b7280; font-size: 13px; line-height: 1.5; margin-bottom: 24px;">{note}</p>' if note else ''
+
+    return f'''
+    <div style="font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff; border: 1px solid #f0e6eb; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <h1 style="color: #4a0e2e; font-size: 24px; font-weight: bold; margin: 0;">Chiara Morocutti Academy</h1>
+            <p style="color: #9c7178; font-size: 13px; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px;">{subtitle}</p>
+        </div>
+        <h2 style="color: #111827; font-size: 18px; font-weight: 600; margin-bottom: 16px;">{title}</h2>
+        {paragraphs_html}
+        {credentials_html}
+        {note_html}
+        {cta_html}
+        <p style="color: #9ca3af; font-size: 12px; margin-top: 32px; border-top: 1px solid #f3f4f6; padding-top: 16px; text-align: center;">Chiara Morocutti Academy • Tutti i diritti riservati</p>
+    </div>
+    '''
+
+
+def send_welcome_email(email: str, temp_password: str, password_reset: bool = False) -> bool:
     try:
-        resend.Emails.send({
-            'from': 'Team VideoCorso <onboarding@resend.dev>',
-            'to': email,
-            'subject': (
-                'Password reimpostata - Chiara Morocutti Academy'
-                if password_reset else 'Accesso piattaforma corsi - Chiara Morocutti Academy'
-            ),
-            'html': (
-                '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 8px;">'
-                f'<h2 style="color: #c2697b; text-align: center;">{("Password reimpostata" if password_reset else "Benvenuta in Chiara Morocutti Academy!")}</h2>'
-                f'<p style="font-size: 16px; color: #333;">{("Ti è stata assegnata una nuova password temporanea per accedere alla piattaforma." if password_reset else "Il tuo account per accedere alla piattaforma corsi è stato creato con successo.")}</p>'
-                '<div style="background-color: #f9f9f9; padding: 15px; border-radius: 6px; margin: 20px 0;">'
-                f'<p style="margin: 0; font-size: 15px;"><strong>Email:</strong> {email}</p>'
-                f'<p style="margin: 10px 0 0 0; font-size: 15px;"><strong>Password temporanea:</strong> <span style="font-family: monospace; background: #eee; padding: 2px 6px; border-radius: 4px;">{temp_password}</span></p>'
-                '</div>'
-                '<p style="font-size: 14px; color: #666;">Al tuo primo accesso ti verrà richiesto di impostare una nuova password personalizzata in modo da mantenere il tuo account sicuro.</p>'
-                '<p style="font-size: 14px; color: #666; margin-top: 30px;">A presto,<br>Il Team di Chiara Morocutti</p>'
-                '</div>'
-            ),
-        })
+        subject = (
+            'Password reimpostata - Chiara Morocutti Academy'
+            if password_reset else 'Benvenuta nella Chiara Morocutti Academy - Le tue credenziali'
+        )
+        paragraphs = [
+            'Ti è stata assegnata una nuova password per accedere alla piattaforma.'
+            if password_reset else 'Benvenuta nella Masterclass! Il tuo account è stato creato con successo e l’accesso al corso è attivo.'
+        ]
+        html_body = render_academy_email_html(
+            title='Password Aggiornata' if password_reset else 'Accesso Masterclass Attivato',
+            subtitle='Formazione d’Eccellenza Microblading',
+            paragraphs=paragraphs,
+            email=email,
+            temp_password=temp_password,
+            cta_url='https://chiaramorocuttiacademy.it/login',
+            cta_text='Accedi alla Masterclass',
+            note='👉 Al tuo primo accesso ti verrà richiesto di confermare questa password temporanea e sceglierne una tua personale e definitiva.',
+        )
+        return send_ses_email(
+            to_address=email,
+            subject=subject,
+            html_body=html_body,
+        )
     except Exception as exc:
-        print(f'Email send failed: {exc}')
+        print(f'[EMAIL ERROR] Failed to send email via SES to {email}: {exc}')
+        return False
 
 
-def send_admin_welcome_email(email: str, temp_password: str):
-    if not resend or not getattr(resend, 'api_key', None):
-        print('Admin welcome email skipped: Resend not configured.')
-        return
-
+def send_admin_welcome_email(email: str, temp_password: str) -> bool:
     try:
-        resend.Emails.send({
-            'from': 'Team VideoCorso <onboarding@resend.dev>',
-            'to': email,
-            'subject': 'Accesso amministratore piattaforma',
-            'html': (
-                '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 8px;">'
-                '<h2 style="color: #333; text-align: center;">Accesso Admin Attivato</h2>'
-                '<p style="font-size: 16px; color: #333;">Il tuo account amministratore è stato creato con successo.</p>'
-                '<div style="background-color: #f9f9f9; padding: 15px; border-radius: 6px; margin: 20px 0;">'
-                f'<p style="margin: 0; font-size: 15px;"><strong>Email:</strong> {email}</p>'
-                f'<p style="margin: 10px 0 0 0; font-size: 15px;"><strong>Password temporanea:</strong> <span style="font-family: monospace; background: #eee; padding: 2px 6px; border-radius: 4px;">{temp_password}</span></p>'
-                '</div>'
-                '<p style="font-size: 14px; color: #666;">Al tuo primo accesso ti verrà richiesto di cambiare password.</p>'
-                '</div>'
-            ),
-        })
+        html_body = render_academy_email_html(
+            title='Account Amministratore',
+            subtitle='Chiara Morocutti Academy',
+            paragraphs=[
+                'Sei stata invitata come amministratrice della piattaforma.',
+                'Di seguito trovi le tue credenziali di accesso provvisorie.',
+            ],
+            email=email,
+            temp_password=temp_password,
+            cta_url='https://chiaramorocuttiacademy.it/login',
+            cta_text='Accedi al Pannello Admin',
+            note='👉 Al tuo primo accesso ti verrà richiesto di confermare la password temporanea e sceglierne una tua personale.',
+        )
+        return send_ses_email(
+            to_address=email,
+            subject='Accesso Amministratore - Chiara Morocutti Academy',
+            html_body=html_body,
+        )
     except Exception as exc:
-        print(f'Admin email send failed: {exc}')
+        print(f'[EMAIL ERROR] Failed to send admin invite via SES to {email}: {exc}')
+        return False
 
 
 def list_admin_accounts():
@@ -568,6 +660,11 @@ def normalize_purchase(purchase: dict[str, Any]) -> dict[str, Any]:
     normalized['updated_at'] = normalized.get('updated_at') or normalized['created_at']
     normalized['is_stripe_test_purchase'] = str(normalized.get('stripe_session_id') or '').startswith('cs_test_')
     normalized['version'] = int(normalized.get('version', 0) or 0)
+    normalized['package_id'] = normalized.get('package_id')
+    normalized['package_name'] = normalized.get('package_name')
+    normalized['package_benefits_snapshot'] = normalized.get('package_benefits_snapshot') or []
+    normalized['shipping_address'] = normalized.get('shipping_address')
+    normalized['shipping_status'] = normalized.get('shipping_status') or ('pending' if normalized.get('shipping_address') else None)
     return normalized
 
 
@@ -764,7 +861,7 @@ def get_user_progress_items(user_id: str) -> list[dict[str, Any]]:
 
 
 def get_purchase_video_access_events(purchase_id: str) -> list[dict[str, Any]]:
-    """Return recent append-only video URL issuance evidence for one sale."""
+    """Return recent append-only video URL issuance evidence for one sale, enriched with titles."""
     table = TABLES.get('VIDEO_ACCESS_LOGS')
     if not table or not purchase_id:
         return []
@@ -774,7 +871,44 @@ def get_purchase_video_access_events(purchase_id: str) -> list[dict[str, Any]]:
         ScanIndexForward=False,
         Limit=50,
     )
-    return response.get('Items') or []
+    items = response.get('Items') or []
+    if not items:
+        return []
+
+    lessons_table = TABLES.get('LESSONS')
+    chapters_table = TABLES.get('CHAPTERS')
+    lesson_cache: dict[str, Any] = {}
+    chapter_cache: dict[str, Any] = {}
+
+    enriched = []
+    for it in items:
+        event = dict(it)
+        lid = event.get('lesson_id')
+        if lid and lessons_table:
+            if lid not in lesson_cache:
+                try:
+                    res = lessons_table.get_item(Key={'lesson_id': lid})
+                    lesson_cache[lid] = res.get('Item')
+                except Exception:
+                    lesson_cache[lid] = None
+            lesson_item = lesson_cache[lid]
+            if lesson_item:
+                event['lesson_title'] = lesson_item.get('title', '')
+                event['lesson_display_order'] = lesson_item.get('display_order', 0)
+                cid = lesson_item.get('chapter_id')
+                if cid and chapters_table:
+                    if cid not in chapter_cache:
+                        try:
+                            cres = chapters_table.get_item(Key={'chapter_id': cid})
+                            chapter_cache[cid] = cres.get('Item')
+                        except Exception:
+                            chapter_cache[cid] = None
+                    chap_item = chapter_cache[cid]
+                    if chap_item:
+                        event['chapter_title'] = chap_item.get('title', '')
+                        event['chapter_display_order'] = chap_item.get('display_order', 0)
+        enriched.append(event)
+    return enriched
 
 
 def user_has_global_access(user_item: dict[str, Any]) -> bool:
@@ -809,6 +943,25 @@ def get_chapter_lessons(chapter_id: str) -> list[dict[str, Any]]:
     return sorted(lessons, key=lambda item: int(item.get('order_number', 0)))
 
 
+def get_cached_catalog_metadata() -> dict[str, Any]:
+    all_courses = list_all_items(TABLES['COURSES'])
+    all_chapters = list_all_items(TABLES['CHAPTERS'])
+    all_lessons = list_all_items(TABLES['LESSONS'])
+
+    chapter_course_map = {ch['chapter_id']: ch.get('course_id') for ch in all_chapters if ch.get('chapter_id')}
+    course_lessons_map: dict[str, set[str]] = {}
+    for l in all_lessons:
+        ch_id = l.get('chapter_id')
+        c_id = chapter_course_map.get(ch_id)
+        if c_id and l.get('lesson_id'):
+            course_lessons_map.setdefault(c_id, set()).add(l['lesson_id'])
+
+    return {
+        'courses': all_courses,
+        'course_lessons_map': course_lessons_map,
+    }
+
+
 def get_course_lessons(course_id: str) -> list[dict[str, Any]]:
     lessons = []
     for chapter in get_course_chapters(course_id):
@@ -816,18 +969,20 @@ def get_course_lessons(course_id: str) -> list[dict[str, Any]]:
     return lessons
 
 
-def summarize_student(user_item: dict[str, Any]) -> dict[str, Any]:
+def summarize_student(user_item: dict[str, Any], catalog: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     purchases = get_user_purchases(user_item['user_id'])
     progress_items = get_user_progress_items(user_item['user_id'])
-    all_courses = list_all_items(TABLES['COURSES'])
+
+    if not catalog:
+        catalog = get_cached_catalog_metadata()
+
+    all_courses = catalog['courses']
+    course_lessons_map = catalog['course_lessons_map']
 
     accessible_courses = [course for course in all_courses if can_access_course(user_item, purchases, course['course_id'])]
-    course_lessons = set()
-    lessons_by_id = {}
+    course_lessons: set[str] = set()
     for course in accessible_courses:
-        for lesson in get_course_lessons(course['course_id']):
-            course_lessons.add(lesson['lesson_id'])
-            lessons_by_id[lesson['lesson_id']] = lesson
+        course_lessons.update(course_lessons_map.get(course['course_id'], set()))
 
     completed = 0
     total_watch_time = 0
@@ -863,16 +1018,13 @@ def summarize_student(user_item: dict[str, Any]) -> dict[str, Any]:
 
 
 def sync_cognito_user(username: str, full_name=None, subscription_status=None, subscription_end_date=None):
-    attributes = []
+    attributes = [{'Name': 'email_verified', 'Value': 'true'}]
     if full_name is not None:
         attributes.append({'Name': 'custom:full_name', 'Value': full_name})
     if subscription_status is not None:
         attributes.append({'Name': 'custom:subscription_status', 'Value': subscription_status})
     if subscription_end_date is not None:
         attributes.append({'Name': 'custom:sub_end_date', 'Value': subscription_end_date})
-
-    if not attributes:
-        return
 
     cognito_client.admin_update_user_attributes(
         UserPoolId=COGNITO_USER_POOL_ID,
@@ -910,9 +1062,7 @@ def validate_course_payload(course: dict[str, Any], current_course_id: Optional[
     slug = str(course.get('public_slug') or '').strip()
     if not slug or not all(char.isalnum() or char == '-' for char in slug):
         return 'public_slug can contain only lowercase letters, numbers and hyphens'
-    if slug != slug.lower():
-        return 'public_slug must be lowercase'
-    for existing in list_all_items(TABLES['COURSES']):
+    for existing in list_all_items(TABLES.get('COURSES')):
         if existing.get('course_id') != current_course_id and str(existing.get('public_slug') or '') == slug:
             return 'Esiste già un corso con questo URL pubblico'
     return None
@@ -1159,6 +1309,19 @@ def create_lesson(body):
         return create_response(400, {'error': 'Lesson duration must be numeric'})
 
     existing = get_chapter_lessons(chapter_id)
+    attachments = []
+    for att in (body.get('attachments') or []):
+        if isinstance(att, dict) and att.get('s3_key'):
+            attachments.append({
+                'id': str(att.get('id') or uuid.uuid4()),
+                'title': str(att.get('title') or att.get('file_name') or 'Allegato').strip(),
+                'file_name': str(att.get('file_name') or 'file').strip(),
+                's3_key': str(att.get('s3_key')).strip(),
+                'file_size': int(att.get('file_size') or 0),
+                'file_type': str(att.get('file_type') or 'application/octet-stream').strip(),
+                'created_at': str(att.get('created_at') or now_iso()),
+            })
+
     item = {
         'lesson_id': str(uuid.uuid4()),
         'chapter_id': chapter_id,
@@ -1169,6 +1332,7 @@ def create_lesson(body):
         'video_s3_key': body.get('video_s3_key', ''),
         'thumbnail_url': body.get('thumbnail_url', ''),
         'is_free_preview': normalize_bool(body.get('is_free_preview', False)),
+        'attachments': attachments,
         'asset_version': body.get('asset_version') or None,
         'transcode_job_id': None,
         'created_at': now_iso(),
@@ -1195,10 +1359,24 @@ def update_lesson(lesson_id, body):
     expression_names = {}
     replacing_video = body.get('video_s3_key') and body.get('video_s3_key') != lesson.get('video_s3_key')
     pending_replacement = False
-    for key in ('title', 'description', 'duration_seconds', 'thumbnail_url', 'is_free_preview'):
+    for key in ('title', 'description', 'duration_seconds', 'thumbnail_url', 'is_free_preview', 'attachments'):
         if key not in body:
             continue
         value = body[key]
+        if key == 'attachments':
+            normalized_attachments = []
+            for att in (value or []):
+                if isinstance(att, dict) and att.get('s3_key'):
+                    normalized_attachments.append({
+                        'id': str(att.get('id') or uuid.uuid4()),
+                        'title': str(att.get('title') or att.get('file_name') or 'Allegato').strip(),
+                        'file_name': str(att.get('file_name') or 'file').strip(),
+                        's3_key': str(att.get('s3_key')).strip(),
+                        'file_size': int(att.get('file_size') or 0),
+                        'file_type': str(att.get('file_type') or 'application/octet-stream').strip(),
+                        'created_at': str(att.get('created_at') or now_iso()),
+                    })
+            value = normalized_attachments
         expression_names[f'#{key}'] = key
         fields.append(f'#{key} = :{key}')
         values[f':{key}'] = value
@@ -1206,26 +1384,32 @@ def update_lesson(lesson_id, body):
         asset_version = extract_asset_version(body['video_s3_key'], lesson_id)
         if not asset_version:
             return create_response(400, {'error': 'Replacement video must use videos/<lesson_id>/<asset_version>/source.ext'})
-        # The upload URL endpoint records the pending asset before the browser
-        # uploads it. The following lesson PUT normally arrives afterwards;
-        # preserve its in-flight transcode rather than resetting its job state.
         pending_replacement = (
             lesson.get('pending_video_s3_key') == body['video_s3_key']
             and lesson.get('pending_asset_version') == asset_version
         )
-        if asset_version and not pending_replacement:
-            expression_names['#asset_version'] = 'pending_asset_version'
-            expression_names['#video_s3_key'] = 'pending_video_s3_key'
-            expression_names['#transcode_job_id'] = 'transcode_job_id'
-            expression_names['#transcode_status'] = 'transcode_status'
-            values[':asset_version'] = asset_version
-            values[':video_s3_key'] = body['video_s3_key']
-            values[':transcode_job_id'] = None
-            values[':transcode_status'] = 'PENDING_UPLOAD'
-            fields.extend([
-                '#asset_version = :asset_version', '#video_s3_key = :video_s3_key', '#transcode_job_id = :transcode_job_id',
-                '#transcode_status = :transcode_status',
-            ])
+        if not pending_replacement:
+            if not ENABLE_TRANSCODING:
+                expression_names['#video_s3_key'] = 'video_s3_key'
+                expression_names['#asset_version'] = 'asset_version'
+                expression_names['#transcode_status'] = 'transcode_status'
+                values[':video_s3_key'] = body['video_s3_key']
+                values[':asset_version'] = asset_version or 'native'
+                values[':transcode_status'] = 'NATIVE'
+                fields.extend(['#video_s3_key = :video_s3_key', '#asset_version = :asset_version', '#transcode_status = :transcode_status'])
+            else:
+                expression_names['#asset_version'] = 'pending_asset_version'
+                expression_names['#video_s3_key'] = 'pending_video_s3_key'
+                expression_names['#transcode_job_id'] = 'transcode_job_id'
+                expression_names['#transcode_status'] = 'transcode_status'
+                values[':asset_version'] = asset_version
+                values[':video_s3_key'] = body['video_s3_key']
+                values[':transcode_job_id'] = None
+                values[':transcode_status'] = 'PENDING_UPLOAD'
+                fields.extend([
+                    '#asset_version = :asset_version', '#video_s3_key = :video_s3_key', '#transcode_job_id = :transcode_job_id',
+                    '#transcode_status = :transcode_status',
+                ])
     if not fields:
         if pending_replacement:
             return create_response(200, {'success': True, 'data': lesson})
@@ -1392,6 +1576,30 @@ def get_presigned_image_upload_url(body):
     })
 
 
+def get_presigned_material_upload_url(body):
+    file_name = body.get('file_name')
+    file_type = body.get('file_type')
+    lesson_id = (body.get('lesson_id') or 'general').strip()
+    if not file_name or not file_type:
+        return create_response(400, {'error': 'file_name and file_type are required'})
+
+    safe_name = os.path.basename(str(file_name)).replace(' ', '_')
+    s3_key = f"materials/{lesson_id}/{uuid.uuid4().hex}_{safe_name}"
+
+    url = s3_client.generate_presigned_url(
+        'put_object',
+        Params={'Bucket': VIDEO_BUCKET, 'Key': s3_key, 'ContentType': file_type},
+        ExpiresIn=3600,
+    )
+    return create_response(200, {
+        'upload_url': url,
+        's3_key': s3_key,
+        'file_name': safe_name,
+        'file_type': file_type,
+        'expires_at': (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat().replace('+00:00', 'Z'),
+    })
+
+
 def delete_video(video_id):
     if not video_id:
         return create_response(400, {'error': 'videoId is required'})
@@ -1415,15 +1623,28 @@ def generate_thumbnail(body):
     })
 
 
-def ensure_cognito_student(email: str, full_name: str):
+def ensure_cognito_student(email: str, full_name: str, force_reset_password_on_existing: bool = False):
     try:
         existing = cognito_client.admin_get_user(
             UserPoolId=COGNITO_USER_POOL_ID,
             Username=email,
         )
         attributes = {item['Name']: item['Value'] for item in existing.get('UserAttributes', [])}
+        user_id = attributes.get('sub')
         sync_cognito_user(email, full_name=full_name, subscription_status='active')
-        return attributes.get('sub'), False, None
+        
+        if force_reset_password_on_existing:
+            temp_password = generate_temp_password()
+            cognito_client.admin_set_user_password(
+                UserPoolId=COGNITO_USER_POOL_ID,
+                Username=email,
+                Password=temp_password,
+                Permanent=False,
+            )
+            send_welcome_email(email, temp_password)
+            return user_id, False, temp_password
+            
+        return user_id, False, None
     except cognito_client.exceptions.UserNotFoundException:
         temp_password = generate_temp_password()
         created = cognito_client.admin_create_user(
@@ -1432,11 +1653,11 @@ def ensure_cognito_student(email: str, full_name: str):
             TemporaryPassword=temp_password,
             UserAttributes=[
                 {'Name': 'email', 'Value': email},
+                {'Name': 'email_verified', 'Value': 'true'},
                 {'Name': 'custom:full_name', 'Value': full_name},
                 {'Name': 'custom:subscription_status', 'Value': 'active'},
             ],
             DesiredDeliveryMediums=['EMAIL'],
-            MessageAction='SUPPRESS',
         )
         try:
             cognito_client.admin_add_user_to_group(
@@ -1460,7 +1681,7 @@ def create_manual_student(body):
     if not is_valid_email(email.lower()):
         return create_response(400, {'error': 'Inserisci un indirizzo email valido'})
 
-    user_id, _, _ = ensure_cognito_student(email, full_name)
+    user_id, _, temp_password = ensure_cognito_student(email, full_name, force_reset_password_on_existing=True)
     item = {
         'user_id': user_id,
         'email': email,
@@ -1609,7 +1830,9 @@ def get_students(params: dict[str, Any] | None = None):
     total_pages = max(1, math.ceil(total / per_page))
     start = (page - 1) * per_page
     page_users = users[start:start + per_page]
-    items = [summarize_student(user) for user in page_users]
+    
+    catalog = get_cached_catalog_metadata()
+    items = [summarize_student(user, catalog=catalog) for user in page_users]
 
     return create_response(200, {
         'items': items,
@@ -1627,12 +1850,15 @@ def search_students(params):
 
     users = list_student_records()
     matches = []
+    catalog = get_cached_catalog_metadata()
     for user in users:
         email = str(user.get('email', '')).lower()
         full_name = str(user.get('full_name', '')).lower()
         if query in email or query in full_name:
-            matches.append(summarize_student(user))
-    return create_response(200, matches[:25])
+            matches.append(summarize_student(user, catalog=catalog))
+            if len(matches) >= 25:
+                break
+    return create_response(200, matches)
 
 
 def get_student_detail(student_id):
@@ -1774,15 +2000,16 @@ def get_purchase_detail(purchase_id):
 def delete_stripe_test_purchase(purchase_id):
     purchase = TABLES['PURCHASES'].get_item(Key={'purchase_id': purchase_id}).get('Item')
     if not purchase:
-        return create_response(404, {'error': 'Purchase not found'})
-
-    # Stripe Checkout IDs explicitly distinguish test and live transactions.
-    # This keeps real sales immutable in the application database.
-    if not str(purchase.get('stripe_session_id') or '').startswith('cs_test_'):
-        return create_response(403, {'error': 'Only Stripe test purchases can be deleted'})
+        return create_response(404, {'error': 'Ordine non trovato'})
 
     TABLES['PURCHASES'].delete_item(Key={'purchase_id': purchase_id})
-    return create_response(200, {'success': True, 'deleted_purchase_id': purchase_id})
+    record_audit_log('delete_purchase', 'purchase', purchase_id, {
+        'user_id': purchase.get('user_id'),
+        'customer_email': purchase.get('customer_email') or purchase.get('user_email'),
+        'course_id': purchase.get('course_id'),
+        'amount': str(purchase.get('amount', 0)),
+    })
+    return create_response(200, {'success': True, 'deleted_purchase_id': purchase_id, 'message': 'Acquisto eliminato con successo'})
 
 
 def fetch_stripe_purchase_state(purchase: dict[str, Any]) -> dict[str, Any]:
@@ -1811,6 +2038,14 @@ def fetch_stripe_purchase_state(purchase: dict[str, Any]) -> dict[str, Any]:
     amount_refunded = 0
     is_disputed = False
     charge_id = normalized.get('stripe_charge_id')
+    latest_charge = payment_intent.get('latest_charge') if payment_intent else None
+    if isinstance(latest_charge, dict):
+        amount_refunded = max(amount_refunded, int(latest_charge.get('amount_refunded') or 0))
+        is_disputed = is_disputed or normalize_bool(latest_charge.get('disputed', False))
+        charge_id = charge_id or latest_charge.get('id')
+    elif isinstance(latest_charge, str):
+        charge_id = charge_id or latest_charge
+
     for charge in charges:
         amount_refunded = max(amount_refunded, int(charge.get('amount_refunded') or 0))
         is_disputed = is_disputed or normalize_bool(charge.get('disputed', False))
@@ -1859,28 +2094,34 @@ def refund_purchase(purchase_id: str, body: dict[str, Any]):
     if not normalized.get('stripe_payment_intent_id'):
         return create_response(400, {'error': 'Questo ordine non è associato a un pagamento Stripe rimborsabile'})
 
+    payment_intent_id = normalized['stripe_payment_intent_id']
     payment_intent = stripe.PaymentIntent.retrieve(
-        normalized['stripe_payment_intent_id'], expand=['latest_charge', 'charges'],
+        payment_intent_id, expand=['latest_charge', 'charges'],
     )
     charges = (((payment_intent or {}).get('charges') or {}).get('data')) or []
     charge_id = normalized.get('stripe_charge_id')
-    charge_amount = 0
+    charge_amount = int(payment_intent.get('amount_received') or payment_intent.get('amount') or 0)
     refunded_cents = 0
+
+    latest_charge = payment_intent.get('latest_charge') if payment_intent else None
+    if isinstance(latest_charge, dict):
+        charge_id = charge_id or latest_charge.get('id')
+        charge_amount = int(latest_charge.get('amount') or charge_amount)
+        refunded_cents = max(refunded_cents, int(latest_charge.get('amount_refunded') or 0))
+    elif isinstance(latest_charge, str):
+        charge_id = charge_id or latest_charge
+
     for charge in charges:
         if not charge_id or charge.get('id') == charge_id:
             charge_id = charge_id or charge.get('id')
-            charge_amount = int(charge.get('amount') or 0)
+            charge_amount = int(charge.get('amount') or charge_amount)
             refunded_cents = max(refunded_cents, int(charge.get('amount_refunded') or 0))
-    latest_charge = payment_intent.get('latest_charge') if payment_intent else None
-    if not charge_id and isinstance(latest_charge, dict):
-        charge_id = latest_charge.get('id')
-        charge_amount = int(latest_charge.get('amount') or 0)
-        refunded_cents = int(latest_charge.get('amount_refunded') or 0)
-    if not charge_id:
-        return create_response(400, {'error': 'Stripe non ha ancora reso disponibile l’addebito da rimborsare'})
+
+    if not charge_amount:
+        charge_amount = int((Decimal(str(normalized.get('amount_gross', 0))) * 100))
 
     remaining_cents = charge_amount - refunded_cents
-    if remaining_cents <= 0:
+    if remaining_cents <= 0 and charge_amount > 0 and refunded_cents >= charge_amount:
         # Stripe is the source of truth for refunds. If the local purchase is
         # stale, reconcile it before reporting the conflict so the admin UI
         # immediately stops offering a refund that cannot be issued.
@@ -1898,10 +2139,13 @@ def refund_purchase(purchase_id: str, body: dict[str, Any]):
 
     requested_amount = body.get('amount')
     refund_args: dict[str, Any] = {
-        'charge': charge_id,
         'reason': 'requested_by_customer',
         'metadata': {'purchase_id': purchase_id},
     }
+    if charge_id:
+        refund_args['charge'] = charge_id
+    elif payment_intent_id:
+        refund_args['payment_intent'] = payment_intent_id
     if requested_amount not in (None, ''):
         try:
             amount_cents = int((Decimal(str(requested_amount)).quantize(Decimal('0.01')) * 100))
@@ -1920,7 +2164,7 @@ def refund_purchase(purchase_id: str, body: dict[str, Any]):
     normalized = sync_purchase_access(normalized)
     normalized = put_purchase(normalized)
     record_audit_log('refund_purchase', 'purchase', purchase_id, {
-        'refund_id': refund.get('id'), 'amount': refund_args.get('amount', remaining_cents) / 100,
+        'refund_id': refund.get('id'), 'amount': Decimal(str(refund_args.get('amount', remaining_cents) / 100)),
         'note': normalized['refund_note'],
     })
     return create_response(200, {'success': True, 'data': normalized, 'refund_id': refund.get('id')})
@@ -2136,6 +2380,12 @@ def create_coupon(body):
     }
     try:
         TABLES['COUPONS'].put_item(Item=item, ConditionExpression='attribute_not_exists(coupon_id)')
+        record_audit_log('create_coupon', 'coupon', code, {
+            'discount_type': item['discount_type'],
+            'discount_value': str(item['discount_value']),
+            'is_free_access': item['is_free_access'],
+            'max_redemptions': item['max_redemptions'],
+        })
     except ClientError as exc:
         if exc.response.get('Error', {}).get('Code') == 'ConditionalCheckFailedException':
             return create_response(409, {'error': 'Esiste già un coupon con questo codice'})
@@ -2171,6 +2421,14 @@ def update_coupon(coupon_id, body):
     if updated['coupon_id'] != coupon_id:
         TABLES['COUPONS'].delete_item(Key={'coupon_id': coupon_id})
     TABLES['COUPONS'].put_item(Item=updated)
+    record_audit_log('update_coupon', 'coupon', updated['coupon_id'], {
+        'old_coupon_id': coupon_id,
+        'discount_type': updated.get('discount_type'),
+        'discount_value': str(updated.get('discount_value', 0)),
+        'is_active': updated.get('is_active'),
+        'is_free_access': updated.get('is_free_access'),
+        'max_redemptions': updated.get('max_redemptions'),
+    })
     return create_response(200, {'success': True, 'data': updated})
 
 
@@ -2179,6 +2437,7 @@ def delete_coupon(coupon_id):
     if not coupon:
         return create_response(404, {'error': 'Coupon not found'})
     TABLES['COUPONS'].delete_item(Key={'coupon_id': coupon['coupon_id']})
+    record_audit_log('delete_coupon', 'coupon', coupon['coupon_id'], {'code': coupon.get('code')})
     return create_response(200, {'success': True})
 
 
@@ -2219,10 +2478,10 @@ def create_admin_account(body):
             TemporaryPassword=temp_password,
             UserAttributes=[
                 {'Name': 'email', 'Value': email},
+                {'Name': 'email_verified', 'Value': 'true'},
                 {'Name': 'custom:full_name', 'Value': full_name},
             ],
             DesiredDeliveryMediums=['EMAIL'],
-            MessageAction='SUPPRESS',
         )
         cognito_client.admin_add_user_to_group(
             UserPoolId=COGNITO_USER_POOL_ID,
@@ -2242,11 +2501,15 @@ def create_admin_account(body):
         return create_response(409, {'error': 'Admin account already exists'})
 
 
-def update_admin_account(event, email, body):
-    current_admin_username = get_current_admin_username(event)
-    username = (email or '').strip().lower()
-    if not username:
-        return create_response(400, {'error': 'Admin username is required'})
+def update_admin_account(event, identifier, body):
+    claims = get_claims(event)
+    current_admin_email = str(claims.get('email', '')).strip().lower()
+    current_admin_sub = str(claims.get('sub', '')).strip().lower()
+    current_admin_username = str(claims.get('cognito:username', '')).strip().lower()
+
+    target = (identifier or '').strip()
+    if not target:
+        return create_response(400, {'error': 'Identificativo admin obbligatorio'})
 
     full_name = body.get('full_name')
     enabled = body.get('enabled')
@@ -2258,58 +2521,170 @@ def update_admin_account(event, email, body):
     if attributes:
         cognito_client.admin_update_user_attributes(
             UserPoolId=COGNITO_USER_POOL_ID,
-            Username=username,
+            Username=target,
             UserAttributes=attributes,
         )
 
     if enabled is not None:
         normalized_enabled = normalize_bool(enabled)
-        if not normalized_enabled and username == current_admin_username:
+        if not normalized_enabled and target.lower() in (current_admin_email, current_admin_sub, current_admin_username):
             return create_response(400, {'error': 'Non puoi disattivare il tuo stesso account admin'})
         if normalized_enabled:
-            cognito_client.admin_enable_user(UserPoolId=COGNITO_USER_POOL_ID, Username=username)
+            cognito_client.admin_enable_user(UserPoolId=COGNITO_USER_POOL_ID, Username=target)
         else:
-            cognito_client.admin_disable_user(UserPoolId=COGNITO_USER_POOL_ID, Username=username)
+            cognito_client.admin_disable_user(UserPoolId=COGNITO_USER_POOL_ID, Username=target)
 
     return create_response(200, {'success': True})
 
 
-def delete_admin_account(event, email):
-    current_admin_username = get_current_admin_username(event)
-    username = (email or '').strip().lower()
-    if not username:
-        return create_response(400, {'error': 'Admin username is required'})
+def delete_admin_account(event, identifier):
+    claims = get_claims(event)
+    current_admin_email = str(claims.get('email', '')).strip().lower()
+    current_admin_sub = str(claims.get('sub', '')).strip().lower()
+    current_admin_username = str(claims.get('cognito:username', '')).strip().lower()
 
-    if username == current_admin_username:
+    target = (identifier or '').strip()
+    if not target:
+        return create_response(400, {'error': 'Identificativo admin obbligatorio'})
+
+    # Prevent self-deletion
+    if target.lower() in (current_admin_email, current_admin_sub, current_admin_username):
         return create_response(400, {'error': 'Non puoi eliminare il tuo stesso account admin'})
 
-    cognito_client.admin_delete_user(
-        UserPoolId=COGNITO_USER_POOL_ID,
-        Username=username,
-    )
-    return create_response(200, {'success': True, 'message': 'Admin account deleted'})
+    try:
+        cognito_client.admin_delete_user(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Username=target,
+        )
+    except cognito_client.exceptions.UserNotFoundException:
+        pass
+    except Exception as e:
+        print(f"Error deleting admin user from Cognito ({target}): {e}")
+        return create_response(500, {'error': f'Impossibile eliminare l account admin: {str(e)}'})
+
+    try:
+        TABLES['USERS'].delete_item(Key={'user_id': target})
+    except Exception as e:
+        print(f"Error deleting user from DynamoDB ({target}): {e}")
+
+    record_audit_log('delete_admin', 'admin', target, {'target': target})
+    return create_response(200, {'success': True, 'message': 'Account admin eliminato con successo'})
 
 
 def resend_admin_invite(email):
-    username = (email or '').strip().lower()
-    if not username:
-        return create_response(400, {'error': 'Admin username is required'})
+    param = (email or '').strip().lower()
+    if not param:
+        return create_response(400, {'error': 'Admin identifier is required'})
 
-    response = cognito_client.admin_get_user(
-        UserPoolId=COGNITO_USER_POOL_ID,
-        Username=username,
-    )
-    attributes = {item['Name']: item['Value'] for item in response.get('UserAttributes', [])}
-    temp_password = generate_temp_password()
+    target_email = param
+    try:
+        user_info = cognito_client.admin_get_user(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Username=param,
+        )
+        attributes = {item['Name']: item['Value'] for item in user_info.get('UserAttributes', [])}
+        target_email = attributes.get('email', param)
+    except Exception as exc:
+        print(f'Admin user fetch warning: {exc}')
 
-    cognito_client.admin_set_user_password(
-        UserPoolId=COGNITO_USER_POOL_ID,
-        Username=username,
-        Password=temp_password,
-        Permanent=False,
-    )
-    send_admin_welcome_email(attributes.get('email', username), temp_password)
-    return create_response(200, {'success': True, 'message': 'Admin invite resent'})
+    try:
+        cognito_client.admin_create_user(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Username=target_email,
+            MessageAction='RESEND',
+            DesiredDeliveryMediums=['EMAIL'],
+        )
+        return create_response(200, {'success': True, 'message': 'Email di invito inviata con successo'})
+    except Exception as exc:
+        print(f'Admin resend through Cognito RESEND warning: {exc}')
+        temp_password = generate_temp_password()
+        cognito_client.admin_set_user_password(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Username=param,
+            Password=temp_password,
+            Permanent=False,
+        )
+        send_admin_welcome_email(target_email, temp_password)
+        return create_response(200, {'success': True, 'message': 'Email di invito inviata con successo'})
+
+
+def list_audit_logs(event):
+    table = TABLES.get('AUDIT_LOGS')
+    if not table:
+        return create_response(200, {'items': [], 'total': 0})
+
+    query_params = event.get('queryStringParameters') or {}
+    level_filter = (query_params.get('level') or '').strip().upper()
+    source_filter = (query_params.get('source') or '').strip().lower()
+    search_term = (query_params.get('search') or '').strip().lower()
+    limit = int(query_params.get('limit') or 250)
+
+    raw_items = list_all_items(table)
+
+    # Sort descending by created_at
+    raw_items.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+
+    filtered = []
+    for item in raw_items:
+        item_level = str(item.get('level') or 'INFO').upper()
+        item_source = str(item.get('source') or 'admin_handler').lower()
+        item_action = str(item.get('action') or '').lower()
+        item_actor = str(item.get('actor') or item.get('admin_email') or '').lower()
+        item_target_id = str(item.get('target_id') or '').lower()
+        item_target_type = str(item.get('target_type') or '').lower()
+        item_error = str(item.get('error_message') or '').lower()
+        item_details = item.get('details') or {}
+        item_details_str = json.dumps(item_details, default=str).lower()
+
+        # Severity filter
+        if level_filter and level_filter != 'ALL':
+            if level_filter == 'ERROR_OR_CRITICAL':
+                if item_level not in ['ERROR', 'CRITICAL']:
+                    continue
+            elif item_level != level_filter:
+                continue
+
+        # Source filter
+        if source_filter and source_filter != 'all':
+            if source_filter not in item_source:
+                continue
+
+        # Search term filter
+        if search_term:
+            match = (
+                search_term in item_action or
+                search_term in item_actor or
+                search_term in item_target_id or
+                search_term in item_target_type or
+                search_term in item_error or
+                search_term in item_details_str
+            )
+            if not match:
+                continue
+
+        # Format item for JSON response
+        filtered.append({
+            'audit_id': item.get('audit_id', ''),
+            'created_at': item.get('created_at', ''),
+            'level': item_level,
+            'source': item.get('source', 'admin_handler'),
+            'admin_email': item.get('admin_email', ''),
+            'actor': item.get('actor', item.get('admin_email', 'system')),
+            'action': item.get('action', ''),
+            'target_type': item.get('target_type', ''),
+            'target_id': item.get('target_id', ''),
+            'error_message': item.get('error_message', ''),
+            'stack_trace': item.get('stack_trace', ''),
+            'details': item_details,
+        })
+        if len(filtered) >= limit:
+            break
+
+    return create_response(200, {
+        'items': filtered,
+        'total': len(filtered),
+        'server_time': now_iso(),
+    })
 
 
 def get_stats():
@@ -2420,12 +2795,37 @@ def get_stats():
             'views': views,
         })
 
+    revenue_by_day = {}
+    orders_by_day = {}
+    for purchase in purchases:
+        normalized = normalize_purchase(purchase)
+        if normalized.get('local_status') == 'paid':
+            p_dt = parse_iso_datetime(normalized.get('purchase_date') or normalized.get('created_at'))
+            if p_dt:
+                day_str = p_dt.date().isoformat()
+                amt = normalize_amount(normalized.get('amount_gross', normalized.get('amount', 0)))
+                net = max(Decimal('0'), amt - normalized.get('refunded_amount', Decimal('0')))
+                revenue_by_day[day_str] = revenue_by_day.get(day_str, Decimal('0')) + net
+                orders_by_day[day_str] = orders_by_day.get(day_str, 0) + 1
+
+    lessons_completed_by_day = {}
+    for item in progress_items:
+        last_watched = item.get('last_watched')
+        if last_watched:
+            day = str(last_watched).split('T')[0]
+            if item.get('completed'):
+                lessons_completed_by_day[day] = lessons_completed_by_day.get(day, 0) + 1
+
     daily_access_chart = []
-    for offset in range(6, -1, -1):
+    # Provide 365 days of full history so admin can navigate across all months of the year
+    for offset in range(365, -1, -1):
         day = (today.fromordinal(today.toordinal() - offset)).isoformat()
         daily_access_chart.append({
             'date': day,
             'active_users': len(activity_by_day.get(day, set())),
+            'revenue': float(revenue_by_day.get(day, Decimal('0'))),
+            'orders_count': orders_by_day.get(day, 0),
+            'lessons_completed': lessons_completed_by_day.get(day, 0),
         })
 
     active_students = set()
@@ -2495,13 +2895,6 @@ def get_stats():
         'course_health': course_health,
     })
 
-
-try:
-    import resend
-
-    resend.api_key = load_secret('RESEND_API_KEY_PARAMETER', 'RESEND_API_KEY')
-except ImportError:
-    resend = None
 
 dynamodb = boto3.resource('dynamodb')
 s3_client = boto3.client('s3')
@@ -2618,15 +3011,25 @@ def lambda_handler(event, context):
             student = get_user_item(path_parameters.get('studentId'))
             if not student:
                 return create_response(404, {'error': 'Student not found'})
-            temp_password = generate_temp_password()
-            cognito_client.admin_set_user_password(
-                UserPoolId=COGNITO_USER_POOL_ID,
-                Username=student['email'],
-                Password=temp_password,
-                Permanent=False,
-            )
-            send_welcome_email(student['email'], temp_password)
-            return create_response(200, {'success': True, 'message': 'Invite resent'})
+            try:
+                cognito_client.admin_create_user(
+                    UserPoolId=COGNITO_USER_POOL_ID,
+                    Username=student['email'],
+                    MessageAction='RESEND',
+                    DesiredDeliveryMediums=['EMAIL'],
+                )
+                return create_response(200, {'success': True, 'message': 'Email di invito inviata con successo'})
+            except Exception as exc:
+                print(f'Student resend through Cognito RESEND warning: {exc}')
+                temp_password = generate_temp_password()
+                cognito_client.admin_set_user_password(
+                    UserPoolId=COGNITO_USER_POOL_ID,
+                    Username=student['email'],
+                    Password=temp_password,
+                    Permanent=False,
+                )
+                send_welcome_email(student['email'], temp_password)
+                return create_response(200, {'success': True, 'message': 'Email di invito inviata con successo'})
         if path.startswith('/admin/student/') and path.endswith('/grant-course') and http_method == 'POST':
             return grant_course_to_student(path_parameters.get('studentId'), body)
         if path.startswith('/admin/student/') and path.endswith('/reset-password') and http_method == 'POST':
@@ -2685,12 +3088,18 @@ def lambda_handler(event, context):
         if path.startswith('/admin/purchase/') and http_method == 'GET':
             return get_purchase_detail(path_parameters.get('purchaseId'))
         if path == '/admin/stats' and http_method == 'GET':
+            if str(params.get('logs', '')).lower() == 'true' or str(params.get('include_logs', '')).lower() == 'true':
+                return list_audit_logs(event)
             return get_stats()
+        if path == '/admin/audit-logs' and http_method == 'GET':
+            return list_audit_logs(event)
 
         if path == '/admin/video/upload' and http_method == 'POST':
             return get_presigned_upload_url(body)
         if path == '/admin/image/upload' and http_method == 'POST':
             return get_presigned_image_upload_url(body)
+        if path == '/admin/material/upload' and http_method == 'POST':
+            return get_presigned_material_upload_url(body)
         if path.startswith('/admin/video/') and http_method == 'DELETE':
             return delete_video(path_parameters.get('videoId'))
         if path == '/admin/video/thumbnail' and http_method == 'POST':
@@ -2700,12 +3109,22 @@ def lambda_handler(event, context):
     except PurchaseVersionConflict as exc:
         return create_response(409, {'error': str(exc), 'code': 'stale_version'})
     except ValueError as exc:
-        # A plain ValueError is normal input/business-rule validation
-        # (e.g. "Cannot grant access to a refunded purchase") raised by any
-        # handler function - it must not be mislabeled as a version conflict.
         return create_response(400, {'error': str(exc)})
     except Exception as exc:
-        # Never leak the raw exception text: it can be a boto3 ClientError or
-        # a Cognito error carrying internal AWS resource identifiers.
-        print(f'admin handler error: {exc}')
+        trace = traceback.format_exc()
+        print(f'admin handler error: {exc}\n{trace}')
+        try:
+            record_audit_log(
+                action='internal_server_error',
+                target_type='system',
+                target_id=str(path or ''),
+                details={'path': path, 'method': http_method, 'error': str(exc)},
+                level='ERROR',
+                source='admin_handler',
+                actor=get_current_admin_email(event) or 'unknown',
+                error_message=str(exc),
+                stack_trace=trace,
+            )
+        except Exception:
+            pass
         return create_response(500, {'error': 'Internal server error'})

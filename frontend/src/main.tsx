@@ -25,6 +25,8 @@ Amplify.configure({
   },
 });
 
+import { reportWebVitals } from './reportWebVitals';
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Router>
@@ -34,3 +36,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </Router>
   </React.StrictMode>
 );
+
+reportWebVitals();

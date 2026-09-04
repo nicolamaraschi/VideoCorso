@@ -1,78 +1,105 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { courseService } from '../services/courseService';
-import type { CourseListItem } from '../types';
+import { 
+  Sparkles, 
+  ArrowRight, 
+  ShieldCheck, 
+  Check, 
+  Award
+} from 'lucide-react';
+import { TrustindexWidget } from '../components/common/TrustindexWidget';
 
 export const LandingPage: React.FC = () => {
-  const [courses, setCourses] = useState<CourseListItem[]>([]);
-  const [loadingCourses, setLoadingCourses] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const data = await courseService.getCatalog();
-        setCourses(data.filter(c => c.is_purchasable !== false));
-      } catch (err) {
-        console.error("Failed to load catalog", err);
-      } finally {
-        setLoadingCourses(false);
+    if (location.hash) {
+      const id = location.hash.replace('#', '');
+      const element = document.getElementById(id);
+      if (element) {
+        setTimeout(() => {
+          const yOffset = -70;
+          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }, 100);
       }
-    };
-    fetchCourses();
-  }, []);
+    }
+  }, [location]);
   return (
-    <div className="bg-gradient-to-b from-primary-50 to-white min-h-screen">
-      {/* Hero Section */}
-      <section id="hero" className="relative pt-20 pb-20 md:pt-32 md:pb-28">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center">
-            <div className="md:w-1/2 md:pr-12">
+    <div className="bg-gradient-to-b from-primary-50/60 via-white to-primary-50/40 min-h-screen text-gray-800">
+      
+      {/* 1. HERO SECTION */}
+      <section id="hero" className="relative pt-12 pb-14 sm:pt-16 sm:pb-20 lg:pt-28 lg:pb-24 overflow-hidden">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+            <div className="lg:w-7/12 text-center lg:text-left flex flex-col items-center lg:items-start">
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-100/70 border border-primary-200 text-primary-900 text-xs sm:text-sm font-semibold mb-6 tracking-wide uppercase"
+              >
+                <Sparkles className="w-4 h-4 text-primary-600" />
+                <span>Chiara Morocutti Academy</span>
+              </motion.div>
+
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7 }}
-                className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-gray-900 leading-tight"
+                transition={{ duration: 0.7, delay: 0.1 }}
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-gray-900 leading-[1.15] tracking-tight max-w-2xl"
               >
-                Masterclass <span className="text-primary-600">Microblading</span> Professionale
+                Diventa la dermopigmentista che <span className="text-primary-700 italic font-normal">tutti si contendono.</span>
               </motion.h1>
+
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.2 }}
-                className="mt-6 text-lg md:text-xl text-gray-600 leading-relaxed"
+                className="mt-6 text-base sm:text-lg lg:text-xl text-gray-600 leading-relaxed max-w-2xl font-light"
               >
-                Impara il metodo <strong className="text-gray-900 font-bold">UltraRealistic Brows</strong> per realizzare sopracciglia più folte, definite e con un effetto iper-realistico. Dalla teoria dei pigmenti alla pratica passo dopo passo, acquisisci le competenze per lanciare la tua carriera nel mondo del PMU e diventare una professionista di successo.
+                Il percorso che unisce <strong className="text-gray-900 font-semibold">tecnica del microblading</strong> e <strong className="text-gray-900 font-semibold">mentalità imprenditoriale</strong> per costruire un'agenda piena, con margini alti e meno ore in cabina.
               </motion.p>
+
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.4 }}
-                className="mt-8 flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4"
+                transition={{ duration: 0.7, delay: 0.3 }}
+                className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto justify-center lg:justify-start"
               >
-                <a href="#catalogo" className="px-8 py-4 bg-primary-950 text-white text-center rounded-full font-medium hover:bg-primary-900 transition shadow-md hover:shadow-lg active:shadow-sm">
-                  Iscriviti alla Masterclass
+                <a 
+                  href="#corso" 
+                  className="w-full sm:w-auto px-8 py-4 bg-primary-950 text-white text-center rounded-full font-medium hover:bg-primary-900 transition-all shadow-md hover:shadow-xl active:scale-[0.99] flex items-center justify-center gap-2 group"
+                >
+                  <span>Scegli il tuo percorso</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </a>
-                <a href="#corso" className="px-8 py-4 bg-white text-primary-600 text-center border border-primary-600 rounded-full font-medium hover:bg-primary-50 transition">
-                  Scopri il programma
+                <a 
+                  href="#vantaggi" 
+                  className="w-full sm:w-auto px-8 py-4 bg-white text-primary-900 text-center border border-primary-200 rounded-full font-medium hover:bg-primary-50/60 transition shadow-sm"
+                >
+                  Scopri i 2 Pilastri
                 </a>
               </motion.div>
             </div>
+
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.7, delay: 0.3 }}
-              className="mt-12 md:mt-0 md:w-1/2"
+              className="lg:w-5/12 w-full max-w-md lg:max-w-none mx-auto"
             >
               <div className="relative">
-                <div className="absolute inset-0 bg-primary-200 rounded-lg transform -rotate-6"></div>
-                <div className="relative overflow-hidden rounded-lg shadow-xl border-4 border-white aspect-[4/5] bg-primary-100 group">
+                <div className="absolute inset-0 bg-primary-200/60 rounded-3xl transform -rotate-3 blur-sm"></div>
+                <div className="relative overflow-hidden rounded-3xl shadow-2xl border-4 border-white aspect-[4/5] bg-primary-950 group">
                   <video
                     className="w-full h-full object-cover"
-                    src="/welcome.mp4"
+                    src="/welcome-opt.mp4"
                     controls
                     playsInline
-                    poster="/hero-microblading.webp"
+                    preload="none"
+                    poster="/poster-welcome.webp"
                   >
                     Il tuo browser non supporta il tag video.
                   </video>
@@ -81,530 +108,678 @@ export const LandingPage: React.FC = () => {
             </motion.div>
           </div>
         </div>
-
-        {/* Decorative background elements */}
-        <div className="hidden lg:block absolute right-0 top-1/4 -z-10">
-          <svg width="404" height="404" fill="none" viewBox="0 0 404 404" aria-hidden="true">
-            <defs>
-              <pattern id="pattern-squares" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-                <rect x="0" y="0" width="4" height="4" fill="currentColor" className="text-primary-100" />
-              </pattern>
-            </defs>
-            <rect width="404" height="404" fill="url(#pattern-squares)" />
-          </svg>
-        </div>
       </section>
 
-      {/* Features Section */}
-      <section id="corso" className="py-16 bg-white">
-        <div className="container mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900">Cosa imparerai nel Master</h2>
-            <p className="mt-4 text-lg text-gray-600">Un percorso completo passo dopo passo per formarti e farti lavorare con sicurezza fin dal primo giorno.</p>
+      {/* 2. IL PUNTO DI PARTENZA (PAIN POINTS) */}
+      <section className="py-20 bg-white border-y border-primary-100/60">
+        <div className="container mx-auto px-6 max-w-5xl">
+          <div className="text-center mb-14">
+            <span className="text-xs font-bold tracking-widest uppercase text-primary-600 bg-primary-50 px-3.5 py-1.5 rounded-full border border-primary-100">
+              Il Punto di Partenza
+            </span>
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mt-4">
+              Sei brava con le mani.<br className="hidden sm:inline" /> Ma questo basta a riempire l'agenda?
+            </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                image: "/feature-igiene.webp",
-                title: "Igiene e Sicurezza",
-                description: "Fondamentale per lavorare professionalmente. Normative vigenti, allestimento della postazione e corretto smaltimento degli aghi."
-              },
-              {
-                image: "/feature-colorimetria.webp",
-                title: "Colorimetria e Pigmenti",
-                description: "Come scegliere il pigmento perfetto studiando il fototipo di pelle (scala Fitzpatrick). Prevenire viraggi di colore indesiderati."
-              },
-              {
-                image: "/feature-visagismo.webp",
-                title: "Visagismo e Progettazione",
-                description: "Mappatura del viso e utilizzo del filo per creare la forma delle sopracciglia perfetta per i lineamenti di ogni singola cliente."
-              },
-              {
-                image: "/feature-tecnica.webp",
-                title: "Tecnica Pelo a Pelo",
-                description: "L'uso corretto del manipolo: inclinazione a 90 gradi, profondità della pressione e schemi di disegno per un effetto iper-realistico."
-              },
-              {
-                image: "/feature-pratica.webp",
-                title: "Pratica su Sintetico",
-                description: "Esercitazioni dettagliate su pelle sintetica (latex) per padroneggiare la manualità e la sicurezza prima di lavorare sulla modella."
-              },
-              {
-                image: "/feature-consulenza.webp",
-                title: "Consulenza e Post-Cura",
-                description: "Come gestire l'appuntamento, il consenso informato e spiegare alla cliente come curare il trattamento nei giorni successivi."
-              }
-            ].map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="bg-primary-50 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300 border border-primary-100"
-              >
-                <div className="h-48 overflow-hidden bg-white">
-                  <img src={feature.image} alt={feature.title} loading="lazy" className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500 opacity-90 hover:opacity-100" />
-                </div>
-                <div className="p-8">
-                  <h3 className="text-xl font-serif font-semibold text-gray-900 mb-3">{feature.title}</h3>
-                  <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-                </div>
-              </motion.div>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <motion.div 
+              whileHover={{ y: -4 }} 
+              className="bg-primary-50/50 p-8 rounded-2xl border border-primary-100 flex flex-col justify-between"
+            >
+              <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-800 font-bold mb-4 font-serif">
+                1
+              </div>
+              <p className="text-gray-700 text-base leading-relaxed">
+                Vedi il microblading crescere, ma non sai come inserirti senza una formazione strutturata e autorevole.
+              </p>
+            </motion.div>
+
+            <motion.div 
+              whileHover={{ y: -4 }} 
+              className="bg-primary-50/50 p-8 rounded-2xl border border-primary-100 flex flex-col justify-between"
+            >
+              <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-800 font-bold mb-4 font-serif">
+                2
+              </div>
+              <p className="text-gray-700 text-base leading-relaxed">
+                Sai fare trattamenti estetici generici, ma non un servizio ad altissima marginalità come il PMU.
+              </p>
+            </motion.div>
+
+            <motion.div 
+              whileHover={{ y: -4 }} 
+              className="bg-primary-900 text-white p-8 rounded-2xl shadow-md flex flex-col justify-between"
+            >
+              <div className="w-10 h-10 rounded-xl bg-primary-800 flex items-center justify-center text-primary-200 font-bold mb-4 font-serif">
+                ★
+              </div>
+              <p className="text-primary-100 text-base leading-relaxed font-medium">
+                Non è un problema di talento.<br />
+                <strong>È un problema di metodo — tecnico e commerciale.</strong>
+              </p>
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Il Metodo 3+1 Step */}
-      <section className="py-16 bg-gradient-to-r from-primary-50 to-white">
-        <div className="container mx-auto px-6">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 text-center mb-12">Il Metodo in 3 + 1 Step che imparerai</h2>
-            <div className="space-y-8">
-              {[
-                {
-                  step: "1",
-                  title: "Consulenza Iniziale e Progetto",
-                  desc: "Imparerai a fare un vero e proprio studio delle sopracciglia, della pelle, della mimica facciale e dei lineamenti della cliente, necessario per garantire un trattamento esclusivo e completamente personalizzato."
-                },
-                {
-                  step: "2",
-                  title: "Prima Seduta",
-                  desc: "Come analizzare il viso per decidere insieme la forma esatta. Dopo la progettazione iniziale si parte con il trattamento pratico che getterà le basi per l'effetto UltraRealistic Brows."
-                },
-                {
-                  step: "3",
-                  title: "Seconda Seduta (a 30/40 giorni)",
-                  desc: "Capirai esattamente come reagisce la pelle (es. le pelli grasse espurgano più colore di quelle secche) e come effettuare la seconda seduta di perfezionamento."
-                },
-                {
-                  step: "+1",
-                  title: "Ritocco Annuale",
-                  desc: "Come gestire le tue clienti nel lungo termine. Il Microblading è una tecnica reversibile e semipermanente, necessita quindi di essere ripassato una volta all'anno per fidelizzare la cliente."
-                }
-              ].map((item, idx) => (
-                <motion.div 
-                  key={idx}
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: idx * 0.1 }}
-                  viewport={{ once: true }}
-                  className="flex bg-white rounded-xl p-6 shadow-sm border border-primary-100"
-                >
-                  <div className="flex-shrink-0 mr-6">
-                    <div className="w-12 h-12 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold text-xl font-serif">
-                      {item.step}
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
-                    <p className="text-gray-600 leading-relaxed">{item.desc}</p>
-                  </div>
-                </motion.div>
-              ))}
+      {/* 3. QUELLO CHE TI COSTA RESTARE COSÌ (COSTO DELL'INAZIONE) */}
+      <section className="py-20 bg-gray-900 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-tr from-primary-950 via-gray-900 to-primary-950 opacity-90"></div>
+        <div className="container mx-auto px-6 relative z-10 max-w-5xl">
+          <div className="text-center mb-16">
+            <span className="text-xs font-bold tracking-widest uppercase text-primary-300 bg-white/10 px-3.5 py-1.5 rounded-full border border-white/10">
+              Quello che ti costa restare così
+            </span>
+            <h2 className="text-3xl md:text-4xl font-serif font-bold mt-4 leading-snug">
+              Ogni mese senza una specializzazione ad alto margine<br className="hidden md:inline" /> è fatturato che non torna indietro.
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm">
+              <span className="text-3xl font-serif font-bold text-primary-300">01</span>
+              <h3 className="text-xl font-bold text-white mt-3 mb-3">Tempo</h3>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                Ore in cabina su trattamenti a bassa marginalità, invece di un servizio che vale molto di più a parità di tempo investito.
+              </p>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm">
+              <span className="text-3xl font-serif font-bold text-primary-300">02</span>
+              <h3 className="text-xl font-bold text-white mt-3 mb-3">Guadagno limitato</h3>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                Il tuo fatturato mensile resta bloccato e legato unicamente al numero di ore che riesci fisicamente a lavorare ogni giorno.
+              </p>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm">
+              <span className="text-3xl font-serif font-bold text-primary-300">03</span>
+              <h3 className="text-xl font-bold text-white mt-3 mb-3">Occasione persa</h3>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                Il microblading è tra i servizi più richiesti e pagati del settore beauty, con una domanda in costante crescita ogni anno.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Video in Azione Section */}
+      {/* 4. LA TRASFORMAZIONE (PRIMA VS DOPO) */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-6 max-w-5xl">
+          <div className="text-center mb-16">
+            <span className="text-xs font-bold tracking-widest uppercase text-primary-600 bg-primary-50 px-3.5 py-1.5 rounded-full border border-primary-100">
+              La Trasformazione
+            </span>
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mt-4">
+              Immagina di aprire l'agenda e vederla già piena<br className="hidden sm:inline" /> — di clienti PMU.
+            </h2>
+          </div>
+
+          <div className="space-y-5">
+            {[
+              {
+                before: "Fai solo trattamenti tradizionali, a basso margine.",
+                after: "Offri il servizio più pagato del beauty, con margini alti e valore percepito."
+              },
+              {
+                before: "Ogni mese ricominci da zero con l'acquisizione clienti.",
+                after: "Hai un metodo collaudato per comunicare e vendere la consulenza."
+              },
+              {
+                before: "Conosci la tecnica ma non come proporla e venderla.",
+                after: "Padroneggi tecnica, consulenza e gestione del cliente dalla A alla Z."
+              }
+            ].map((row, i) => (
+              <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                <div className="bg-red-50/60 border border-red-100 p-6 rounded-2xl flex items-start gap-4">
+                  <span className="px-2.5 py-1 rounded-md bg-red-100 text-red-700 text-xs font-bold uppercase tracking-wider shrink-0">
+                    Prima
+                  </span>
+                  <p className="text-gray-700 text-sm sm:text-base leading-relaxed">{row.before}</p>
+                </div>
+                <div className="bg-emerald-50/70 border border-emerald-100 p-6 rounded-2xl flex items-start gap-4 shadow-sm">
+                  <span className="px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider shrink-0">
+                    Dopo
+                  </span>
+                  <p className="text-gray-900 text-sm sm:text-base font-medium leading-relaxed">{row.after}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 5. I DUE PILASTRI (TECNICA + BUSINESS) / VANTAGGI */}
+      <section id="vantaggi" className="py-24 bg-gradient-to-b from-primary-50/40 via-white to-primary-50/50 border-t border-primary-100 relative">
+        <span id="pilastri" className="absolute -top-20" aria-hidden="true" />
+        <div className="container mx-auto px-6 max-w-6xl">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <span className="text-xs font-bold tracking-widest uppercase text-primary-600 bg-primary-50 px-3.5 py-1.5 rounded-full border border-primary-100">
+              Come Ci Arriviamo
+            </span>
+            <h2 className="text-3xl md:text-5xl font-serif font-bold text-gray-900 mt-4">
+              Due pilastri, un solo risultato.
+            </h2>
+            <p className="mt-4 text-lg text-gray-600 font-light leading-relaxed">
+              Non impari solo una tecnica. Impari a trasformarla in un <strong className="text-gray-900 font-semibold">business ad alta marginalità</strong>, con meno ore in cabina e clienti più profilati.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+            {/* Pilastro 1 - TECNICA */}
+            <div className="bg-white p-8 sm:p-10 rounded-3xl border border-primary-100 shadow-md flex flex-col justify-between">
+              <div>
+                <div className="inline-block px-4 py-1.5 rounded-full bg-primary-950 text-white text-xs font-bold tracking-wider uppercase mb-4">
+                  Pilastro 1 — Tecnica
+                </div>
+                <h3 className="text-2xl font-serif font-bold text-gray-900 mb-2">
+                  Dalla teoria alla pratica su modella, passo dopo passo
+                </h3>
+                <p className="text-gray-500 text-sm mb-8">
+                  Tutto quello che serve per eseguire un trattamento perfetto in totale sicurezza.
+                </p>
+
+                <div className="space-y-6">
+                  <div className="flex gap-4">
+                    <span className="w-8 h-8 rounded-full bg-primary-100 text-primary-800 flex items-center justify-center font-bold text-sm font-serif shrink-0">01</span>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Teoria e igiene</h4>
+                      <p className="text-sm text-gray-600 mt-0.5">Norme igienico-sanitarie, controindicazioni, pigmenti, guarigione e cura post trattamento.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <span className="w-8 h-8 rounded-full bg-primary-100 text-primary-800 flex items-center justify-center font-bold text-sm font-serif shrink-0">02</span>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Forma e anatomia</h4>
+                      <p className="text-sm text-gray-600 mt-0.5">Rapporto aureo, morfologia del viso, gestione delle asimmetrie e progettazione su carta.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <span className="w-8 h-8 rounded-full bg-primary-100 text-primary-800 flex items-center justify-center font-bold text-sm font-serif shrink-0">03</span>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Schemi e spine</h4>
+                      <p className="text-sm text-gray-600 mt-0.5">Come seguire il pelo naturale, transizioni perfette, peli superiori e inferiori.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <span className="w-8 h-8 rounded-full bg-primary-100 text-primary-800 flex items-center justify-center font-bold text-sm font-serif shrink-0">04</span>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Lavoro su modella</h4>
+                      <p className="text-sm text-gray-600 mt-0.5">Pratica supervisionata dal primo passaggio al lavoro completo e simmetrico su sopracciglio reale.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pilastro 2 - BUSINESS */}
+            <div className="bg-primary-950 text-white p-8 sm:p-10 rounded-3xl shadow-xl flex flex-col justify-between relative overflow-hidden">
+              <div className="relative z-10">
+                <div className="inline-block px-4 py-1.5 rounded-full bg-primary-800 text-primary-200 text-xs font-bold tracking-wider uppercase mb-4">
+                  Pilastro 2 — Business
+                </div>
+                <h3 className="text-2xl font-serif font-bold text-white mb-2">
+                  Sai fare il trattamento. Ora impari a venderlo e a costruirci un business
+                </h3>
+                <p className="text-primary-200/80 text-sm mb-8">
+                  Dalla prima richiesta su Instagram all'incasso e alla fidelizzazione annuale.
+                </p>
+
+                <div className="space-y-6">
+                  <div className="flex gap-4">
+                    <span className="w-8 h-8 rounded-full bg-primary-800 text-primary-200 flex items-center justify-center font-bold text-sm font-serif shrink-0">01</span>
+                    <div>
+                      <h4 className="font-semibold text-white">Consulenza di vendita</h4>
+                      <p className="text-sm text-primary-200/80 mt-0.5">Smetti di fare consulenza solo informativa: impari a gestire le obiezioni e chiudere la vendita.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <span className="w-8 h-8 rounded-full bg-primary-800 text-primary-200 flex items-center justify-center font-bold text-sm font-serif shrink-0">02</span>
+                    <div>
+                      <h4 className="font-semibold text-white">Prezzo e posizionamento</h4>
+                      <p className="text-sm text-primary-200/80 mt-0.5">Come impostare il giusto listino prezzi per partire subito con margine e posizionarti sul mercato.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <span className="w-8 h-8 rounded-full bg-primary-800 text-primary-200 flex items-center justify-center font-bold text-sm font-serif shrink-0">03</span>
+                    <div>
+                      <h4 className="font-semibold text-white">Primi clienti</h4>
+                      <p className="text-sm text-primary-200/80 mt-0.5">Come impostare i social, creare contenuti che attraggono e trovare le prime clienti paganti.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <span className="w-8 h-8 rounded-full bg-primary-800 text-primary-200 flex items-center justify-center font-bold text-sm font-serif shrink-0">04</span>
+                    <div>
+                      <h4 className="font-semibold text-white">Gestione del cliente</h4>
+                      <p className="text-sm text-primary-200/80 mt-0.5">Dalla richiesta iniziale al ritocco annuale, con un metodo replicabile che crea clienti a vita.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. VIDEO IN AZIONE SECTION */}
       <section id="anteprima" className="py-20 bg-white">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900">Il Microblading in Azione</h2>
-            <p className="mt-4 text-lg text-gray-600">Guarda la precisione e l'effetto UltraRealistic Brows prendere vita.</p>
+            <span className="text-xs font-bold tracking-widest uppercase text-primary-600 bg-primary-50 px-3.5 py-1.5 rounded-full border border-primary-100">
+              Pratica e Precisione
+            </span>
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mt-4">Il Microblading in Azione</h2>
+            <p className="mt-4 text-lg text-gray-600">Guarda la precisione e l'effetto UltraRealistic Brows prendere vita nelle lezioni.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 justify-center max-w-5xl mx-auto">
-            <div className="w-full rounded-2xl overflow-hidden shadow-elegant border-4 border-white bg-primary-50 aspect-video relative group">
-              <video 
-                className="w-full h-full object-cover" 
-                controls 
-                playsInline
-                src="/video-1.mp4"
-              >
-                Il tuo browser non supporta i video.
-              </video>
-            </div>
-            <div className="w-full rounded-2xl overflow-hidden shadow-elegant border-4 border-white bg-primary-50 aspect-video relative group">
-              <video 
-                className="w-full h-full object-cover" 
-                controls 
-                playsInline
-                src="/video-2.mp4"
-              >
-                Il tuo browser non supporta i video.
-              </video>
-            </div>
-            <div className="w-full rounded-2xl overflow-hidden shadow-elegant border-4 border-white bg-primary-50 aspect-video relative group">
-              <video 
-                className="w-full h-full object-cover" 
-                controls 
-                playsInline
-                src="/video-3.mp4"
-              >
-                Il tuo browser non supporta i video.
-              </video>
-            </div>
-            <div className="w-full rounded-2xl overflow-hidden shadow-elegant border-4 border-white bg-primary-50 aspect-video relative group">
-              <video 
-                className="w-full h-full object-cover" 
-                controls 
-                playsInline
-                src="/video-4.mp4"
-              >
-                Il tuo browser non supporta i video.
-              </video>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section id="vantaggi" className="py-20 bg-gradient-to-br from-primary-900 to-primary-950">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="md:w-1/2 md:pr-12 mb-12 md:mb-0"
-            >
-              <div className="relative p-2 bg-white/10 rounded-2xl backdrop-blur-sm">
-                <img src="/corso-materiale.webp" alt="Materiale Corso" loading="lazy" className="rounded-xl shadow-2xl max-w-full" />
-              </div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="md:w-1/2 text-white"
-            >
-              <h2 className="text-3xl md:text-4xl font-serif font-bold mb-6">Perché scegliere la nostra accademia</h2>
-
-              <div className="space-y-6 mt-8">
-                {[
-                  {
-                    title: "Riprese Macro Altissima Risoluzione",
-                    description: "Non ti perderai un singolo dettaglio. Grazie alle riprese 4k molto ravvicinate, vedrai esattamente la pressione e l'inclinazione dell'ago come se fossi lì."
-                  },
-                  {
-                    title: "Materiale Didattico Completo",
-                    description: "Avrai accesso per sempre a protocolli operativi, template per il consenso informato e dispense tecniche da scaricare e consultare."
-                  },
-                  {
-                    title: "Supporto della Master",
-                    description: "Non sarai lasciata sola. Potrai condividere i tuoi lavori su pelle sintetica e ricevere correzioni preziose per migliorare la tua tecnica."
-                  }
-                ].map((benefit, index) => (
-                  <div key={index} className="flex items-start">
-                    <div className="flex-shrink-0 mt-1">
-                      <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary-500 text-white shadow-lg">
-                        <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div className="ml-5">
-                      <h3 className="text-xl font-serif font-medium text-white">{benefit.title}</h3>
-                      <p className="mt-2 text-primary-100/80 leading-relaxed">{benefit.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-10">
-                <a href="#catalogo" className="px-8 py-4 bg-primary-500 text-white rounded-full font-medium hover:bg-primary-400 transition shadow-lg inline-block border border-primary-400/50">
-                  Scopri i percorsi disponibili
-                </a>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Chi è Chiara Morocutti */}
-      <section className="py-20 bg-white overflow-hidden">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col lg:flex-row items-center gap-12 max-w-6xl mx-auto">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="lg:w-5/12 relative"
-            >
-              <div className="absolute inset-0 bg-primary-100 rounded-full transform translate-x-4 translate-y-4 -z-10"></div>
-              <img src="/chiara morocutti.webp" alt="Chiara Morocutti" loading="lazy" width={320} height={320} className="rounded-full w-64 h-64 md:w-80 md:h-80 object-cover mx-auto border-4 border-white shadow-xl" />
-            </motion.div>
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="lg:w-7/12"
-            >
-              <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-4">Chiara Morocutti</h2>
-              <p className="text-primary-600 font-semibold text-lg mb-6 uppercase tracking-wider">Specialista di Microblading e Dermopigmentazione Labbra e Occhi</p>
-              
-              <div className="space-y-4 text-gray-600 text-lg leading-relaxed mb-8">
-                <p>
-                  "Io sono Chiara Morocutti e sono una Dermopigmentista. Scommetto che se sei arrivata in questa pagina è perché vorresti imparare a creare sopracciglia più folte e definite, con un effetto iper-realistico e naturale che valorizzi lo sguardo delle tue clienti."
-                </p>
-                <p>
-                  Ad oggi ho aiutato oltre <strong>700 Donne a Milano</strong> a dare pienezza, definizione e forma alle loro sopracciglia mantenendo uno stile super naturale, e vantiamo <strong>+400 Clienti Soddisfatte</strong> del trattamento <em>UltraRealistic Brows</em>.
-                </p>
-                <p>
-                  Qualsiasi sia la tua situazione o il tuo livello di partenza, in questa accademia sono pronta ad aiutarti a padroneggiare la tecnica!
-                </p>
-              </div>
-              
-              <div className="flex gap-4 items-center">
-                <div className="bg-primary-50 px-6 py-4 rounded-xl border border-primary-100 text-center">
-                  <span className="block text-3xl font-bold text-primary-700 font-serif">700+</span>
-                  <span className="text-sm text-gray-600 font-medium">Donne Aiutate</span>
-                </div>
-                <div className="bg-primary-50 px-6 py-4 rounded-xl border border-primary-100 text-center">
-                  <span className="block text-3xl font-bold text-primary-700 font-serif">400+</span>
-                  <span className="text-sm text-gray-600 font-medium">Testimonianze</span>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Catalogo Corsi Section */}
-      <section id="catalogo" className="py-20 bg-primary-50">
-        <div className="container mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900">Catalogo Masterclass</h2>
-            <p className="mt-4 text-lg text-gray-600">Scegli il percorso formativo più adatto al tuo livello ed entra subito nell'accademia.</p>
-          </div>
-
-          {loadingCourses ? (
-            <div className="text-center py-12 text-primary-600 font-medium">Caricamento in corso...</div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {courses.map((course, index) => (
-                <motion.div
-                  key={course.course_id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className="bg-white rounded-2xl overflow-hidden shadow-lg flex flex-col transform hover:-translate-y-2 transition duration-300 border border-primary-100"
-                >
-                  <div className="relative h-56">
-                    {course.cover_image_url ? (
-                      <img src={course.cover_image_url} alt={course.title} loading="lazy" width={400} height={224} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-primary-100 flex items-center justify-center text-primary-400 font-serif">
-                        Corso Beauty
-                      </div>
-                    )}
-                    {course.badge && (
-                       <div className="absolute top-4 right-4 bg-primary-600 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wide shadow-md">
-                         {course.badge}
-                       </div>
-                    )}
-                  </div>
-                  <div className="flex flex-1 flex-col p-5 sm:p-8">
-                    <h3 className="text-2xl font-serif font-semibold text-gray-900 mb-3">{course.title}</h3>
-                    <p className="text-gray-600 mb-8 flex-1 leading-relaxed">
-                      {course.short_description || course.description || "Nessuna descrizione disponibile."}
-                    </p>
-                    {course.packages && course.packages.length > 0 && (
-                      <ul className="mb-6 space-y-2">
-                        {[...course.packages]
-                          .sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999))
-                          .map((pkg) => (
-                            <li
-                              key={pkg.package_id}
-                              className="flex items-center justify-between gap-3 rounded-lg border border-primary-50 bg-primary-50/40 px-3 py-2 text-sm"
-                            >
-                              <span className="font-medium text-gray-800">{pkg.name}</span>
-                              <span className="font-semibold text-gray-900">
-                                € {Number(pkg.discounted_price ?? pkg.price).toFixed(2)}
-                              </span>
-                            </li>
-                          ))}
-                      </ul>
-                    )}
-                    <div className="mt-auto flex flex-col items-start gap-3 border-t border-primary-50 pt-6 sm:flex-row sm:items-end sm:justify-between">
-                      <div className="shrink-0 whitespace-nowrap">
-                        {course.packages && course.packages.length > 0 ? (
-                          <>
-                            <span className="block text-sm text-gray-500 mb-1">A partire da</span>
-                            <span className="whitespace-nowrap text-3xl font-bold text-gray-900 font-serif">
-                              € {Math.min(
-                                ...course.packages.map((pkg) => Number(pkg.discounted_price ?? pkg.price))
-                              ).toFixed(2)}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            {course.discounted_price && Number(course.discounted_price) < Number(course.price) && (
-                              <span className="block text-sm text-gray-400 line-through mb-1">€ {Number(course.price).toFixed(2)}</span>
-                            )}
-                            <span className="whitespace-nowrap text-3xl font-bold text-gray-900 font-serif">
-                              € {Number(course.discounted_price ?? course.price).toFixed(2)}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                      <Link 
-                        to={`/checkout?courseId=${course.public_slug || course.course_id}`} 
-                        className="inline-flex min-h-11 w-full items-center justify-center whitespace-nowrap rounded-xl bg-primary-600 px-6 py-3 text-sm font-medium text-white shadow-md transition hover:bg-primary-700 hover:shadow-lg sm:w-auto"
-                      >
-                        {course.packages && course.packages.length > 0 ? 'Scegli il tuo pacchetto' : 'Acquista Ora'}
-                      </Link>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-              
-              {courses.length === 0 && (
-                <div className="col-span-full text-center text-gray-500 py-12 bg-white rounded-xl shadow-sm">
-                  Stiamo aggiornando il nostro catalogo. Torna a trovarci presto!
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section id="testimonianze" className="py-20 bg-white">
-        <div className="container mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900">Le nostre studentesse</h2>
-            <p className="mt-4 text-lg text-gray-600">Leggi i risultati di chi ha deciso di specializzarsi e cambiare carriera.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
-              {
-                name: "Giulia M.",
-                role: "Dermopigmentista",
-                image: "/testimonial-1.png",
-                quote: "Facevo l'estetista base da 5 anni. Dopo questo corso ho finalmente inserito il PMU nel mio centro e ho raddoppiato le entrate. Spiegazioni cristalline e inquadrature perfette."
-              },
-              {
-                name: "Francesca T.",
-                role: "Titolare Beauty Salon",
-                image: "/testimonial-2.png",
-                quote: "Avevo già fatto un corso in aula pagato oro, ma mi sentivo insicura. Con questi video ho potuto rivedere i passaggi critici decine di volte. Lo consiglio a tutte."
-              },
-              {
-                name: "Elena C.",
-                role: "Make-up Artist",
-                image: "/testimonial-3.png",
-                quote: "La parte sulla colorimetria e lo studio dei fototipi è la più completa che abbia mai visto. Non ho più paura di causare viraggi di colore sulle mie clienti."
-              }
-            ].map((testimonial, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="bg-primary-50/50 rounded-2xl p-6 shadow-sm hover:shadow-md transition border border-primary-100 flex flex-col"
-              >
-                <div className="mb-6 rounded-xl overflow-hidden shadow-sm border border-primary-100 bg-white">
-                  <img className="w-full h-auto object-contain hover:scale-105 transition-transform duration-500" src={testimonial.image} alt="Prima e Dopo Microblading" loading="lazy" width={480} height={480} />
-                </div>
-                <div className="flex flex-col mb-4">
-                  <h3 className="text-lg font-serif font-semibold text-gray-900">{testimonial.name}</h3>
-                  <p className="text-primary-600 text-sm">{testimonial.role}</p>
-                </div>
-                <p className="text-gray-700 italic leading-relaxed">"{testimonial.quote}"</p>
-                <div className="mt-6 flex gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <svg key={star} className="h-5 w-5 text-primary-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                </div>
-              </motion.div>
+              { src: '/video-1-opt.mp4', poster: '/poster-video-1.webp' },
+              { src: '/video-2-opt.mp4', poster: '/poster-video-2.webp' },
+              { src: '/video-3-opt.mp4', poster: '/poster-video-3.webp' },
+              { src: '/video-4-opt.mp4', poster: '/poster-video-4.webp' },
+            ].map((item, i) => (
+              <div key={i} className="w-full rounded-2xl overflow-hidden shadow-md border-4 border-white bg-primary-950 aspect-video relative group">
+                <video 
+                  className="w-full h-full object-cover" 
+                  controls 
+                  playsInline
+                  preload="none"
+                  poster={item.poster}
+                  src={item.src}
+                >
+                  Il tuo browser non supporta i video.
+                </video>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="py-20 bg-gray-50 border-t border-gray-100">
-        <div className="container mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900">Domande Frequenti</h2>
-            <p className="mt-4 text-lg text-gray-600">Tutto quello che devi sapere prima di iscriverti.</p>
+      {/* 7. AUTHORITY QUOTE SECTION */}
+      <section className="py-20 bg-primary-950 text-white relative">
+        <div className="container mx-auto px-6 max-w-4xl text-center">
+          <div className="inline-block p-3 rounded-full bg-primary-900 text-primary-300 mb-6">
+            <Award className="w-8 h-8" />
+          </div>
+          <blockquote className="text-2xl sm:text-3xl md:text-4xl font-serif italic leading-snug text-primary-100">
+            “Ho costruito un business da <span className="text-amber-300 not-italic font-bold">15.000€ al mese</span> con il microblading. Ora ti insegno come farlo anche a te.”
+          </blockquote>
+          <div className="mt-8 flex flex-col items-center">
+            <span className="text-lg font-bold tracking-wider uppercase text-white font-serif">Chiara Morocutti</span>
+            <span className="text-sm text-primary-300 font-light mt-1">Master Dermopigmentista & Fondatrice Academy</span>
           </div>
 
-          <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
+          <div className="mt-12 grid grid-cols-2 gap-6 max-w-md mx-auto">
+            <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+              <span className="block text-3xl font-serif font-bold text-amber-300">700+</span>
+              <span className="text-xs text-primary-200 uppercase tracking-wider">Donne Trattate a Milano</span>
+            </div>
+            <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+              <span className="block text-3xl font-serif font-bold text-amber-300">400+</span>
+              <span className="text-xs text-primary-200 uppercase tracking-wider">Clienti Soddisfatte</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 8. CATALOGO CORSI & I 3 PACCHETTI / IL CORSO */}
+      <section id="corso" className="py-24 bg-primary-50/50 relative">
+        <span id="catalogo" className="absolute -top-20" aria-hidden="true" />
+        <div className="container mx-auto px-6 max-w-6xl">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <span className="text-xs font-bold tracking-widest uppercase text-primary-600 bg-primary-50 px-3.5 py-1.5 rounded-full border border-primary-100">
+              Modalità di Accesso al Percorso
+            </span>
+            <h2 className="text-3xl md:text-5xl font-serif font-bold text-gray-900 mt-4">
+              Tre modi per arrivare allo stesso risultato.
+            </h2>
+            <p className="mt-4 text-base sm:text-lg text-gray-600 leading-relaxed font-light">
+              La differenza non è “se funziona” — funziona in tutti e tre.<br className="hidden sm:inline" />
+              La differenza è quanto sei accompagnata, e quanta pratica in presenza hai.
+            </p>
+          </div>
+
+          {/* PRICING CARDS */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch mb-16">
+            
+            {/* 1. BASE */}
+            <div className="bg-white rounded-3xl p-8 border border-gray-200 shadow-sm flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-bold tracking-widest uppercase text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                  Base
+                </span>
+                <h3 className="text-2xl font-serif font-bold text-gray-900 mt-4">Percorso Base</h3>
+                <p className="text-gray-600 text-sm mt-2 font-light">
+                  Per chi vuole formarsi in totale autonomia, ai propri ritmi.
+                </p>
+                <div className="my-6 bg-primary-50/60 p-3.5 rounded-xl border border-primary-100 text-xs text-primary-900 italic">
+                  “Testa il metodo. Ideale per iniziare a studiare subito, senza vincoli di calendario.”
+                </div>
+
+                <div className="mb-6">
+                  <span className="text-4xl font-serif font-bold text-gray-900">890 €</span>
+                  <span className="text-xs text-gray-500 block mt-1">+ IVA — rateizzabile</span>
+                </div>
+
+                <ul className="space-y-3 text-sm text-gray-700 mb-8">
+                  <li className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Accesso completo a tutti i <strong>10 moduli video</strong> on demand</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Teoria, forma e anatomia, schemi e lavoro su modella</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Normative, consulenza e acquisizione clienti</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Materiali scaricabili (schemi, checklist, consenso informato)</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Accesso illimitato e <strong>a vita</strong> ai contenuti</span>
+                  </li>
+                </ul>
+              </div>
+
+              <Link
+                to="/checkout?courseId=mai-fatto-microblading-inizio"
+                className="w-full py-3.5 px-6 rounded-xl border border-gray-300 text-gray-900 font-semibold text-center hover:bg-gray-50 transition"
+              >
+                Iscriviti a Base
+              </Link>
+            </div>
+
+            {/* 2. PLUS */}
+            <div className="bg-white rounded-3xl p-8 border-2 border-primary-300 shadow-md flex flex-col justify-between relative">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-600 text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wider shadow">
+                Più Richiesto
+              </div>
+              <div>
+                <span className="text-xs font-bold tracking-widest uppercase text-primary-700 bg-primary-50 px-3 py-1 rounded-full">
+                  Plus
+                </span>
+                <h3 className="text-2xl font-serif font-bold text-gray-900 mt-4">Percorso Plus</h3>
+                <p className="text-gray-600 text-sm mt-2 font-light">
+                  Per chi vuole formarsi con un accompagnamento costante ogni settimana.
+                </p>
+                <div className="my-6 bg-primary-50/60 p-3.5 rounded-xl border border-primary-100 text-xs text-primary-900 italic">
+                  “Non sei mai sola davanti a un dubbio. Il passo in più per chi vuole sentirsi seguita ogni settimana.”
+                </div>
+
+                <div className="mb-6">
+                  <span className="text-4xl font-serif font-bold text-gray-900">1.490 €</span>
+                  <span className="text-xs text-gray-500 block mt-1">+ IVA — rateizzabile</span>
+                </div>
+
+                <ul className="space-y-3 text-sm text-gray-700 mb-8">
+                  <li className="flex items-start gap-2.5 font-medium text-gray-900">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Tutto il contenuto della versione Base</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span><strong>Sessione live di gruppo</strong> ogni settimana</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Q&A, revisione esercizi e <strong>correzione della forma</strong></span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Feedback personalizzato sui lavori pratici caricati</span>
+                  </li>
+                </ul>
+              </div>
+
+              <Link
+                to="/checkout?courseId=mai-fatto-microblading-inizio"
+                className="w-full py-3.5 px-6 rounded-xl bg-primary-700 text-white font-semibold text-center hover:bg-primary-800 transition shadow-md"
+              >
+                Iscriviti a Plus
+              </Link>
+            </div>
+
+            {/* 3. FULL */}
+            <div className="bg-primary-950 text-white rounded-3xl p-8 shadow-2xl flex flex-col justify-between relative border border-amber-400/30 overflow-hidden">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 text-xs font-extrabold px-4 py-1 rounded-full uppercase tracking-wider shadow">
+                Offerta Lancio: -500€
+              </div>
+
+              <div>
+                <span className="text-xs font-bold tracking-widest uppercase text-amber-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">
+                  Full
+                </span>
+                <h3 className="text-2xl font-serif font-bold text-white mt-4">Percorso Full</h3>
+                <p className="text-primary-200/80 text-sm mt-2 font-light">
+                  Il percorso completo, con pratica reale in studio e certificazione.
+                </p>
+                <div className="my-6 bg-white/10 p-3.5 rounded-xl border border-white/10 text-xs text-amber-200 italic">
+                  “Il massimo livello di accompagnamento. L'unico percorso con pratica reale in studio e garanzia inclusa.”
+                </div>
+
+                <div className="mb-6">
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-xl text-gray-400 line-through font-serif">2.200 €</span>
+                    <span className="text-4xl font-serif font-bold text-amber-300">1.690 €</span>
+                  </div>
+                  <span className="text-xs text-primary-200 block mt-1">Sconto lancio di 500€ — + IVA, rateizzabile</span>
+                </div>
+
+                <ul className="space-y-3 text-sm text-primary-100 mb-8">
+                  <li className="flex items-start gap-2.5 font-medium text-white">
+                    <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span>Tutto il contenuto della versione Plus</span>
+                  </li>
+                  <li className="flex items-start gap-2.5 text-amber-200 font-medium">
+                    <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span><strong>3 giornate in studio con Chiara</strong> dedicate alla pratica</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span><strong>Chat di supporto diretta 1:1</strong> con Chiara per 6 mesi</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span>Call strategica dedicata con <strong>Sabrina Perrotta</strong></span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span><strong>Kit prodotti professionale incluso</strong> + Attestato finale</span>
+                  </li>
+                  <li className="flex items-start gap-2.5 text-xs text-amber-300 font-semibold bg-white/10 p-2.5 rounded-lg border border-white/10">
+                    <ShieldCheck className="w-4 h-4 text-amber-300 shrink-0" />
+                    <span>Garanzia: giornata pratica extra se non ti senti pronta</span>
+                  </li>
+                </ul>
+              </div>
+
+              <Link
+                to="/checkout?courseId=mai-fatto-microblading-inizio"
+                className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 font-bold text-center hover:from-amber-300 hover:to-amber-400 transition shadow-lg"
+              >
+                Approfitta dell'Offerta Full
+              </Link>
+            </div>
+
+          </div>
+
+          {/* 9. TABELLA DI CONFRONTO COMPLETA */}
+          <div className="bg-white rounded-3xl p-6 sm:p-10 border border-primary-100 shadow-md">
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-serif font-bold text-gray-900">Confronto tra le opzioni</h3>
+              <p className="text-gray-500 text-sm mt-1">Trova la formula ideale per le tue esigenze</p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="py-4 px-4 font-semibold text-gray-900">Caratteristica</th>
+                    <th className="py-4 px-4 font-bold text-center text-gray-700 bg-gray-50/50 rounded-t-xl">BASE (890€)</th>
+                    <th className="py-4 px-4 font-bold text-center text-primary-900 bg-primary-50/60 rounded-t-xl">PLUS (1.490€)</th>
+                    <th className="py-4 px-4 font-bold text-center text-amber-950 bg-amber-50 rounded-t-xl">FULL (1.690€)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  <tr>
+                    <td className="py-3.5 px-4 text-gray-800">Moduli video on demand (10 moduli)</td>
+                    <td className="py-3.5 px-4 text-center font-semibold text-emerald-600 bg-gray-50/30">Sì</td>
+                    <td className="py-3.5 px-4 text-center font-semibold text-emerald-600 bg-primary-50/30">Sì</td>
+                    <td className="py-3.5 px-4 text-center font-semibold text-emerald-600 bg-amber-50/30">Sì</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3.5 px-4 text-gray-800">Materiali scaricabili (schemi, checklist)</td>
+                    <td className="py-3.5 px-4 text-center font-semibold text-emerald-600 bg-gray-50/30">Sì</td>
+                    <td className="py-3.5 px-4 text-center font-semibold text-emerald-600 bg-primary-50/30">Sì</td>
+                    <td className="py-3.5 px-4 text-center font-semibold text-emerald-600 bg-amber-50/30">Sì</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3.5 px-4 text-gray-800">Live di gruppo settimanale</td>
+                    <td className="py-3.5 px-4 text-center text-gray-400 bg-gray-50/30">—</td>
+                    <td className="py-3.5 px-4 text-center font-semibold text-emerald-600 bg-primary-50/30">Sì</td>
+                    <td className="py-3.5 px-4 text-center font-semibold text-emerald-600 bg-amber-50/30">Sì</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3.5 px-4 text-gray-800">Feedback sui lavori caricati</td>
+                    <td className="py-3.5 px-4 text-center text-gray-400 bg-gray-50/30">—</td>
+                    <td className="py-3.5 px-4 text-center font-semibold text-emerald-600 bg-primary-50/30">Sì</td>
+                    <td className="py-3.5 px-4 text-center font-semibold text-emerald-600 bg-amber-50/30">Sì</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3.5 px-4 text-gray-800">Chat di supporto 1:1 con Chiara (6 mesi)</td>
+                    <td className="py-3.5 px-4 text-center text-gray-400 bg-gray-50/30">—</td>
+                    <td className="py-3.5 px-4 text-center text-gray-400 bg-primary-50/30">—</td>
+                    <td className="py-3.5 px-4 text-center font-semibold text-emerald-600 bg-amber-50/30">Sì</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3.5 px-4 text-gray-800">3 giornate in studio con Chiara</td>
+                    <td className="py-3.5 px-4 text-center text-gray-400 bg-gray-50/30">—</td>
+                    <td className="py-3.5 px-4 text-center text-gray-400 bg-primary-50/30">—</td>
+                    <td className="py-3.5 px-4 text-center font-semibold text-emerald-600 bg-amber-50/30">Sì</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3.5 px-4 text-gray-800">Call strategica con Sabrina Perrotta</td>
+                    <td className="py-3.5 px-4 text-center text-gray-400 bg-gray-50/30">—</td>
+                    <td className="py-3.5 px-4 text-center text-gray-400 bg-primary-50/30">—</td>
+                    <td className="py-3.5 px-4 text-center font-semibold text-emerald-600 bg-amber-50/30">Sì</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3.5 px-4 text-gray-800">Kit prodotti professionale incluso</td>
+                    <td className="py-3.5 px-4 text-center text-gray-400 bg-gray-50/30">—</td>
+                    <td className="py-3.5 px-4 text-center text-gray-400 bg-primary-50/30">—</td>
+                    <td className="py-3.5 px-4 text-center font-semibold text-emerald-600 bg-amber-50/30">Sì</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3.5 px-4 text-gray-800">Garanzia giornata extra</td>
+                    <td className="py-3.5 px-4 text-center text-gray-400 bg-gray-50/30">—</td>
+                    <td className="py-3.5 px-4 text-center text-gray-400 bg-primary-50/30">—</td>
+                    <td className="py-3.5 px-4 text-center font-semibold text-emerald-600 bg-amber-50/30">Sì</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 10. RECENSIONI GOOGLE VERIFICATE (TRUSTINDEX) */}
+      <section id="testimonianze" className="py-20 bg-white border-t border-primary-50">
+        <div className="container mx-auto px-6">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-50 border border-primary-100 text-primary-800 text-sm font-semibold mb-4 shadow-sm">
+              <svg className="w-4 h-4 text-amber-500 fill-current" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              <span>Recensioni Verificate da Google</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900">Cosa dicono del lavoro di Chiara Morocutti</h2>
+            <p className="mt-4 text-lg text-gray-600 leading-relaxed font-light">
+              Prima ancora di insegnare, la tua Master è una professionista affermata sul campo: queste sono le recensioni reali e verificate delle clienti del suo studio di <strong>Microblading a Milano</strong>. Chi impara questo metodo impara da chi lavora ai massimi livelli ogni giorno.
+            </p>
+          </div>
+
+          {/* Trustindex Live Reviews Widget */}
+          <div className="max-w-6xl mx-auto bg-primary-50/40 rounded-3xl p-4 sm:p-8 border border-primary-100/80 shadow-sm">
+            <TrustindexWidget scriptSrc="https://cdn.trustindex.io/loader.js?6d4fbfe80b0925814246238f8e4" className="w-full" />
+          </div>
+        </div>
+      </section>
+
+      {/* 11. FAQ */}
+      <section className="py-20 bg-gray-50 border-t border-gray-100">
+        <div className="container mx-auto px-6 max-w-4xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900">Domande Frequenti</h2>
+            <p className="mt-4 text-lg text-gray-600 font-light">Tutto quello che devi sapere prima di iniziare.</p>
+          </div>
+
+          <div className="space-y-4">
             {[
               {
                 question: "Devo avere già esperienza come estetista per iniziare?",
-                answer: "Assolutamente no. Il percorso parte dalle basi assolute, spiegando dalla struttura della pelle alle norme igieniche. È adatto sia ai principianti che a chi vuole perfezionare la tecnica."
+                answer: "Assolutamente no. Il percorso parte dalle basi assolute, spiegando dalla struttura della pelle alle norme igieniche. È adatto sia alle principianti sia a chi ha già esperienza e vuole perfezionare la tecnica e imparare a vendere ad alto margine."
               },
               {
-                question: "Il kit per la pratica è incluso nel prezzo del corso?",
-                answer: "No, il corso comprende tutta la formazione teorica e pratica in video altissima definizione. All'interno del corso ti forniremo però la lista esatta dei materiali raccomandati e i link dove acquistarli al miglior prezzo."
+                question: "Qual è la differenza tra i pacchetti Base, Plus e Full?",
+                answer: "Tutti i percorsi contengono l'intero programma video dei 10 moduli. La differenza sta nel livello di accompagnamento: Base è in autonomia, Plus include le live settimanali con revisione esercizi, mentre Full include 3 giornate pratiche in studio con Chiara, chat 1:1, kit prodotti e garanzia extra."
+              },
+              {
+                question: "Il kit prodotti per la pratica è incluso?",
+                answer: "Il kit prodotti professionale completo è incluso nel pacchetto Full e ti verrà consegnato a mano direttamente durante le giornate di formazione pratica in sede con Chiara. Per i pacchetti Base e Plus, all'interno del corso troverai la lista esatta dei materiali consigliati e i link per acquistarli al miglior prezzo."
               },
               {
                 question: "Per quanto tempo avrò accesso ai video?",
-                answer: "L'accesso è a vita (Life-time). Potrai riguardare le lezioni tutte le volte che vuoi, a qualsiasi ora, da telefono, tablet o computer. Tutti i futuri aggiornamenti tecnici saranno inclusi gratuitamente."
+                answer: "L'accesso ai 10 moduli video è a vita (Life-time). Potrai riguardare le lezioni tutte le volte che vorrai, da computer, tablet o smartphone."
               },
               {
-                question: "Viene rilasciato un attestato a fine corso?",
-                answer: "Sì, al termine del percorso e superati i test pratici potrai scaricare l'Attestato di Partecipazione nominale, utile per arricchire il tuo curriculum e dare prestigio al tuo studio."
-              },
-              {
-                question: "Come riceverò supporto se ho dubbi o difficoltà?",
-                answer: "Tutte le corsiste hanno accesso esclusivo al nostro gruppo di supporto privato. Potrai fare domande e condividere le foto dei tuoi lavori su latex per ricevere feedback costruttivi direttamente dalla Master."
+                question: "I pagamenti sono rateizzabili?",
+                answer: "Sì, tutti i pacchetti possono essere rateizzati per rendere l'investimento ancora più comodo e accessibile."
               }
             ].map((faq, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className={`pb-6 ${index !== 4 ? 'mb-6 border-b border-primary-100' : ''}`}
-              >
-                <h3 className="text-xl font-serif font-medium text-gray-900 mb-3">{faq.question}</h3>
-                <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
-              </motion.div>
+              <div key={index} className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-sm">
+                <h3 className="text-lg font-serif font-semibold text-gray-900 mb-2">{faq.question}</h3>
+                <p className="text-gray-600 text-sm sm:text-base leading-relaxed font-light">{faq.answer}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-24 bg-primary-900 relative overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-primary-800 rounded-full opacity-50 blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-80 h-80 bg-primary-700 rounded-full opacity-50 blur-3xl"></div>
-        
-        <div className="container mx-auto px-6 text-center relative z-10">
-          <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-6">Pronta a investire sul tuo futuro?</h2>
-          <p className="text-xl text-primary-100 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Il settore del trucco permanente è in continua crescita. Non aspettare che altre prendano il tuo posto. Impara una professione altamente remunerativa oggi stesso.
+      {/* 12. FINAL CTA */}
+      <section className="py-24 bg-primary-950 text-white text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+        <div className="container mx-auto px-6 relative z-10 max-w-3xl">
+          <h2 className="text-4xl sm:text-6xl font-serif font-bold text-white tracking-tight">
+            TI ASPETTO DENTRO!
+          </h2>
+          <p className="mt-6 text-xl text-primary-200 font-light leading-relaxed">
+            Non aspettare che altre prendano il tuo posto. Impara a posizionarti come la dermopigmentista di riferimento nel tuo territorio.
           </p>
 
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="inline-block"
-          >
-            <a href="#catalogo" className="px-10 py-5 bg-white text-primary-900 rounded-full font-bold text-lg hover:bg-primary-50 transition shadow-xl border border-white">
-              Vedi i Corsi Disponibili
+          <div className="mt-10">
+            <a 
+              href="#corso" 
+              className="px-10 py-5 bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 font-bold text-lg rounded-full hover:from-amber-300 hover:to-amber-400 transition shadow-2xl inline-block active:scale-95"
+            >
+              Iscriviti alla Masterclass Ora
             </a>
-          </motion.div>
+          </div>
 
-          <p className="mt-8 text-primary-200/80 text-sm uppercase tracking-widest font-medium">Elevati. Specializzati. Distinguiti.</p>
+          <div className="mt-8">
+            <span className="font-serif italic text-lg text-primary-300">Chiara Morocutti</span>
+          </div>
         </div>
       </section>
 

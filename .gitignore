@@ -83,3 +83,8 @@ Thumbs.db
 desktop.ini
 backend/infrastructure/packaged*.yaml
 backend/infrastructure/.aws-sam/
+backend/layers/shared/python/*
+!backend/layers/shared/python/shared/
+logs.json
+testenv/
+

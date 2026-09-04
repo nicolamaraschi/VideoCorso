@@ -21,6 +21,13 @@ Parameters:
     Type: String
     Default: ""
     Description: Comma-separated pre-live test recipients; empty disables Resend delivery.
+  EnableTranscoding:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Whether to run AWS MediaConvert jobs on video upload (cost per minute). Default false (0.00€ cost).
 
 Globals:
   Function:
@@ -29,6 +36,7 @@ Globals:
     MemorySize: 512
     Environment:
       Variables:
+        ENABLE_TRANSCODING: !Ref EnableTranscoding
         ENVIRONMENT: !Ref Environment
         COURSES_TABLE: !Ref CoursesTable
         CHAPTERS_TABLE: !Ref ChaptersTable
@@ -51,6 +59,8 @@ Globals:
         STRIPE_WEBHOOK_SECRET_PARAMETER: !Sub "/videocorso/${Environment}/stripe/webhook-secret"
         RESEND_API_KEY_PARAMETER: !Sub "/videocorso/${Environment}/resend/api-key"
         RESEND_TEST_RECIPIENTS: !Ref ResendTestRecipients
+        SES_SENDER_EMAIL: "Chiara Morocutti Academy <noreply@chiaramorocuttiacademy.it>"
+        SES_REPLY_TO_EMAIL: "info@chiaramorocuttiacademy.it"
         ALLOWED_CHECKOUT_ORIGINS: !Ref AllowedCheckoutOrigins
         # FIX: Aggiunta variabile d'ambiente globale per Cognito
         COGNITO_USER_POOL_ID: !Ref UserPool
@@ -471,8 +481,51 @@ Resources:
     UpdateReplacePolicy: Retain
     Properties:
       UserPoolName: !Sub "${Environment}-videocorso-users"
+      EmailConfiguration:
+        EmailSendingAccount: DEVELOPER
+        SourceArn: !Sub "arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/chiaramorocuttiacademy.it"
+        From: "Chiara Morocutti Academy <noreply@chiaramorocuttiacademy.it>"
+        ReplyToEmailAddress: "info@chiaramorocuttiacademy.it"
       AdminCreateUserConfig:
         UnusedAccountValidityDays: 365
+        InviteMessageTemplate:
+          EmailSubject: "Benvenuta in Chiara Morocutti Academy - Le tue credenziali di accesso"
+          EmailMessage: |
+            <div style="font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff; border: 1px solid #f0e6eb; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+              <div style="text-align: center; margin-bottom: 24px;">
+                <h1 style="color: #4a0e2e; font-size: 24px; font-weight: bold; margin: 0;">Chiara Morocutti Academy</h1>
+                <p style="color: #9c7178; font-size: 13px; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px;">Formazione d’Eccellenza Microblading</p>
+              </div>
+              <p style="color: #374151; font-size: 15px; line-height: 1.6;">Ti diamo il benvenuto in <strong>Chiara Morocutti Academy</strong>!</p>
+              <p style="color: #374151; font-size: 15px; line-height: 1.6;">Il tuo account è stato creato con successo e l’accesso alla piattaforma è ora attivo.</p>
+              <div style="background-color: #faf5f7; border: 1px solid #f3dce3; border-radius: 12px; padding: 20px; margin: 24px 0;">
+                <p style="margin: 0 0 12px 0; color: #4b5563; font-size: 14px;"><strong style="color: #111827;">Email / Username:</strong><br><span style="color: #4a0e2e; font-size: 15px; font-weight: 600;">{username}</span></p>
+                <p style="margin: 0; color: #4b5563; font-size: 14px;"><strong style="color: #111827;">Password temporanea:</strong></p>
+                <div style="font-family: monospace; font-size: 18px; font-weight: bold; color: #4a0e2e; background-color: #ffffff; padding: 12px 16px; border-radius: 8px; border: 1px dashed #d1a4b1; margin-top: 6px; letter-spacing: 1px;">{####}</div>
+              </div>
+              <p style="color: #6b7280; font-size: 13px; line-height: 1.5; margin-bottom: 24px;">👉 Al tuo primo accesso ti verrà richiesto di confermare questa password temporanea e sceglierne una tua personale e definitiva.</p>
+              <div style="text-align: center; margin: 32px 0 24px 0;">
+                <a href="https://chiaramorocuttiacademy.it/login" style="background-color: #4a0e2e; color: #ffffff; padding: 14px 36px; text-decoration: none; border-radius: 50px; font-weight: 600; font-size: 15px; display: inline-block; box-shadow: 0 4px 10px rgba(74, 14, 46, 0.25);">Accedi alla Piattaforma</a>
+              </div>
+              <p style="color: #9ca3af; font-size: 12px; margin-top: 32px; border-top: 1px solid #f3f4f6; padding-top: 16px; text-align: center;">Chiara Morocutti Academy • Tutti i diritti riservati</p>
+            </div>
+      VerificationMessageTemplate:
+        DefaultEmailOption: CONFIRM_WITH_CODE
+        EmailSubject: "Chiara Morocutti Academy - Il tuo codice di verifica"
+        EmailMessage: |
+          <div style="font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 32px 24px; background-color: #ffffff; border: 1px solid #f0e6eb; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h1 style="color: #4a0e2e; font-size: 24px; font-weight: bold; margin: 0;">Chiara Morocutti Academy</h1>
+              <p style="color: #9c7178; font-size: 13px; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px;">Formazione d’Eccellenza Microblading</p>
+            </div>
+            <h2 style="color: #111827; font-size: 18px; font-weight: 600; margin-bottom: 16px;">Codice di Verifica</h2>
+            <p style="color: #374151; font-size: 15px; line-height: 1.6;">Usa il seguente codice per completare la verifica del tuo account o il ripristino della password:</p>
+            <div style="background-color: #faf5f7; border: 1px solid #f3dce3; border-radius: 12px; padding: 20px; margin: 24px 0; text-align: center;">
+              <div style="font-family: monospace; font-size: 26px; font-weight: bold; color: #4a0e2e; letter-spacing: 4px;">{####}</div>
+            </div>
+            <p style="color: #6b7280; font-size: 13px; line-height: 1.5;">Se non hai richiesto tu questa operazione, puoi ignorare questo messaggio in tutta sicurezza.</p>
+            <p style="color: #9ca3af; font-size: 12px; margin-top: 32px; border-top: 1px solid #f3f4f6; padding-top: 16px; text-align: center;">Chiara Morocutti Academy • Tutti i diritti riservati</p>
+          </div>
       UsernameAttributes:
         - email
       AutoVerifiedAttributes:
@@ -583,6 +636,8 @@ Resources:
             TableName: !Ref ProvisioningOutboxTable
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditLogsTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -610,6 +665,7 @@ Resources:
             - Effect: Allow
               Action:
                 - ses:SendEmail
+                - ses:SendRawEmail
               Resource: "*"
       Events:
         CreateCheckout:
@@ -654,6 +710,8 @@ Resources:
       Layers:
         - !Ref SharedLayer
       Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref VideoBucket
         - DynamoDBCrudPolicy:
             TableName: !Ref CoursesTable
         - DynamoDBCrudPolicy:
@@ -664,6 +722,8 @@ Resources:
             TableName: !Ref PurchasesTable
         - DynamoDBReadPolicy:
             TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditLogsTable
       Events:
         GetCourseStructure:
           Type: Api
@@ -722,6 +782,8 @@ Resources:
             TableName: !Ref PurchasesTable
         - DynamoDBReadPolicy:
             TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditLogsTable
         # Evidence rows are write-only for this handler: it can append a URL
         # issuance record but cannot edit or delete historical evidence.
         - Version: "2012-10-17"
@@ -780,6 +842,8 @@ Resources:
             BucketName: !Ref VideoBucket
         - DynamoDBCrudPolicy:
             TableName: !Ref LessonsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditLogsTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -841,6 +905,8 @@ Resources:
             TableName: !Ref PurchasesTable
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditLogsTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -848,6 +914,8 @@ Resources:
                 - cognito-idp:AdminGetUser
                 - cognito-idp:AdminCreateUser
                 - cognito-idp:AdminAddUserToGroup
+                - cognito-idp:AdminUpdateUserAttributes
+                - cognito-idp:AdminSetUserPassword
               Resource: !GetAtt UserPool.Arn
       Events:
         ProvisioningOutboxStream:
@@ -883,6 +951,8 @@ Resources:
             TableName: !Ref CouponReservationsTable
         - DynamoDBCrudPolicy:
             TableName: !Ref CouponsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditLogsTable
         - Version: "2012-10-17"
           Statement:
             - Effect: Allow
@@ -1029,6 +1099,8 @@ Resources:
             TableName: !Ref UsersTable
         - DynamoDBReadPolicy:
             TableName: !Ref CoursesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditLogsTable
       Events:
         UpdateProgress:
           Type: Api
@@ -1128,6 +1200,11 @@ Resources:
               Action:
                 - ssm:GetParameter
               Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/videocorso/${Environment}/*"
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: "*"
       Events:
         GetAdminAccounts:
           Type: Api
@@ -1183,6 +1260,12 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /admin/stats
             Method: GET
+        GetAuditLogs:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/audit-logs
+            Method: GET
         GetStudents:
           Type: Api
           Properties:
@@ -1200,6 +1283,12 @@ Resources:
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /admin/image/upload
+            Method: POST
+        UploadMaterial:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /admin/material/upload
             Method: POST
         DeleteVideo:
           Type: Api
