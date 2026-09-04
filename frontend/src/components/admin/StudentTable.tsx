@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Edit, MoreHorizontal, Key, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { StudentListItem } from '../../types';
-import { formatDate, getSubscriptionStatusColor } from '../../utils/formatters';
+import { formatDate, getSubscriptionStatusColor, formatSubscriptionStatus } from '../../utils/formatters';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 
@@ -23,6 +23,16 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, onUpdateSt
   // Search is handled server-side by the parent page (AdminStudentsPage);
   // this table only renders whatever page of students it's given.
   const filteredStudents = students;
+
+  const getEffectiveStudentStatus = (student: StudentListItem): string => {
+    if (student.global_access || student.accessible_courses_count > 0) {
+      return 'active';
+    }
+    if (student.purchased_courses_count > 0 && student.accessible_courses_count === 0) {
+      return 'revoked';
+    }
+    return student.subscription_status || 'inactive';
+  };
 
   const handleEditClick = (student: StudentListItem) => {
     setEditingStudent(student);
@@ -60,9 +70,14 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, onUpdateSt
                 </button>
                 <div className="text-sm text-gray-500 break-all">{student.email}</div>
               </div>
-              <span className={`inline-flex flex-shrink-0 px-2 py-1 text-xs font-semibold rounded-full ${getSubscriptionStatusColor(student.subscription_status)}`}>
-                {student.subscription_status}
-              </span>
+              {(() => {
+                const status = getEffectiveStudentStatus(student);
+                return (
+                  <span className={`inline-flex flex-shrink-0 px-2.5 py-1 text-xs font-semibold rounded-full ${getSubscriptionStatusColor(status)}`}>
+                    {formatSubscriptionStatus(status)}
+                  </span>
+                );
+              })()}
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
@@ -189,9 +204,14 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, onUpdateSt
                     </div>
                   </td>
                   <td className="px-6 py-5 align-top">
-                    <span className={`inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full ${getSubscriptionStatusColor(student.subscription_status)}`}>
-                      {student.subscription_status}
-                    </span>
+                    {(() => {
+                      const status = getEffectiveStudentStatus(student);
+                      return (
+                        <span className={`inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full ${getSubscriptionStatusColor(status)}`}>
+                          {formatSubscriptionStatus(status)}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-5 align-top text-sm text-gray-700 hidden lg:table-cell">
                     <div>{student.global_access ? 'Globale' : 'Per acquisto'}</div>

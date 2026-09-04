@@ -65,13 +65,34 @@ export const formatWatchTime = (seconds: number): string => {
 export const getSubscriptionStatusColor = (status: string): string => {
   switch (status) {
     case 'active':
-      return 'text-green-600 bg-green-100';
+      return 'text-emerald-700 bg-emerald-100 border border-emerald-200';
+    case 'revoked':
+    case 'refunded':
+      return 'text-rose-700 bg-rose-100 border border-rose-200';
     case 'expired':
-      return 'text-red-600 bg-red-100';
+      return 'text-amber-700 bg-amber-100 border border-amber-200';
     case 'cancelled':
-      return 'text-gray-600 bg-gray-100';
+    case 'inactive':
     default:
-      return 'text-gray-600 bg-gray-100';
+      return 'text-gray-600 bg-gray-100 border border-gray-200';
+  }
+};
+
+export const formatSubscriptionStatus = (status: string): string => {
+  switch (status) {
+    case 'active':
+      return 'Attivo';
+    case 'revoked':
+    case 'refunded':
+      return 'Rimborsato / Revocato';
+    case 'expired':
+      return 'Scaduto';
+    case 'cancelled':
+      return 'Annullato';
+    case 'inactive':
+      return 'Nessun corso';
+    default:
+      return status;
   }
 };
 
