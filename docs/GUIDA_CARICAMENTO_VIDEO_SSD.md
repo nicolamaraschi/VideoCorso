@@ -124,12 +124,12 @@ Per eseguire l'upload:
 
 ---
 
-## 🗺️ 6. Mappa Completa dei 10 Moduli e Stato Attuale (54 Lezioni Totali)
+## 🗺️ 6. Mappa Completa dei 10 Moduli e Stato Attuale (56 Lezioni Attive - 7h 14m Totali)
 
-### Modulo 1 Presentazione (ID Capitolo: `89d99685-6f1e-4ca0-81fb-04950410701e`) — 1/3 Caricate
-* ✅ **Lezione 1:** Presentazione (`bd20c4e6-7622-4729-9152-873010337e0c`) — 0m 25s *(Caricato)*
+### Modulo 1 Presentazione (ID Capitolo: `89d99685-6f1e-4ca0-81fb-04950410701e`) — 2/3 Caricate
+* ✅ **Lezione 1:** Presentazione (`bd20c4e6-7622-4729-9152-873010337e0c`) — 2m 49s *(Caricato Nativo)*
 * 🔴 **Lezione 2:** Chi sono e perchè dovresti ascoltarmii (`84f95ef9-dd67-47e0-b6fe-e6a8bd090f6c`) — 0s **MANCANTE**
-* 🔴 **Lezione 3:** Mentalità (`74328195-c4be-4790-a366-c7cc9f5fd6a1`) — 0s **MANCANTE**
+* ✅ **Lezione 3:** Mentalità (`74328195-c4be-4790-a366-c7cc9f5fd6a1`) — 7m 27s *(Caricato Nativo)*
 
 ---
 
@@ -158,14 +158,14 @@ Per eseguire l'upload:
 
 ---
 
-### Modulo 3 Forma e Anatomia del Sopracciglio (ID Capitolo: `e2941c9c-29e5-413d-a84d-0d1a968084a3`) — 4/7 Caricate
-* ✅ **Lezione 1:** Forma e anatomia del sopracciglio (`5eac6ae3-58d4-4a7d-a8e6-31b79f9be0a6`) — 1m 57s *(Caricato)*
-* 🔴 **Lezione 2:** Sistemare senza stravolgere (`627c46a9-23d6-486b-a881-f018f9f878dd`) — 0s **MANCANTE**
-* 🔴 **Lezione 3:** Rapporto aureo e morfologia del viso (`011bab5c-0f23-405b-bfb5-7bdf791c4266`) — 0s **MANCANTE**
-* 🔴 **Lezione 4:** Gestione delle asimmetrie (`77a03776-e310-4011-ae26-abb0a7c66153`) — 0s **MANCANTE**
-* ✅ **Lezione 5:** Forma su carta con righello (`d614bd1c-667c-4304-9318-3d7a7c3359e6`) — 9m 1s *(Caricato)*
-* ✅ **Lezione 6:** Forma su carta con righello (più realistica) (`63ca429e-c05f-46f2-b02e-f110607fafab`) — 7m 55s *(Caricato)*
-* ✅ **Lezione 7:** Forma su carta con compasso Phi (`206ac413-6088-4c3d-b758-fd0ceb9e04f4`) — 10m 25s *(Caricato)*
+### Modulo 3 Forma e Anatomia del Sopracciglio (ID Capitolo: `e2941c9c-29e5-413d-a84d-0d1a968084a3`) — 7/7 Caricate (COMPLETO 🎉)
+* ✅ **Lezione 1:** L'importanza delle sopracciglia (`5eac6ae3-58d4-4a7d-a8e6-31b79f9be0a6`) — 1m 56s *(Caricato Nativo)*
+* ✅ **Lezione 2:** Sistemare senza stravolgere (`627c46a9-23d6-486b-a881-f018f9f878dd`) — 6m 59s *(Caricato Nativo)*
+* ✅ **Lezione 3:** Rapporto aureo e morfologia del viso (`011bab5c-0f23-405b-bfb5-7bdf791c4266`) — 7m 49s *(Caricato Nativo)*
+* ✅ **Lezione 4:** Gestione delle asimmetrie (`77a03776-e310-4011-ae26-abb0a7c66153`) — 8m 22s *(Caricato Nativo)*
+* ✅ **Lezione 5:** Forma su carta con righello (`d614bd1c-667c-4304-9318-3d7a7c3359e6`) — 7m 45s *(Caricato Nativo)*
+* ✅ **Lezione 6:** Forma su carta con righello (più realistica) (`63ca429e-c05f-46f2-b02e-f110607fafab`) — 5m 47s *(Caricato Nativo)*
+* ✅ **Lezione 7:** Forma su carta con compasso Phi (`206ac413-6088-4c3d-b758-fd0ceb9e04f4`) — 8m 21s *(Caricato Nativo)*
 
 ---
 
@@ -206,37 +206,38 @@ Per eseguire l'upload:
 
 ---
 
-### Modulo 8 Normative (ID Capitolo: `bde1301e-1dab-406b-a9ab-b4a320114356`) — 0/4 Caricate
-* 🔴 **Lezione 1:** Codice Ateco, quale scegliere? (`3de9e269-7d9c-41e2-b389-b010c81ab605`) — 0s **MANCANTE**
-* 🔴 **Lezione 2:** Affitto cabina o percentuale (`ac0860cf-40d4-43b1-84da-6dcd6fe3825f`) — 0s **MANCANTE**
-* 🔴 **Lezione 3:** Come cercare gli studi e come proporsi (`4755fb24-fb99-423e-a248-99955efedfd1`) — 0s **MANCANTE**
-* 🔴 **Lezione 4:** Consenso informato (`1569fed1-b9ac-4211-8471-5bb295687de7`) — 0s **MANCANTE**
+### Modulo 8 Normative (ID Capitolo: `bde1301e-1dab-406b-a9ab-b4a320114356`) — 4/4 Caricate (COMPLETO 🎉)
+* ✅ **Lezione 1:** Codice Ateco, quale scegliere? (`3de9e269-7d9c-41e2-b389-b010c81ab605`) — 3m 19s *(Caricato Nativo)*
+* ✅ **Lezione 2:** Affitto cabina o percentuale (`ac0860cf-40d4-43b1-84da-6dcd6fe3825f`) — 8m 8s *(Caricato Nativo)*
+* ✅ **Lezione 3:** Come cercare gli studi e come proporsi (`4755fb24-fb99-423e-a248-99955efedfd1`) — 5m 1s *(Caricato Nativo)*
+* ✅ **Lezione 4:** Consenso informato (`1569fed1-b9ac-4211-8471-5bb295687de7`) — 1m 9s *(Caricato Nativo)*
 
 ---
 
-### Modulo 9 Consulenza (ID Capitolo: `8533ff33-9cd8-46c9-8515-260996875987`) — 4/9 Caricate
-* 🔴 **Lezione 1:** Introduzione (`14a8d861-7908-4f7e-b57d-ebb328c2fc4b`) — 0s **MANCANTE**
-* ✅ **Lezione 2:** Smetti di fare consulenza informativa (`8eac8228-a097-43a7-a9ea-2c3645c82ba6`) — 2m 50s *(Caricato Nativo)*
+### Modulo 9 Consulenza (ID Capitolo: `8533ff33-9cd8-46c9-8515-260996875987`) — 6/9 Caricate
+* ✅ **Lezione 1:** Introduzione (`14a8d861-7908-4f7e-b57d-ebb328c2fc4b`) — 2m 6s *(Caricato Nativo)*
+* ✅ **Lezione 2:** Smetti di fare consulenza informativa (`8eac8228-a097-43a7-a9ea-2c3645c82ba6`) — 2m 47s *(Caricato Nativo)*
 * ✅ **Lezione 3:** Come fare una consulenza di vendita (`236964d5-27f5-4631-a0d3-8698179d1560`) — 11m 52s *(Caricato)*
 * ✅ **Lezione 4:** Gestire le obiezioni (`b59cbda6-d9a0-4440-b046-aa6e4dda47fd`) — 83m 38s *(Caricato Nativo)*
 * 🔴 **Lezione 5:** Risoluzione obiezioni (`6d8644a2-ee4e-48d0-8af7-d8ec6a8b3cf5`) — 0s **MANCANTE**
-* 🔴 **Lezione 6:** Consulenza in studio (`8a78c288-35f1-42cb-89a1-75add3c3f7a1`) — 0s **MANCANTE**
-* 🔴 **Lezione 7:** Consulenza di vendita in studio vs chiamata di vendita (`e433a57e-3e11-45ba-8700-2f45d0ca280f`) — 0s **MANCANTE**
+* ✅ **Lezione 6:** Consulenza di vendita in studio vs chiamata di vendita (`8a78c288-35f1-42cb-89a1-75add3c3f7a1`) — 8m 41s *(Caricato Nativo)*
+* 🔴 **Lezione 7:** Consulenza di vendita in studio vs chiamata di vendita duplicato (`e433a57e-3e11-45ba-8700-2f45d0ca280f`) — 0s **MANCANTE**
 * 🔴 **Lezione 8:** Registrazione chiamata di vendita (`6e556b7d-8332-4d71-89fe-7aebc586a788`) — 0s **MANCANTE**
 * ✅ **Lezione 9:** Come impostare il giusto prezzo per partire (`298960a8-9fc4-46ef-bf2f-ef53592fa02a`) — 10m 4s *(Caricato Nativo)*
 
 ---
 
-### Modulo 10 Come Trovare i Tuoi Primi Clienti (ID Capitolo: `64da6b31-8eba-42cd-aaf1-2568807ad8fe`) — 6/9 Caricate
+### Modulo 10 Come Trovare i Tuoi Primi Clienti (ID Capitolo: `64da6b31-8eba-42cd-aaf1-2568807ad8fe`) — 9/10 Caricate
 * ✅ **Lezione 1:** Vendere e fare dermopigmentazione sono due cose diverse (`ebb896ea-b4e1-448a-a8b8-1fdc88c966ee`) — 4m 3s *(Caricato Nativo)*
-* 🔴 **Lezione 2:** Come superare i blocchi iniziali (`95a68ec7-dbba-433e-8372-eddfb2e446cb`) — 0s **MANCANTE**
-* 🔴 **Lezione 3:** Come impostare correttamente una pagina social professionale (`11e04d40-7c30-48d9-9f9a-48ffbb825af3`) — 0s **MANCANTE**
+* ✅ **Lezione 2:** Come superare i blocchi iniziali (`95a68ec7-dbba-433e-8372-eddfb2e446cb`) — 6m 4s *(Caricato Nativo)*
+* 🔴 **Lezione 3:** Come impostare correttamente una pagina social professionale (`11e04d40-7c30-48d9-9f9a-48ffbb825af3`) — 0s **MANCANTE (Guida PDF)**
 * ✅ **Lezione 4:** I tre contenuti da creare (`9891d871-641e-4d52-82f4-7ceb6adaec2e`) — 5m 0s *(Caricato Nativo)*
 * ✅ **Lezione 5:** Strategie di contenuto (`14c83ae4-2e9b-40b6-a703-88bb057f621d`) — 8m 42s *(Caricato Nativo)*
 * ✅ **Lezione 6:** Contenuti di attrazione, fidelizzazione e vendita (`20efab06-f709-47f5-842c-efd0993d05d7`) — 18m 56s *(Caricato Nativo)*
 * ✅ **Lezione 7:** Che tipi di stories fare (`16eba908-6e69-4b90-8ea8-12cba0a7da46`) — 6m 29s *(Caricato Nativo)*
 * ✅ **Lezione 8:** Cosa sono i contenuti personali (`c737d161-ba00-4a4c-aaad-606c8fd99e4a`) — 6m 59s *(Caricato Nativo)*
-* 🔴 **Lezione 9:** Quando è necessario fare la call strategica (`a2680f7a-f049-4716-98b8-1021213dd328`) — 0s **MANCANTE**
+* ✅ **Lezione 9:** Come ho costruito un business da 15k al mese (`7b8e1515-1515-4000-a000-15kbusiness01`) — 5m 29s *(Caricato Nativo)*
+* ✅ **Lezione 10:** Quando è necessario fare la call strategica con Sabrina (`a2680f7a-f049-4716-98b8-1021213dd328`) — 4m 46s *(Caricato Nativo)*
 
 ---
 
