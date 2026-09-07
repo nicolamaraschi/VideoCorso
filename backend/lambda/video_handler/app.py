@@ -311,22 +311,26 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requ
     available_renditions = get_available_renditions(video_s3_key)
     served_video_key, served_quality = resolve_served_video_key(video_s3_key, requested_quality, available_renditions)
 
-    try:
-        presigned_url = s3_client.generate_presigned_url(
-            'get_object',
-            Params={'Bucket': video_bucket_name, 'Key': served_video_key},
-            ExpiresIn=7200,
-        )
-    except ClientError as exc:
-        print(f'generate_presigned_url error: {exc}')
-        return create_response(500, {'error': 'Failed to generate video URL'})
+    cloudfront_domain = os.environ.get('CLOUDFRONT_DOMAIN')
+    if cloudfront_domain:
+        video_url = f"https://{cloudfront_domain}/{served_video_key}"
+    else:
+        try:
+            video_url = s3_client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': video_bucket_name, 'Key': served_video_key},
+                ExpiresIn=7200,
+            )
+        except ClientError as exc:
+            print(f'generate_presigned_url error: {exc}')
+            return create_response(500, {'error': 'Failed to generate video URL'})
 
     available_qualities = [suffix for suffix in DEFAULT_QUALITY_ORDER if suffix in available_renditions]
     if not is_free_preview and not admin_bypass and request_event:
         record_video_access_issued(request_event, user_id, course_id, lesson_id, access_purchase)
 
     return create_response(200, {
-        'video_url': presigned_url,
+        'video_url': video_url,
         'expires_at': (datetime.utcnow() + timedelta(hours=2)).isoformat() + 'Z',
         'course_id': course_id,
         'video_quality': served_quality or 'source',

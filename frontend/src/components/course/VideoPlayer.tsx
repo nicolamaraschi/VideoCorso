@@ -36,39 +36,7 @@ interface VideoPlayerProps {
   trackProgress?: boolean;
 }
 
-const getIPhoneVideoRotation = async (videoUrl: string, signal: AbortSignal): Promise<0 | 90 | 180 | 270> => {
-  const readRotation = (bytes: Uint8Array): 0 | 90 | 180 | 270 => {
-    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 
-    for (let index = 4; index < bytes.length - 56; index += 1) {
-      if (String.fromCharCode(...bytes.slice(index, index + 4)) !== 'tkhd') continue;
-
-      const boxStart = index - 4;
-      const version = bytes[index + 4];
-      const matrixStart = boxStart + (version === 1 ? 60 : 48);
-      if (matrixStart + 16 > bytes.length) continue;
-
-      const a = view.getInt32(matrixStart);
-      const b = view.getInt32(matrixStart + 4);
-      const c = view.getInt32(matrixStart + 8);
-      const d = view.getInt32(matrixStart + 12);
-
-      if (a === 0 && b > 0 && c < 0 && d === 0) return 90;
-      if (a === 0 && b < 0 && c > 0 && d === 0) return 270;
-      if (a < 0 && b === 0 && c === 0 && d < 0) return 180;
-    }
-
-    return 0;
-  };
-
-  for (const range of ['bytes=0-2097151', 'bytes=-2097152']) {
-    const response = await fetch(videoUrl, { headers: { Range: range }, signal });
-    const rotation = readRotation(new Uint8Array(await response.arrayBuffer()));
-    if (rotation !== 0) return rotation;
-  }
-
-  return 0;
-};
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   videoUrl,
@@ -80,7 +48,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   trackProgress = true,
 }) => {
   const playerRef = useRef<HTMLVideoElement>(null);
-  const ambientVideoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const hideControlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -114,25 +81,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       if (trackProgress && dur > 0) {
         trackTimeUpdate(time, dur);
       }
-      // Sync ambient video if it drifts by > 0.4s
-      const ambient = ambientVideoRef.current;
-      if (ambient && Math.abs(ambient.currentTime - time) > 0.4) {
-        ambient.currentTime = time;
-      }
     },
     [trackProgress, trackTimeUpdate]
   );
-
-  // Sync ambient video playback with main player
-  useEffect(() => {
-    const ambient = ambientVideoRef.current;
-    if (!ambient) return;
-    if (isPlaying) {
-      ambient.play().catch(() => {});
-    } else {
-      ambient.pause();
-    }
-  }, [isPlaying]);
 
   useEffect(() => {
     const video = playerRef.current;
@@ -198,9 +149,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const changePlaybackRate = (rate: number) => {
     setPlaybackRate(rate);
     setShowSettings(false);
-    if (ambientVideoRef.current) {
-      ambientVideoRef.current.playbackRate = rate;
-    }
   };
 
   const toggleFullscreen = useCallback(() => {
@@ -340,9 +288,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (playerRef.current) {
       playerRef.current.currentTime = clampedTime;
     }
-    if (ambientVideoRef.current) {
-      ambientVideoRef.current.currentTime = clampedTime;
-    }
     setCurrentTime(clampedTime);
   };
 
@@ -400,16 +345,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setAspectRatio(16 / 9);
     setRotation(0);
     setVideoPlaybackError(null);
-
-    const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile) return;
-
-    const controller = new AbortController();
-    void getIPhoneVideoRotation(videoUrl, controller.signal)
-      .then(setRotation)
-      .catch(() => {});
-
-    return () => controller.abort();
   }, [videoUrl]);
 
   const handleLoadedMetadata = useCallback((event: React.SyntheticEvent<HTMLVideoElement>) => {
@@ -445,17 +380,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* ========================================================================= */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0">
         
-        {/* Dynamic Video Blur Aura */}
-        <div className="absolute inset-0 opacity-70 scale-125 blur-3xl filter saturate-150 brightness-50 transform pointer-events-none transition-opacity duration-700">
-          <video
-            ref={ambientVideoRef}
-            src={videoUrl}
-            muted
-            playsInline
-            className="w-full h-full object-cover"
-            aria-hidden="true"
-          />
-        </div>
+        {/* Dynamic CSS Blur Aura - Zero Network Overhead */}
+        <div
+          className="absolute inset-0 opacity-60 scale-110 blur-3xl saturate-150 pointer-events-none transition-opacity duration-700"
+          style={{
+            background:
+              'radial-gradient(ellipse at center, rgba(142, 28, 59, 0.45) 0%, rgba(76, 5, 25, 0.25) 50%, transparent 80%)',
+          }}
+          aria-hidden="true"
+        />
 
         {/* Velvet Vignette Overlay with Radial Depth */}
         <div
@@ -512,7 +445,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           ref={playerRef}
           src={videoUrl}
           playsInline
-          preload="metadata"
+          preload="auto"
           onWaiting={() => setIsBuffering(true)}
           onPlaying={() => {
             setIsBuffering(false);
@@ -679,7 +612,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 <button
                   onClick={() => {
                     if (playerRef.current) playerRef.current.currentTime = 0;
-                    if (ambientVideoRef.current) ambientVideoRef.current.currentTime = 0;
                     if (!isPlaying) togglePlay();
                   }}
                   className="hidden rounded-full p-1.5 text-white hover:bg-white/10 hover:text-primary-400 lg:block shrink-0"
