@@ -241,14 +241,14 @@ Per eseguire l'upload:
 
 ### Modulo 10 Come Trovare i Tuoi Primi Clienti (ID Capitolo: `64da6b31-8eba-42cd-aaf1-2568807ad8fe`) — 8/9 Caricate
 * ✅ **Lezione 1:** Come superare i blocchi iniziali (`95a68ec7-dbba-433e-8372-eddfb2e446cb`) — 6m 4s *(Caricato Nativo)*
-* 🔴 **Lezione 2:** Come impostare correttamente una pagina social professionale (`11e04d40-7c30-48d9-9f9a-48ffbb825af3`) — 0s **MANCANTE (Guida PDF)**
-* ✅ **Lezione 3:** I tre contenuti da creare (`9891d871-641e-4d52-82f4-7ceb6adaec2e`) — 5m 0s *(Caricato Nativo)*
-* ✅ **Lezione 4:** Strategie di contenuto (`14c83ae4-2e9b-40b6-a703-88bb057f621d`) — 8m 42s *(Caricato Nativo)*
-* ✅ **Lezione 5:** Contenuti di attrazione, fidelizzazione e vendita (`20efab06-f709-47f5-842c-efd0993d05d7`) — 18m 56s *(Caricato Nativo)*
-* ✅ **Lezione 6:** Che tipi di stories fare (`16eba908-6e69-4b90-8ea8-12cba0a7da46`) — 6m 29s *(Caricato Nativo)*
-* ✅ **Lezione 7:** Cosa sono i contenuti personali (`c737d161-ba00-4a4c-aaad-606c8fd99e4a`) — 6m 59s *(Caricato Nativo)*
+* 🔴 **Lezione 2:** Biografia e Set Up Profilo (`11e04d40-7c30-48d9-9f9a-48ffbb825af3`) — 0s **MANCANTE (Guida PDF)**
+* ✅ **Lezione 3:** I 3 Contenuti da creare (`9891d871-641e-4d52-82f4-7ceb6adaec2e`) — 5m 0s *(Caricato Nativo)*
+* ✅ **Lezione 4:** Le 3 strategie (`14c83ae4-2e9b-40b6-a703-88bb057f621d`) — 8m 42s *(Caricato Nativo)*
+* ✅ **Lezione 5:** Contenuti di attrazione, fidelizzazione, vendita (`20efab06-f709-47f5-842c-efd0993d05d7`) — 18m 56s *(Caricato Nativo)*
+* ✅ **Lezione 6:** Cosa sono i contenuti personali (`c737d161-ba00-4a4c-aaad-606c8fd99e4a`) — 6m 59s *(Caricato Nativo)*
+* ✅ **Lezione 7:** Quali tipi di stories fare (`16eba908-6e69-4b90-8ea8-12cba0a7da46`) — 6m 29s *(Caricato Nativo)*
 * ✅ **Lezione 8:** Come ho costruito un business da 15k al mese (`7b8e1515-1515-4000-a000-15kbusiness01`) — 5m 29s *(Caricato Nativo)*
-* ✅ **Lezione 9:** Quando è necessario fare la call strategica con Sabrina (`a2680f7a-f049-4716-98b8-1021213dd328`) — 4m 46s *(Caricato Nativo)*
+* ✅ **Lezione 9:** Quando è necessario fare la call strategica (`a2680f7a-f049-4716-98b8-1021213dd328`) — 4m 46s *(Caricato Nativo)*
 
 ---
 
