@@ -144,3 +144,29 @@ def test_global_access_can_open_a_protected_video_and_is_audited():
     assert response['statusCode'] == 200
     assert json.loads(response['body'])['video_url'] == 'https://video.example.test/signed'
     assert access_log.items[0]['purchase_id'] == 'global_access'
+
+
+def test_get_available_renditions_uses_source_as_1080p_fallback():
+    handler = load_video_handler()
+    source_key = 'videos/lesson-test/version-1/source.mp4'
+
+    class MockClientError(Exception):
+        response = {'Error': {'Code': '404'}}
+
+    def mock_head_object(Bucket, Key):
+        if 'source_720p.mp4' in Key or 'source_480p.mp4' in Key:
+            return {}
+        raise MockClientError('NoSuchKey')
+
+    handler.s3_client = types.SimpleNamespace(head_object=mock_head_object)
+    handler.video_bucket_name = 'test-bucket'
+
+    renditions = handler.get_available_renditions(source_key, lesson={'max_quality': None})
+    assert renditions['1080p'] == source_key
+    assert 'source_720p.mp4' in renditions['720p']
+    assert 'source_480p.mp4' in renditions['480p']
+
+    # When max_quality is explicitly 720p, 1080p is excluded
+    renditions_720 = handler.get_available_renditions('videos/lesson-test-720/version-1/source.mp4', lesson={'max_quality': '720p'})
+    assert '1080p' not in renditions_720
+

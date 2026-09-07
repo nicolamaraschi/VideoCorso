@@ -21,7 +21,7 @@ const QUALITY_LABELS: Record<string, string> = {
   '720p': 'Alta (720p)',
   '480p': 'Media (480p)',
   '360p': 'Bassa (360p)',
-  high: 'Alta (720p)',
+  high: 'Full HD (1080p)',
   medium: 'Media (480p)',
   low: 'Bassa (360p)',
 };
@@ -752,9 +752,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               </div>
               {availableQualities.length > 0 ? (
                 <div className="grid grid-cols-2 gap-1.5">
-                  {availableQualities.map(
-                  (q) => {
-                    const isSelected = quality === q || (!quality && (q === '1080p' || q === 'high'));
+                  {availableQualities.map((q) => {
+                    const isSelected =
+                      quality === q ||
+                      ((quality === 'high' || !quality) && (q === '1080p' || (!availableQualities.includes('1080p') && q === '720p')));
                     return (
                       <button
                         key={q}

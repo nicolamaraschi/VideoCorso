@@ -182,7 +182,7 @@ def get_optimized_video_key(video_s3_key: str, suffix: str) -> str:
     return f'streaming/{source_stem}/{source_stem}_{suffix}.mp4'
 
 
-def get_available_renditions(video_s3_key: str) -> dict[str, str]:
+def get_available_renditions(video_s3_key: str, lesson: Optional[dict[str, Any]] = None) -> dict[str, str]:
     """Checks each known rendition once and returns {suffix: s3_key} for the ones that exist."""
     cached = _rendition_cache.get(video_s3_key)
     now = time.monotonic()
@@ -198,6 +198,15 @@ def get_available_renditions(video_s3_key: str) -> dict[str, str]:
             if exc.response.get('Error', {}).get('Code', '') in {'404', 'NoSuchKey', 'NotFound'}:
                 continue
             raise
+
+    # When 1080p rendition is not generated separately in streaming/ (to save storage & avoid duplicate transcoding),
+    # the original uploaded video in videos/ IS the native Full HD (1080p) stream.
+    # Expose it as 1080p unless the lesson explicitly indicates a lower max quality (e.g. 720p).
+    if '1080p' not in available and video_s3_key:
+        max_quality = (lesson or {}).get('max_quality')
+        if max_quality != '720p':
+            available['1080p'] = video_s3_key
+
     _rendition_cache[video_s3_key] = (now + _RENDITION_CACHE_TTL_SECONDS, dict(available))
     return available
 
@@ -374,7 +383,7 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requ
     # HEAD requests on every cold Lambda container for these lessons.
     available_renditions = (
         {} if lesson.get('transcode_status') == 'NATIVE'
-        else get_available_renditions(video_s3_key)
+        else get_available_renditions(video_s3_key, lesson=lesson)
     )
     served_video_key, served_quality = resolve_served_video_key(video_s3_key, requested_quality, available_renditions)
 
