@@ -3,13 +3,17 @@ import os
 import time
 import uuid
 import hashlib
-from datetime import datetime, timedelta
+import base64
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Optional
+from urllib.parse import urlencode
 
 import boto3
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
 
 # ---------------------------------------------------------------------------
 from shared.purchase_access import purchase_grants_access
@@ -109,6 +113,64 @@ FALLBACK_CHAINS = {
 DEFAULT_QUALITY_ORDER = ['1080p', '720p', '480p', '360p']
 _rendition_cache: dict[str, tuple[float, dict[str, str]]] = {}
 _RENDITION_CACHE_TTL_SECONDS = 30
+_cloudfront_private_key = None
+
+
+def now_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def get_cloudfront_private_key():
+    """Load and cache the signing key from free-tier SSM Parameter Store."""
+    global _cloudfront_private_key
+    if _cloudfront_private_key is not None:
+        return _cloudfront_private_key
+
+    parameter_name = os.environ.get('CLOUDFRONT_PRIVATE_KEY_PARAMETER')
+    if not parameter_name:
+        raise RuntimeError('CLOUDFRONT_PRIVATE_KEY_PARAMETER is not configured')
+
+    try:
+        response = ssm_client.get_parameter(Name=parameter_name, WithDecryption=True)
+        pem = response['Parameter']['Value'].encode('utf-8')
+        _cloudfront_private_key = serialization.load_pem_private_key(pem, password=None)
+    except (ClientError, KeyError, ValueError, TypeError) as exc:
+        print(f'Required CloudFront signing parameter unavailable: {parameter_name}')
+        raise RuntimeError('CloudFront signing key unavailable') from exc
+    return _cloudfront_private_key
+
+
+def cloudfront_safe_base64(value: bytes) -> str:
+    """Encode a signature using CloudFront's URL-safe character mapping."""
+    return (
+        base64.b64encode(value)
+        .decode('ascii')
+        .replace('+', '-')
+        .replace('=', '_')
+        .replace('/', '~')
+    )
+
+
+def generate_cloudfront_signed_url(resource_url: str, expires_epoch: int) -> str:
+    """Create a SHA-256 canned-policy URL for one immutable video object."""
+    key_pair_id = os.environ.get('CLOUDFRONT_KEY_PAIR_ID')
+    if not key_pair_id:
+        raise RuntimeError('CLOUDFRONT_KEY_PAIR_ID is not configured')
+
+    policy = json.dumps({
+        'Statement': [{
+            'Resource': resource_url,
+            'Condition': {'DateLessThan': {'AWS:EpochTime': expires_epoch}},
+        }],
+    }, separators=(',', ':')).encode('utf-8')
+    signature = get_cloudfront_private_key().sign(policy, padding.PKCS1v15(), hashes.SHA256())
+    query = urlencode({
+        'Expires': str(expires_epoch),
+        'Signature': cloudfront_safe_base64(signature),
+        'Key-Pair-Id': key_pair_id,
+        'Hash-Algorithm': 'SHA256',
+    })
+    return f'{resource_url}?{query}'
 
 
 def get_optimized_video_key(video_s3_key: str, suffix: str) -> str:
@@ -244,7 +306,7 @@ def record_video_access_issued(event: dict[str, Any], user_id: str, course_id: s
         identity = request_context.get('identity') or {}
         headers = {str(key).lower(): value for key, value in (event.get('headers') or {}).items()}
         source_ip = identity.get('sourceIp') or headers.get('x-forwarded-for')
-        now = datetime.utcnow()
+        now = now_utc()
         item = {
             'access_id': str(uuid.uuid4()),
             'user_id': user_id,
@@ -252,7 +314,7 @@ def record_video_access_issued(event: dict[str, Any], user_id: str, course_id: s
             'lesson_id': lesson_id,
             'purchase_id': (purchase or {}).get('purchase_id') or 'global_access',
             'event_type': 'video_url_issued',
-            'issued_at': now.isoformat() + 'Z',
+            'issued_at': now.isoformat().replace('+00:00', 'Z'),
             # Two years is deliberately longer than the usual card-dispute
             # window while avoiding an indefinite behavioural log.
             'ttl_expires_at': int((now + timedelta(days=730)).timestamp()),
@@ -308,12 +370,23 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requ
             'course_id': course_id,
         })
 
-    available_renditions = get_available_renditions(video_s3_key)
+    # Native assets deliberately have no alternate renditions. Avoid four S3
+    # HEAD requests on every cold Lambda container for these lessons.
+    available_renditions = (
+        {} if lesson.get('transcode_status') == 'NATIVE'
+        else get_available_renditions(video_s3_key)
+    )
     served_video_key, served_quality = resolve_served_video_key(video_s3_key, requested_quality, available_renditions)
 
     cloudfront_domain = os.environ.get('CLOUDFRONT_DOMAIN')
+    expires_at = now_utc() + timedelta(hours=2)
     if cloudfront_domain:
-        video_url = f"https://{cloudfront_domain}/{served_video_key}"
+        unsigned_url = f"https://{cloudfront_domain}/{served_video_key}"
+        try:
+            video_url = generate_cloudfront_signed_url(unsigned_url, int(expires_at.timestamp()))
+        except RuntimeError as exc:
+            print(f'generate_cloudfront_signed_url error: {exc}')
+            return create_response(500, {'error': 'Failed to authorize video URL'})
     else:
         try:
             video_url = s3_client.generate_presigned_url(
@@ -331,7 +404,7 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requ
 
     return create_response(200, {
         'video_url': video_url,
-        'expires_at': (datetime.utcnow() + timedelta(hours=2)).isoformat() + 'Z',
+        'expires_at': expires_at.isoformat().replace('+00:00', 'Z'),
         'course_id': course_id,
         'video_quality': served_quality or 'source',
         'available_qualities': available_qualities,
@@ -340,6 +413,7 @@ def get_video_url(user_id: str, lesson_id: str, admin_bypass: bool = False, requ
 
 dynamodb = boto3.resource('dynamodb')
 s3_client = boto3.client('s3')
+ssm_client = boto3.client('ssm')
 
 lessons_table = dynamodb.Table(os.environ.get('LESSONS_TABLE'))
 chapters_table = dynamodb.Table(os.environ.get('CHAPTERS_TABLE'))

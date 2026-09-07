@@ -81,9 +81,9 @@ La piattaforma ospita il corso completo **Masterclass Microblading** suddiviso i
 
 ## 🛡️ Motore Video & Protezione Anti-Pirateria
 
-* **Streaming Adattivo Multi-Risoluzione**: Pipeline AWS MediaConvert che genera risoluzioni ottimizzate `1080p`, `720p`, `480p` e `360p` in QVBR.
+* **Video Multi-Risoluzione Cost-Safe**: il player usa soltanto rendition realmente presenti; la generazione avviene localmente con `ffmpeg`, mentre MediaConvert resta disabilitato in produzione.
 * **Watermark Dinamico Anti-Rec**: Player video personalizzato con impronta semi-trasparente mobile contenente l'email del corsista e l'ID sessione (rende impossibile la diffusione anonima su Telegram/Drive).
-* **URL Firmati a Scadenza**: Token crittografati CloudFront con validità 10 minuti per prevenire l'hotlinking.
+* **URL Firmati a Scadenza**: URL CloudFront SHA-256 con validità 2 ore, verificati tramite Trusted Key Group, per prevenire accessi anonimi e hotlinking.
 * **Write-Only Video Access Logs**: Tabella `prod-videocorso-video-access-logs` che archivia in modo immutabile ogni singola lezione vista per 2 anni a fini probatori.
 
 ---

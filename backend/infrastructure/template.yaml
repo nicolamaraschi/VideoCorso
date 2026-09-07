@@ -28,6 +28,16 @@ Parameters:
       - "true"
       - "false"
     Description: Whether to run AWS MediaConvert jobs on video upload (cost per minute). Default false (0.00€ cost).
+  EnforceSignedVideoUrls:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Require CloudFront signed URLs. Use false only for the first stage of a signing-key rollout.
+
+Conditions:
+  EnforceSignedVideoUrlsCondition: !Equals [!Ref EnforceSignedVideoUrls, "true"]
 
 Globals:
   Function:
@@ -771,6 +781,8 @@ Resources:
       Environment:
         Variables:
           CLOUDFRONT_DOMAIN: !GetAtt CloudFrontDistribution.DomainName
+          CLOUDFRONT_KEY_PAIR_ID: !Ref CloudFrontVideoPublicKey
+          CLOUDFRONT_PRIVATE_KEY_PARAMETER: !Sub "/videocorso/${Environment}/cloudfront/private-key"
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref VideoBucket
@@ -792,6 +804,10 @@ Resources:
               Action:
                 - dynamodb:PutItem
               Resource: !GetAtt VideoAccessLogsTable.Arn
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/videocorso/${Environment}/cloudfront/private-key"
       Events:
         GetVideoUrl:
           Type: Api
@@ -1499,11 +1515,13 @@ Resources:
     Properties:
       DistributionConfig:
         Enabled: true
+        HttpVersion: http2and3
         Origins:
           - Id: VideoBucketOrigin
             DomainName: !GetAtt VideoBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt CloudFrontVideoOriginAccessControl.Id
             S3OriginConfig:
-              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontOAI}"
+              OriginAccessIdentity: ""
         DefaultCacheBehavior:
           TargetOriginId: VideoBucketOrigin
           ViewerProtocolPolicy: https-only
@@ -1517,14 +1535,58 @@ Resources:
             QueryString: false
             Cookies:
               Forward: none
+          MinTTL: 0
+          DefaultTTL: 31536000
+          MaxTTL: 31536000
+          TrustedKeyGroups: !If
+            - EnforceSignedVideoUrlsCondition
+            - - !Ref CloudFrontVideoKeyGroup
+            - !Ref AWS::NoValue
           ResponseHeadersPolicyId: 60669652-455b-4ae9-85a4-c4c02393f86c
         PriceClass: PriceClass_100
+
+  CloudFrontVideoPublicKey:
+    Type: AWS::CloudFront::PublicKey
+    Properties:
+      PublicKeyConfig:
+        CallerReference: "videocorso-video-signing-v1-20260907"
+        Comment: Public key used to validate short-lived signed lesson URLs
+        EncodedKey: |
+          -----BEGIN PUBLIC KEY-----
+          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnalKOHuYNnCFsSjIjWe7
+          maBVeAD9nROUMk2ayzTuAGA+twAxk9WLPQU58oulhoU0tbpCqJDdDn2h4ZYD24s2
+          juvv0GDvc8/nV59gZkkm77EscHNidQfFQL+I+F6N2fzd8hBiw6XTTo/G6wIZSmt/
+          9UsQoLAWFr2SvDxfzNd09ZggEhYQ7s/EfqRKfq/7P2bQ7oliIyD+MtVpJpXaj7iz
+          zbung7AMZGF4bWFI8rpT1hAiJ4nc8kHnMbKf4fkICtQz4Z62VE1b9hs20QT8cTh0
+          nD4eXyq+yjXi+qCpQCE9QmlNo7+cS0vPJKUiUYEezoX4icZwZWQpawzIQMBSXz4a
+          ZQIDAQAB
+          -----END PUBLIC KEY-----
+        Name: !Sub "${Environment}-videocorso-video-signing-v1"
+
+  CloudFrontVideoKeyGroup:
+    Type: AWS::CloudFront::KeyGroup
+    Properties:
+      KeyGroupConfig:
+        Comment: Trusted keys for private lesson videos
+        Items:
+          - !Ref CloudFrontVideoPublicKey
+        Name: !Sub "${Environment}-videocorso-video-signing-v1"
 
   CloudFrontOAI:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
     Properties:
       CloudFrontOriginAccessIdentityConfig:
-        Comment: !Sub "OAI for ${Environment}-videocorso"
+        Comment: !Sub "Legacy rollback OAI for ${Environment}-videocorso"
+
+  CloudFrontVideoOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Description: Signed CloudFront access to the private lesson bucket
+        Name: !Sub "${Environment}-videocorso-video-oac"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
 
   VideoBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -1532,6 +1594,16 @@ Resources:
       Bucket: !Ref VideoBucket
       PolicyDocument:
         Statement:
+          - Sid: AllowCloudFrontOAC
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: "s3:GetObject"
+            Resource: !Sub "${VideoBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}"
+          # Kept temporarily at no cost as a rollback path while OAC settles.
           - Effect: Allow
             Principal:
               AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOAI}"

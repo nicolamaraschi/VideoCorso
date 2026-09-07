@@ -7,6 +7,19 @@
 > 1. Ispezione dei file presenti sull'SSD esterno (`/Volumes/Sviluppo/Chiara Morocutti/`).  
 > 2. Se i video non sono ancora tagliati, eseguire la pulizia automatica dei silenzi con lo script in `/Volumes/Sviluppo/pulitoreTraccia/`.  
 > 3. Eseguire l'upload su S3 (`prod-videocorso-content`) e aggiornare DynamoDB (`prod-videocorso-lessons`) in **formato NATIVO a costo 0,00€** (ZERO transcodifiche MediaConvert).  
+
+Prima dell'upload si possono generare in locale le quattro rendition ottimizzate,
+senza usare servizi AWS a pagamento:
+
+```bash
+python3 scripts/generate_local_video_renditions.py \
+  --output-dir "/Volumes/Sviluppo/Chiara Morocutti/RENDITIONS_OTTIMIZZATE" \
+  "/percorso/al/video-sorgente.mp4"
+```
+
+Il comando non accede ad AWS, non elimina il sorgente e produce un
+`renditions-report.json`. Caricare le rendition soltanto se il report indica
+`safe_to_replace_cloud_copy: true` e dopo la verifica visiva.
 > 4. Aggiornare la mappa delle lezioni in questo file.
 
 ---
@@ -270,4 +283,3 @@ Quando la cliente comunicherà di aver **concluso tutte le registrazioni** e con
    * Associare i file PDF (es. `Biografia e set up.pdf`) come allegati di lezione scaricabili o lezioni testuali native.
 4. **Aggiornamento Contatori e Marketing Copy:**
    * Aggiornare il numero complessivo effettivo di lezioni e ore di formazione sulla landing page (`frontend/src/pages/LandingPage.tsx`) e nella dashboard corsiste per riflettere la realtà esatta del corso finale.
-
