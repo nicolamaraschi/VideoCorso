@@ -47,8 +47,8 @@ MODULO_9_SPEC = [
     {
         'order': 2,
         'lesson_id': 'ebb896ea-b4e1-448a-a8b8-1fdc88c966ee',
-        'title': 'Vendere e fare dermopigmentazione sono due cose diverse',
-        'thumb_title': 'Vendere e fare dermopigmentazione\nsono due cose diverse'
+        'title': 'Vendere e fare dermopigmentazione sono 2 cose diverse',
+        'thumb_title': 'Vendere e fare dermopigmentazione\nsono 2 cose diverse'
     },
     {
         'order': 3,
@@ -65,20 +65,20 @@ MODULO_9_SPEC = [
     {
         'order': 5,
         'lesson_id': 'b59cbda6-d9a0-4440-b046-aa6e4dda47fd',
-        'title': 'Gestire le obiezioni - Live',
-        'thumb_title': 'Gestire le obiezioni - Live'
+        'title': 'Gestire le obiezioni',
+        'thumb_title': 'Gestire le obiezioni'
     },
     {
         'order': 6,
         'lesson_id': '8a78c288-35f1-42cb-89a1-75add3c3f7a1',
-        'title': 'Consulenza di vendita in studio vs chiamata di vendita',
-        'thumb_title': 'Consulenza di vendita in studio\nvs chiamata di vendita'
+        'title': 'Consulenza in studio di vendita vs chiamata di vendita',
+        'thumb_title': 'Consulenza in studio di vendita\nvs chiamata di vendita'
     },
     {
         'order': 7,
         'lesson_id': '6e556b7d-8332-4d71-89fe-7aebc586a788',
-        'title': 'Registrazione chiamata di vendita DA REGISTRARE',
-        'thumb_title': 'Registrazione chiamata di vendita\nDA REGISTRARE'
+        'title': 'Registrazione di una chiamata di vendita',
+        'thumb_title': 'Registrazione di una chiamata di vendita'
     },
     {
         'order': 8,

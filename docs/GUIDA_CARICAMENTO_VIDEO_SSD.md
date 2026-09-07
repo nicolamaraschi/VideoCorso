@@ -229,12 +229,12 @@ Per eseguire l'upload:
 
 ### Modulo 9 Consulenza (ID Capitolo: `8533ff33-9cd8-46c9-8515-260996875987`) — 7/8 Caricate
 * ✅ **Lezione 1:** Introduzione (`14a8d861-7908-4f7e-b57d-ebb328c2fc4b`) — 2m 6s *(Caricato Nativo)*
-* ✅ **Lezione 2:** Vendere e fare dermopigmentazione sono due cose diverse (`ebb896ea-b4e1-448a-a8b8-1fdc88c966ee`) — 4m 3s *(Caricato Nativo)*
+* ✅ **Lezione 2:** Vendere e fare dermopigmentazione sono 2 cose diverse (`ebb896ea-b4e1-448a-a8b8-1fdc88c966ee`) — 4m 3s *(Caricato Nativo)*
 * ✅ **Lezione 3:** Smetti di fare consulenza informativa (`8eac8228-a097-43a7-a9ea-2c3645c82ba6`) — 2m 47s *(Caricato Nativo)*
 * ✅ **Lezione 4:** Come fare una consulenza di vendita (`236964d5-27f5-4631-a0d3-8698179d1560`) — 11m 52s *(Caricato)*
-* ✅ **Lezione 5:** Gestire le obiezioni - Live (`b59cbda6-d9a0-4440-b046-aa6e4dda47fd`) — 83m 38s *(Caricato Nativo)*
-* ✅ **Lezione 6:** Consulenza di vendita in studio vs chiamata di vendita (`8a78c288-35f1-42cb-89a1-75add3c3f7a1`) — 8m 41s *(Caricato Nativo)*
-* 🔴 **Lezione 7:** Registrazione chiamata di vendita DA REGISTRARE (`6e556b7d-8332-4d71-89fe-7aebc586a788`) — 0s **MANCANTE**
+* ✅ **Lezione 5:** Gestire le obiezioni (`b59cbda6-d9a0-4440-b046-aa6e4dda47fd`) — 83m 38s *(Caricato Nativo)*
+* ✅ **Lezione 6:** Consulenza in studio di vendita vs chiamata di vendita (`8a78c288-35f1-42cb-89a1-75add3c3f7a1`) — 8m 41s *(Caricato Nativo)*
+* 🔴 **Lezione 7:** Registrazione di una chiamata di vendita (`6e556b7d-8332-4d71-89fe-7aebc586a788`) — 0s **MANCANTE**
 * ✅ **Lezione 8:** Come impostare il giusto prezzo per partire (`298960a8-9fc4-46ef-bf2f-ef53592fa02a`) — 10m 4s *(Caricato Nativo)*
 
 ---
