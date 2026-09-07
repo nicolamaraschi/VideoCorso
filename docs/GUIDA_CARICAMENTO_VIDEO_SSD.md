@@ -227,30 +227,28 @@ Per eseguire l'upload:
 
 ---
 
-### Modulo 9 Consulenza (ID Capitolo: `8533ff33-9cd8-46c9-8515-260996875987`) — 6/9 Caricate
+### Modulo 9 Consulenza (ID Capitolo: `8533ff33-9cd8-46c9-8515-260996875987`) — 7/8 Caricate
 * ✅ **Lezione 1:** Introduzione (`14a8d861-7908-4f7e-b57d-ebb328c2fc4b`) — 2m 6s *(Caricato Nativo)*
-* ✅ **Lezione 2:** Smetti di fare consulenza informativa (`8eac8228-a097-43a7-a9ea-2c3645c82ba6`) — 2m 47s *(Caricato Nativo)*
-* ✅ **Lezione 3:** Come fare una consulenza di vendita (`236964d5-27f5-4631-a0d3-8698179d1560`) — 11m 52s *(Caricato)*
-* ✅ **Lezione 4:** Gestire le obiezioni (`b59cbda6-d9a0-4440-b046-aa6e4dda47fd`) — 83m 38s *(Caricato Nativo)*
-* 🔴 **Lezione 5:** Risoluzione obiezioni (`6d8644a2-ee4e-48d0-8af7-d8ec6a8b3cf5`) — 0s **MANCANTE**
+* ✅ **Lezione 2:** Vendere e fare dermopigmentazione sono due cose diverse (`ebb896ea-b4e1-448a-a8b8-1fdc88c966ee`) — 4m 3s *(Caricato Nativo)*
+* ✅ **Lezione 3:** Smetti di fare consulenza informativa (`8eac8228-a097-43a7-a9ea-2c3645c82ba6`) — 2m 47s *(Caricato Nativo)*
+* ✅ **Lezione 4:** Come fare una consulenza di vendita (`236964d5-27f5-4631-a0d3-8698179d1560`) — 11m 52s *(Caricato)*
+* ✅ **Lezione 5:** Gestire le obiezioni - Live (`b59cbda6-d9a0-4440-b046-aa6e4dda47fd`) — 83m 38s *(Caricato Nativo)*
 * ✅ **Lezione 6:** Consulenza di vendita in studio vs chiamata di vendita (`8a78c288-35f1-42cb-89a1-75add3c3f7a1`) — 8m 41s *(Caricato Nativo)*
-* 🔴 **Lezione 7:** Consulenza di vendita in studio vs chiamata di vendita duplicato (`e433a57e-3e11-45ba-8700-2f45d0ca280f`) — 0s **MANCANTE**
-* 🔴 **Lezione 8:** Registrazione chiamata di vendita (`6e556b7d-8332-4d71-89fe-7aebc586a788`) — 0s **MANCANTE**
-* ✅ **Lezione 9:** Come impostare il giusto prezzo per partire (`298960a8-9fc4-46ef-bf2f-ef53592fa02a`) — 10m 4s *(Caricato Nativo)*
+* 🔴 **Lezione 7:** Registrazione chiamata di vendita DA REGISTRARE (`6e556b7d-8332-4d71-89fe-7aebc586a788`) — 0s **MANCANTE**
+* ✅ **Lezione 8:** Come impostare il giusto prezzo per partire (`298960a8-9fc4-46ef-bf2f-ef53592fa02a`) — 10m 4s *(Caricato Nativo)*
 
 ---
 
-### Modulo 10 Come Trovare i Tuoi Primi Clienti (ID Capitolo: `64da6b31-8eba-42cd-aaf1-2568807ad8fe`) — 9/10 Caricate
-* ✅ **Lezione 1:** Vendere e fare dermopigmentazione sono due cose diverse (`ebb896ea-b4e1-448a-a8b8-1fdc88c966ee`) — 4m 3s *(Caricato Nativo)*
-* ✅ **Lezione 2:** Come superare i blocchi iniziali (`95a68ec7-dbba-433e-8372-eddfb2e446cb`) — 6m 4s *(Caricato Nativo)*
-* 🔴 **Lezione 3:** Come impostare correttamente una pagina social professionale (`11e04d40-7c30-48d9-9f9a-48ffbb825af3`) — 0s **MANCANTE (Guida PDF)**
-* ✅ **Lezione 4:** I tre contenuti da creare (`9891d871-641e-4d52-82f4-7ceb6adaec2e`) — 5m 0s *(Caricato Nativo)*
-* ✅ **Lezione 5:** Strategie di contenuto (`14c83ae4-2e9b-40b6-a703-88bb057f621d`) — 8m 42s *(Caricato Nativo)*
-* ✅ **Lezione 6:** Contenuti di attrazione, fidelizzazione e vendita (`20efab06-f709-47f5-842c-efd0993d05d7`) — 18m 56s *(Caricato Nativo)*
-* ✅ **Lezione 7:** Che tipi di stories fare (`16eba908-6e69-4b90-8ea8-12cba0a7da46`) — 6m 29s *(Caricato Nativo)*
-* ✅ **Lezione 8:** Cosa sono i contenuti personali (`c737d161-ba00-4a4c-aaad-606c8fd99e4a`) — 6m 59s *(Caricato Nativo)*
-* ✅ **Lezione 9:** Come ho costruito un business da 15k al mese (`7b8e1515-1515-4000-a000-15kbusiness01`) — 5m 29s *(Caricato Nativo)*
-* ✅ **Lezione 10:** Quando è necessario fare la call strategica con Sabrina (`a2680f7a-f049-4716-98b8-1021213dd328`) — 4m 46s *(Caricato Nativo)*
+### Modulo 10 Come Trovare i Tuoi Primi Clienti (ID Capitolo: `64da6b31-8eba-42cd-aaf1-2568807ad8fe`) — 8/9 Caricate
+* ✅ **Lezione 1:** Come superare i blocchi iniziali (`95a68ec7-dbba-433e-8372-eddfb2e446cb`) — 6m 4s *(Caricato Nativo)*
+* 🔴 **Lezione 2:** Come impostare correttamente una pagina social professionale (`11e04d40-7c30-48d9-9f9a-48ffbb825af3`) — 0s **MANCANTE (Guida PDF)**
+* ✅ **Lezione 3:** I tre contenuti da creare (`9891d871-641e-4d52-82f4-7ceb6adaec2e`) — 5m 0s *(Caricato Nativo)*
+* ✅ **Lezione 4:** Strategie di contenuto (`14c83ae4-2e9b-40b6-a703-88bb057f621d`) — 8m 42s *(Caricato Nativo)*
+* ✅ **Lezione 5:** Contenuti di attrazione, fidelizzazione e vendita (`20efab06-f709-47f5-842c-efd0993d05d7`) — 18m 56s *(Caricato Nativo)*
+* ✅ **Lezione 6:** Che tipi di stories fare (`16eba908-6e69-4b90-8ea8-12cba0a7da46`) — 6m 29s *(Caricato Nativo)*
+* ✅ **Lezione 7:** Cosa sono i contenuti personali (`c737d161-ba00-4a4c-aaad-606c8fd99e4a`) — 6m 59s *(Caricato Nativo)*
+* ✅ **Lezione 8:** Come ho costruito un business da 15k al mese (`7b8e1515-1515-4000-a000-15kbusiness01`) — 5m 29s *(Caricato Nativo)*
+* ✅ **Lezione 9:** Quando è necessario fare la call strategica con Sabrina (`a2680f7a-f049-4716-98b8-1021213dd328`) — 4m 46s *(Caricato Nativo)*
 
 ---
 
