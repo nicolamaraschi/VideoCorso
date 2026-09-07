@@ -1517,8 +1517,7 @@ Resources:
             QueryString: false
             Cookies:
               Forward: none
-          TrustedSigners:
-            - self
+          ResponseHeadersPolicyId: 60669652-455b-4ae9-85a4-c4c02393f86c
         PriceClass: PriceClass_100
 
   CloudFrontOAI:
