@@ -139,9 +139,9 @@ Per eseguire l'upload:
 
 ## 🗺️ 6. Mappa Completa dei 10 Moduli e Stato Attuale (56 Lezioni Attive - 7h 14m Totali)
 
-### Modulo 1 Presentazione (ID Capitolo: `89d99685-6f1e-4ca0-81fb-04950410701e`) — 2/3 Caricate
+### Modulo 1 Presentazione (ID Capitolo: `89d99685-6f1e-4ca0-81fb-04950410701e`) — 3/3 Caricate (COMPLETO 🎉)
 * ✅ **Lezione 1:** Presentazione (`bd20c4e6-7622-4729-9152-873010337e0c`) — 2m 49s *(Caricato Nativo)*
-* 🔴 **Lezione 2:** Chi sono e perchè dovresti ascoltarmii (`84f95ef9-dd67-47e0-b6fe-e6a8bd090f6c`) — 0s **MANCANTE**
+* ✅ **Lezione 2:** Chi sono e perché dovresti ascoltarmi (`84f95ef9-dd67-47e0-b6fe-e6a8bd090f6c`) — 4m 45s *(Caricato Nativo + Rendizioni 1080p, 720p, 480p, 360p)*
 * ✅ **Lezione 3:** Mentalità (`74328195-c4be-4790-a366-c7cc9f5fd6a1`) — 7m 27s *(Caricato Nativo)*
 
 ---
