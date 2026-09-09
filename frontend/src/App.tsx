@@ -10,6 +10,7 @@ import { useAuthContext } from './components/auth/useAuthContext';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { AdminOperationBannerProvider } from './components/common/AdminOperationBanner';
+import { OfferCountdownBar } from './components/common/OfferCountdownBar';
 
 // Route-level code splitting with automatic retry on new deployment chunk mismatch:
 // If a user has a stale tab open when Amplify finishes a new build, a dynamic import
@@ -50,6 +51,7 @@ const AdminAccountsPage = lazyWithRetry(() => import('./pages/AdminAccountsPage'
 const AdminPurchaseDetailPage = lazyWithRetry(() => import('./pages/AdminPurchaseDetailPage').then((m) => ({ default: m.AdminPurchaseDetailPage })));
 const AdminCouponsPage = lazyWithRetry(() => import('./pages/AdminCouponsPage').then((m) => ({ default: m.AdminCouponsPage })));
 const AdminSystemLogsPage = lazyWithRetry(() => import('./pages/AdminSystemLogsPage').then((m) => ({ default: m.AdminSystemLogsPage })));
+const AdminBannerPage = lazyWithRetry(() => import('./pages/AdminBannerPage').then((m) => ({ default: m.AdminBannerPage })));
 
 const ScrollToPageStart = () => {
   const { pathname } = useLocation();
@@ -130,6 +132,14 @@ function App() {
                     element={(
                       <ProtectedRoute requireAdmin>
                         <AdminDashboardPage />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/admin/banner"
+                    element={(
+                      <ProtectedRoute requireAdmin>
+                        <AdminBannerPage />
                       </ProtectedRoute>
                     )}
                   />
@@ -217,7 +227,10 @@ function App() {
   return (
     <div className="flex flex-col min-h-screen relative">
       <ScrollToPageStart />
-      <Navbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+      <header className="sticky top-0 z-40 w-full">
+        <OfferCountdownBar />
+        <Navbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+      </header>
 
       <div className="flex flex-1 w-full max-w-full">
         <main className="flex-1 w-full min-w-0">

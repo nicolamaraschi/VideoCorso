@@ -8,7 +8,9 @@ import {
   Check, 
   Award
 } from 'lucide-react';
-import { TrustindexWidget } from '../components/common/TrustindexWidget';
+import { FeaturableWidget } from '../components/common/FeaturableWidget';
+import { MarqueeBanner } from "../components/common/MarqueeBanner";
+
 
 export const LandingPage: React.FC = () => {
   const location = useLocation();
@@ -109,6 +111,8 @@ export const LandingPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      <MarqueeBanner />
 
       {/* 2. IL PUNTO DI PARTENZA (PAIN POINTS) */}
       <section className="py-20 bg-white border-y border-primary-100/60">
@@ -710,9 +714,9 @@ export const LandingPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Trustindex Live Reviews Widget */}
+          {/* Featurable Live Google Reviews Widget */}
           <div className="max-w-6xl mx-auto bg-primary-50/40 rounded-3xl p-4 sm:p-8 border border-primary-100/80 shadow-sm">
-            <TrustindexWidget scriptSrc="https://cdn.trustindex.io/loader.js?6d4fbfe80b0925814246238f8e4" className="w-full" />
+            <FeaturableWidget widgetId="ad093005-2b9f-4776-9a52-2fce81c19bf9" className="w-full" />
           </div>
         </div>
       </section>
