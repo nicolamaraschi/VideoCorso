@@ -63,9 +63,14 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/checkout" className="text-base text-gray-400 hover:text-white transition-colors">
-                  Iscriviti Ora
-                </Link>
+                <a
+                  href="https://wa.me/393282247737?text=Ciao%20Chiara,%20vorrei%20informazioni%20sui%20tuoi%20corsi%20di%20Microblading"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-base text-gray-400 hover:text-white transition-colors"
+                >
+                  Prenota una Call
+                </a>
               </li>
             </ul>
           </div>

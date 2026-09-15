@@ -101,7 +101,6 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
             <div className="hidden lg:flex items-center space-x-6 xl:space-x-8">
               <ScrollLink to="/#corso" className="text-sm xl:text-base font-medium text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Il Corso</ScrollLink>
               <ScrollLink to="/#vantaggi" className="text-sm xl:text-base font-medium text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Vantaggi</ScrollLink>
-              <ScrollLink to="/#anteprima" className="text-sm xl:text-base font-medium text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Anteprima</ScrollLink>
               <ScrollLink to="/#testimonianze" className="text-sm xl:text-base font-medium text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Testimonianze</ScrollLink>
             </div>
           )}
@@ -112,14 +111,25 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
               {/* Desktop Buttons (>= lg) */}
               <div className="hidden lg:flex items-center gap-3">
                 <Link to="/login"><Button variant="ghost">Login</Button></Link>
-                <Link to="/checkout"><Button variant="primary">Vai al Checkout</Button></Link>
+                <a
+                  href="https://wa.me/393282247737?text=Ciao%20Chiara,%20vorrei%20informazioni%20sui%20tuoi%20corsi%20di%20Microblading"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="primary">Prenota una Call</Button>
+                </a>
               </div>
-              {/* Mobile / Tablet Quick Checkout Button (< lg) */}
-              <Link to="/checkout" className="lg:hidden shrink-0">
+              {/* Mobile / Tablet Quick Call Button (< lg) */}
+              <a
+                href="https://wa.me/393282247737?text=Ciao%20Chiara,%20vorrei%20informazioni%20sui%20tuoi%20corsi%20di%20Microblading"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="lg:hidden shrink-0"
+              >
                 <Button variant="primary" size="sm">
-                  Vai al Checkout
+                  Prenota Call
                 </Button>
-              </Link>
+              </a>
             </div>
           ) : (
             /* Authenticated User / Admin Header Widget */
@@ -149,12 +159,18 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
           <div className="px-5 py-4 space-y-1">
             <ScrollLink to="/#corso" className="block px-3 py-2.5 rounded-xl text-base font-semibold text-gray-800 hover:bg-primary-50 hover:text-primary-700 transition" onClick={() => setMobileMenuOpen(false)}>Il Corso</ScrollLink>
             <ScrollLink to="/#vantaggi" className="block px-3 py-2.5 rounded-xl text-base font-semibold text-gray-800 hover:bg-primary-50 hover:text-primary-700 transition" onClick={() => setMobileMenuOpen(false)}>Vantaggi</ScrollLink>
-            <ScrollLink to="/#anteprima" className="block px-3 py-2.5 rounded-xl text-base font-semibold text-gray-800 hover:bg-primary-50 hover:text-primary-700 transition" onClick={() => setMobileMenuOpen(false)}>Anteprima</ScrollLink>
             <ScrollLink to="/#testimonianze" className="block px-3 py-2.5 rounded-xl text-base font-semibold text-gray-800 hover:bg-primary-50 hover:text-primary-700 transition" onClick={() => setMobileMenuOpen(false)}>Testimonianze</ScrollLink>
             
             <div className="border-t border-gray-100 pt-3 mt-2 flex flex-col gap-2">
               <Link to="/login" className="block text-center py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 border border-gray-200" onClick={() => setMobileMenuOpen(false)}>Login Corsiste</Link>
-              <Link to="/checkout" onClick={() => setMobileMenuOpen(false)}><Button variant="primary" fullWidth size="lg">Iscriviti alla Masterclass</Button></Link>
+              <a
+                href="https://wa.me/393282247737?text=Ciao%20Chiara,%20vorrei%20informazioni%20sui%20tuoi%20corsi%20di%20Microblading"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Button variant="primary" fullWidth size="lg">Prenota una Call</Button>
+              </a>
             </div>
           </div>
         </div>
