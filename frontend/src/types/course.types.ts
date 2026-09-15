@@ -93,7 +93,7 @@ export interface CourseStructure {
 }
 
 export interface CourseListItem extends Course {
-  access_granted_by?: 'purchase' | 'global_access';
+  access_granted_by?: 'purchase' | 'global_access' | 'admin_access';
   purchase?: import('./user.types').PurchaseRecord | null;
 }
 

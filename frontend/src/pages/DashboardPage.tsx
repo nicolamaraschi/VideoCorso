@@ -132,6 +132,7 @@ export const DashboardPage: React.FC = () => {
           const progress = progressMap[course.course_id];
           const progressUnavailable = failedProgressCourseIds.has(course.course_id);
           const percent = Math.round(progress?.percentage || 0);
+          const isAdminAccess = course.access_granted_by === 'admin_access';
 
           return (
             <div
@@ -160,7 +161,7 @@ export const DashboardPage: React.FC = () => {
                   <div className="absolute top-3 right-3">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 backdrop-blur-xs border border-emerald-200 text-emerald-800 text-xs font-bold shadow-xs">
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                      Accesso Attivo
+                      {isAdminAccess ? 'Accesso Admin' : 'Accesso Attivo'}
                     </span>
                   </div>
                 </div>
@@ -218,7 +219,7 @@ export const DashboardPage: React.FC = () => {
                         Accesso
                       </p>
                       <p className="text-base sm:text-lg font-bold text-emerald-700 mt-0.5">
-                        A Vita
+                        {isAdminAccess ? 'Admin' : 'A Vita'}
                       </p>
                     </div>
                   </div>
