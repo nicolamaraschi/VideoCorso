@@ -331,8 +331,11 @@ def filter_lesson_for_access(lesson: dict[str, Any], has_access: bool, is_user_a
 
 
 def build_course_structure(course: dict[str, Any], user_id: Optional[str], event=None):
-    has_access = can_access_course(user_id, course['course_id'])
     is_user_admin = is_admin(event)
+    # An administrator may use the student area to review every lesson without
+    # creating a fake purchase or a second Cognito account. This is deliberately
+    # derived from the signed Cognito group, never from a client-side flag.
+    has_access = is_user_admin or can_access_course(user_id, course['course_id'])
     chapters = []
     for chapter in get_course_chapters(course['course_id']):
         chapter_copy = dict(chapter)
@@ -365,7 +368,7 @@ def resolve_course_for_public_detail(event, course_ref: str):
     user_id = get_user_id(event)
     if course.get('status') in PUBLIC_STATUSES:
         return course
-    if user_id and can_access_course(user_id, course['course_id']):
+    if user_id and (is_admin(event) or can_access_course(user_id, course['course_id'])):
         return course
     return None
 
@@ -414,13 +417,19 @@ def get_my_courses(event):
         if normalized_course_id not in purchase_map:
             purchase_map[normalized_course_id] = purchase
 
+    user_is_admin = is_admin(event)
     items = []
     for course in [normalize_course(item) for item in list_all_items(courses_table)]:
-        if not can_access_course(user_id, course['course_id']):
+        has_access = user_is_admin or can_access_course(user_id, course['course_id'])
+        if not has_access:
             continue
         items.append({
-            **serialize_course(course, user_id),
-            'access_granted_by': 'global_access' if user_has_global_access(get_user_item(user_id)) else 'purchase',
+            **serialize_course(course, user_id, has_access=True),
+            'access_granted_by': (
+                'admin_access' if user_is_admin
+                else 'global_access' if user_has_global_access(get_user_item(user_id))
+                else 'purchase'
+            ),
             'purchase': purchase_map.get(course['course_id']),
         })
 

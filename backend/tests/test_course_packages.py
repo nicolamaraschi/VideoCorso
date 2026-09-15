@@ -352,3 +352,19 @@ class TestPurchaseIdIncludesPackage:
     def test_no_package_id_still_works_for_legacy_courses(self):
         id_no_package = _payment.coupon_purchase_id("FREE100", "course-1", "user-1")
         assert id_no_package  # does not raise, produces a stable id
+
+
+class TestAdminStudentAreaAccess:
+    def test_admin_course_structure_is_unlocked_without_a_purchase(self, monkeypatch):
+        """Admins can inspect the student experience without fake purchases."""
+        monkeypatch.setattr(_course, "can_access_course", lambda *_args: False)
+        monkeypatch.setattr(_course, "get_course_chapters", lambda _course_id: [])
+
+        event = {
+            "requestContext": {
+                "authorizer": {"claims": {"cognito:groups": "students,admin"}}
+            }
+        }
+        structure = _course.build_course_structure(make_course(), "admin-user", event)
+
+        assert structure["course"]["has_access"] is True
