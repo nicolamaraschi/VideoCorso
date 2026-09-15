@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { FeaturableWidget } from '../components/common/FeaturableWidget';
 import { MarqueeBanner } from "../components/common/MarqueeBanner";
-import { Microblading3DShowcase } from "../components/common/Microblading3DShowcase";
 
 
 export const LandingPage: React.FC = () => {
@@ -119,9 +118,6 @@ export const LandingPage: React.FC = () => {
       </section>
 
       <MarqueeBanner />
-
-      {/* 3D INTERACTIVE SHOWCASE */}
-      <Microblading3DShowcase />
 
       {/* 2. IL PUNTO DI PARTENZA (EDITORIAL LUXURY BENTO GRID) */}
       <section className="py-24 bg-gradient-to-b from-white via-primary-50/30 to-white border-y border-primary-100/60 relative overflow-hidden">
