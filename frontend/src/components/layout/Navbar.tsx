@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Shield } from 'lucide-react';
 import { useAuthContext } from '../auth/useAuthContext'; 
 import { Button } from '../common/Button';
@@ -17,6 +17,10 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
   const mobileMenuOpen = externalMobileMenuOpen !== undefined ? externalMobileMenuOpen : internalMobileMenuOpen;
   const setMobileMenuOpen = externalSetMobileMenuOpen || setInternalMobileMenuOpen;
   const { isAuthenticated, isAdmin, user } = useAuthContext();
+  const location = useLocation();
+  const isAdminViewingStudentArea = isAdmin && (
+    location.pathname === '/dashboard' || location.pathname.startsWith('/courses/')
+  );
 
   const ScrollLink = ({
     to,
@@ -74,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
             
             {/* Logo & Brand Name */}
             <Link 
-              to={isAuthenticated ? (isAdmin ? '/admin' : '/dashboard') : '/'} 
+              to={isAuthenticated ? (isAdminViewingStudentArea ? '/dashboard' : isAdmin ? '/admin' : '/dashboard') : '/'}
               className="flex items-center gap-2.5 sm:gap-3 min-w-0"
             >
               <img 
@@ -90,7 +94,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
                   Chiara Morocutti Academy
                 </span>
                 <span className="text-[9px] sm:text-xs text-gray-500 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
-                  {isAdmin ? 'Pannello Amministrazione' : "Formazione d'Eccellenza"}
+                  {isAdminViewingStudentArea ? 'Area Corsista' : isAdmin ? 'Pannello Amministrazione' : "Formazione d'Eccellenza"}
                 </span>
               </div>
             </Link>

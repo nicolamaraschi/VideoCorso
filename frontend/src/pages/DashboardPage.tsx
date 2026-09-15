@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { BookOpen, Play, ShieldCheck, Sparkles, GraduationCap } from 'lucide-react';
 import { useAuthContext } from '../components/auth/useAuthContext';
 import { Loading } from '../components/common/Loading';
@@ -10,7 +10,7 @@ import type { CourseListItem, CourseProgress } from '../types';
 import { getErrorMessage } from '../utils/errors';
 
 export const DashboardPage: React.FC = () => {
-  const { isAdmin, user } = useAuthContext();
+  const { user } = useAuthContext();
   const navigate = useNavigate();
   const [ownedCourses, setOwnedCourses] = useState<CourseListItem[]>([]);
   const [catalogCourses, setCatalogCourses] = useState<CourseListItem[]>([]);
@@ -64,10 +64,6 @@ export const DashboardPage: React.FC = () => {
       setLoading(false);
     }
   };
-
-  if (isAdmin) {
-    return <Navigate to="/admin" replace />;
-  }
 
   if (loading) {
     return <Loading fullScreen text="Caricamento dei tuoi corsi in corso..." />;

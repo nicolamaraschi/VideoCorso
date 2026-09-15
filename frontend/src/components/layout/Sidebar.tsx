@@ -96,6 +96,31 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false, mobileMenuOpe
           );
         })}
 
+        {isAdmin && (
+          <>
+            <div className="pt-5 px-3 pb-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-primary-800/80">
+                Vista corsista
+              </span>
+            </div>
+            <Link
+              to="/dashboard"
+              onClick={() => setMobileMenuOpen && setMobileMenuOpen(false)}
+              className={`flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl transition-all ${
+                location.pathname === '/dashboard'
+                  ? 'bg-primary-900 text-white font-semibold shadow-xs'
+                  : 'text-gray-700 hover:bg-primary-50/70 hover:text-primary-950 font-medium'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <BookOpen className={`w-4 h-4 ${location.pathname === '/dashboard' ? 'text-primary-200' : 'text-primary-800'}`} />
+                <span className="text-sm">Area Corsista (I Miei Corsi)</span>
+              </div>
+              {location.pathname === '/dashboard' && <ChevronRight className="w-4 h-4 text-primary-300" />}
+            </Link>
+          </>
+        )}
+
         {/* Student-Exclusive Sections */}
         {!isAdmin && (
           <>
