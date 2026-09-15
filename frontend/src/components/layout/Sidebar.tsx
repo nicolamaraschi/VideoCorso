@@ -40,6 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false, mobileMenuOpe
 
   const adminLinks = [
     { to: '/admin', icon: BarChart3, label: 'Dashboard' },
+    { to: '/admin/banner', icon: Sparkles, label: 'Banner Offerta' },
     { to: '/admin/course', icon: BookOpen, label: 'Catalogo Corsi' },
     { to: '/admin/students', icon: Users, label: 'Students' },
     { to: '/admin/purchases', icon: CreditCard, label: 'Purchases' },

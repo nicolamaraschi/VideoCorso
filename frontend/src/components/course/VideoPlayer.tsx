@@ -21,7 +21,7 @@ const QUALITY_LABELS: Record<string, string> = {
   '720p': 'Alta (720p)',
   '480p': 'Media (480p)',
   '360p': 'Bassa (360p)',
-  high: 'Alta (720p)',
+  high: 'Full HD (1080p)',
   medium: 'Media (480p)',
   low: 'Bassa (360p)',
 };
@@ -36,39 +36,7 @@ interface VideoPlayerProps {
   trackProgress?: boolean;
 }
 
-const getIPhoneVideoRotation = async (videoUrl: string, signal: AbortSignal): Promise<0 | 90 | 180 | 270> => {
-  const readRotation = (bytes: Uint8Array): 0 | 90 | 180 | 270 => {
-    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 
-    for (let index = 4; index < bytes.length - 56; index += 1) {
-      if (String.fromCharCode(...bytes.slice(index, index + 4)) !== 'tkhd') continue;
-
-      const boxStart = index - 4;
-      const version = bytes[index + 4];
-      const matrixStart = boxStart + (version === 1 ? 60 : 48);
-      if (matrixStart + 16 > bytes.length) continue;
-
-      const a = view.getInt32(matrixStart);
-      const b = view.getInt32(matrixStart + 4);
-      const c = view.getInt32(matrixStart + 8);
-      const d = view.getInt32(matrixStart + 12);
-
-      if (a === 0 && b > 0 && c < 0 && d === 0) return 90;
-      if (a === 0 && b < 0 && c > 0 && d === 0) return 270;
-      if (a < 0 && b === 0 && c === 0 && d < 0) return 180;
-    }
-
-    return 0;
-  };
-
-  for (const range of ['bytes=0-2097151', 'bytes=-2097152']) {
-    const response = await fetch(videoUrl, { headers: { Range: range }, signal });
-    const rotation = readRotation(new Uint8Array(await response.arrayBuffer()));
-    if (rotation !== 0) return rotation;
-  }
-
-  return 0;
-};
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   videoUrl,
@@ -80,7 +48,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   trackProgress = true,
 }) => {
   const playerRef = useRef<HTMLVideoElement>(null);
-  const ambientVideoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const hideControlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -104,7 +71,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const qualitySwitchStateRef = useRef<{ time: number; wasPlaying: boolean } | null>(null);
 
-  const { handleTimeUpdate: trackTimeUpdate, markComplete } = useVideoProgress({
+  const {
+    handleTimeUpdate: trackTimeUpdate,
+    markComplete,
+    seekToSeconds,
+    clearSeekTo,
+  } = useVideoProgress({
     lessonId,
     enabled: trackProgress,
   });
@@ -114,25 +86,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       if (trackProgress && dur > 0) {
         trackTimeUpdate(time, dur);
       }
-      // Sync ambient video if it drifts by > 0.4s
-      const ambient = ambientVideoRef.current;
-      if (ambient && Math.abs(ambient.currentTime - time) > 0.4) {
-        ambient.currentTime = time;
-      }
     },
     [trackProgress, trackTimeUpdate]
   );
-
-  // Sync ambient video playback with main player
-  useEffect(() => {
-    const ambient = ambientVideoRef.current;
-    if (!ambient) return;
-    if (isPlaying) {
-      ambient.play().catch(() => {});
-    } else {
-      ambient.pause();
-    }
-  }, [isPlaying]);
 
   useEffect(() => {
     const video = playerRef.current;
@@ -171,36 +127,34 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     onQualityChange?.(newQuality);
   };
 
-  const togglePlay = () => {
-    setIsPlaying(!isPlaying);
-  };
+  const togglePlay = useCallback(() => {
+    setIsPlaying((playing) => !playing);
+  }, []);
 
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-  };
+  const toggleMute = useCallback(() => {
+    setIsMuted((muted) => !muted);
+  }, []);
 
-  const changeVolume = (delta: number) => {
-    const newVolume = Math.max(0, Math.min(1, volume + delta));
-    setVolume(newVolume);
-    if (newVolume > 0 && isMuted) {
-      setIsMuted(false);
-    }
-  };
+  const changeVolume = useCallback((delta: number) => {
+    setVolume((currentVolume) => {
+      const newVolume = Math.max(0, Math.min(1, currentVolume + delta));
+      if (newVolume > 0) setIsMuted(false);
+      return newVolume;
+    });
+  }, []);
 
-  const skip = (seconds: number) => {
+  const skip = useCallback((seconds: number) => {
     if (playerRef.current) {
-      const newTime = Math.max(0, Math.min(duration, playerRef.current.currentTime + seconds));
+      const videoDuration = playerRef.current.duration || duration;
+      const newTime = Math.max(0, Math.min(videoDuration, playerRef.current.currentTime + seconds));
       playerRef.current.currentTime = newTime;
       setCurrentTime(newTime);
     }
-  };
+  }, [duration]);
 
   const changePlaybackRate = (rate: number) => {
     setPlaybackRate(rate);
     setShowSettings(false);
-    if (ambientVideoRef.current) {
-      ambientVideoRef.current.playbackRate = rate;
-    }
   };
 
   const toggleFullscreen = useCallback(() => {
@@ -294,7 +248,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isPlaying, volume, isMuted, toggleFullscreen]);
+  }, [changeVolume, skip, toggleFullscreen, toggleMute, togglePlay]);
 
   // Mouse / Touch Activity
   useEffect(() => {
@@ -328,23 +282,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [isPlaying, showSettings]);
 
   // Timeline scrub math
-  const calculateTimeFromEvent = (clientX: number): number => {
+  const calculateTimeFromEvent = useCallback((clientX: number): number => {
     if (!progressBarRef.current || duration <= 0) return 0;
     const rect = progressBarRef.current.getBoundingClientRect();
     const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     return pos * duration;
-  };
+  }, [duration]);
 
-  const seekToTime = (targetTime: number) => {
+  const seekToTime = useCallback((targetTime: number) => {
     const clampedTime = Math.max(0, Math.min(duration, targetTime));
     if (playerRef.current) {
       playerRef.current.currentTime = clampedTime;
     }
-    if (ambientVideoRef.current) {
-      ambientVideoRef.current.currentTime = clampedTime;
-    }
     setCurrentTime(clampedTime);
-  };
+  }, [duration]);
 
   const handleProgressBarMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     setIsScrubbing(true);
@@ -390,7 +341,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       window.removeEventListener('mouseup', handleGlobalMouseUp);
       window.removeEventListener('mousemove', handleGlobalMouseMove);
     };
-  }, [isScrubbing, duration]);
+  }, [calculateTimeFromEvent, isScrubbing, seekToTime]);
 
   const displayAspectRatio = rotation === 90 || rotation === 270 ? 1 / aspectRatio : aspectRatio;
   const isPortrait = displayAspectRatio < 1;
@@ -400,16 +351,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setAspectRatio(16 / 9);
     setRotation(0);
     setVideoPlaybackError(null);
-
-    const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile) return;
-
-    const controller = new AbortController();
-    void getIPhoneVideoRotation(videoUrl, controller.signal)
-      .then(setRotation)
-      .catch(() => {});
-
-    return () => controller.abort();
   }, [videoUrl]);
 
   const handleLoadedMetadata = useCallback((event: React.SyntheticEvent<HTMLVideoElement>) => {
@@ -428,6 +369,23 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, []);
 
+  useEffect(() => {
+    const videoEl = playerRef.current;
+    if (
+      !videoEl ||
+      qualitySwitchStateRef.current ||
+      seekToSeconds === null ||
+      seekToSeconds <= 0 ||
+      !Number.isFinite(videoEl.duration) ||
+      seekToSeconds >= videoEl.duration
+    ) {
+      return;
+    }
+    videoEl.currentTime = seekToSeconds;
+    setCurrentTime(seekToSeconds);
+    clearSeekTo();
+  }, [clearSeekTo, duration, seekToSeconds]);
+
   return (
     <div
       ref={containerRef}
@@ -445,17 +403,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* ========================================================================= */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0">
         
-        {/* Dynamic Video Blur Aura */}
-        <div className="absolute inset-0 opacity-70 scale-125 blur-3xl filter saturate-150 brightness-50 transform pointer-events-none transition-opacity duration-700">
-          <video
-            ref={ambientVideoRef}
-            src={videoUrl}
-            muted
-            playsInline
-            className="w-full h-full object-cover"
-            aria-hidden="true"
-          />
-        </div>
+        {/* Dynamic CSS Blur Aura - Zero Network Overhead */}
+        <div
+          className="absolute inset-0 opacity-60 scale-110 blur-3xl saturate-150 pointer-events-none transition-opacity duration-700"
+          style={{
+            background:
+              'radial-gradient(ellipse at center, rgba(142, 28, 59, 0.45) 0%, rgba(76, 5, 25, 0.25) 50%, transparent 80%)',
+          }}
+          aria-hidden="true"
+        />
 
         {/* Velvet Vignette Overlay with Radial Depth */}
         <div
@@ -521,6 +477,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           onCanPlay={() => setIsBuffering(false)}
           onError={() => {
             setIsBuffering(false);
+            setIsPlaying(false);
             setVideoPlaybackError('Connessione lenta o errore di caricamento. Tocca per riprovare.');
           }}
           onTimeUpdate={(event) => {
@@ -571,7 +528,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               setIsBuffering(true);
               if (playerRef.current) {
                 playerRef.current.load();
-                togglePlay();
+                setIsPlaying(true);
               }
             }}
             className="px-4 py-2 rounded-xl bg-primary-700 hover:bg-primary-800 text-white font-semibold text-xs transition"
@@ -679,7 +636,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 <button
                   onClick={() => {
                     if (playerRef.current) playerRef.current.currentTime = 0;
-                    if (ambientVideoRef.current) ambientVideoRef.current.currentTime = 0;
                     if (!isPlaying) togglePlay();
                   }}
                   className="hidden rounded-full p-1.5 text-white hover:bg-white/10 hover:text-primary-400 lg:block shrink-0"
@@ -794,10 +750,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               <div className="text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-400 mb-1.5">
                 Qualità Video
               </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {(availableQualities.length > 0 ? availableQualities : ['1080p', '720p', '480p', '360p']).map(
-                  (q) => {
-                    const isSelected = quality === q || (!quality && (q === '1080p' || q === 'high'));
+              {availableQualities.length > 0 ? (
+                <div className="grid grid-cols-2 gap-1.5">
+                  {availableQualities.map((q) => {
+                    const isSelected =
+                      quality === q ||
+                      ((quality === 'high' || !quality) && (q === '1080p' || (!availableQualities.includes('1080p') && q === '720p')));
                     return (
                       <button
                         key={q}
@@ -816,8 +774,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                       </button>
                     );
                   }
-                )}
-              </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/75">
+                  Qualità originale
+                </div>
+              )}
             </div>
 
             {/* Velocità di riproduzione */}

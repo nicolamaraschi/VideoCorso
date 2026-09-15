@@ -139,7 +139,7 @@ export interface AdminCourseRequest {
   is_purchasable?: boolean;
   public_slug?: string;
   display_order?: number;
-  badge?: '' | 'bestseller' | 'new' | 'sale';
+  badge?: string;
   packages?: import('./course.types').CoursePackage[];
 }
 

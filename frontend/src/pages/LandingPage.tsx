@@ -1,14 +1,22 @@
 import React, { useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Sparkles, 
   ArrowRight, 
   ShieldCheck, 
   Check, 
-  Award
+  Award,
+  Clock,
+  AlertTriangle,
+  TrendingUp,
+  XCircle,
+  CheckCircle2
 } from 'lucide-react';
-import { TrustindexWidget } from '../components/common/TrustindexWidget';
+import { FeaturableWidget } from '../components/common/FeaturableWidget';
+import { MarqueeBanner } from "../components/common/MarqueeBanner";
+import { Microblading3DShowcase } from "../components/common/Microblading3DShowcase";
+
 
 export const LandingPage: React.FC = () => {
   const location = useLocation();
@@ -110,54 +118,262 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 2. IL PUNTO DI PARTENZA (PAIN POINTS) */}
-      <section className="py-20 bg-white border-y border-primary-100/60">
-        <div className="container mx-auto px-6 max-w-5xl">
-          <div className="text-center mb-14">
-            <span className="text-xs font-bold tracking-widest uppercase text-primary-600 bg-primary-50 px-3.5 py-1.5 rounded-full border border-primary-100">
+      <MarqueeBanner />
+
+      {/* 3D INTERACTIVE SHOWCASE */}
+      <Microblading3DShowcase />
+
+      {/* 2. IL PUNTO DI PARTENZA (EDITORIAL LUXURY BENTO GRID) */}
+      <section className="py-24 bg-gradient-to-b from-white via-primary-50/30 to-white border-y border-primary-100/60 relative overflow-hidden">
+        {/* Subtle background ambient glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] bg-primary-100/40 rounded-full blur-3xl pointer-events-none -z-10"></div>
+
+        <div className="container mx-auto px-4 sm:px-6 max-w-6xl relative z-10">
+          {/* Section Header */}
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 text-xs font-bold tracking-widest uppercase text-primary-700 bg-primary-100/80 px-4 py-1.5 rounded-full border border-primary-200/80 mb-5 shadow-xs"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-primary-600" />
               Il Punto di Partenza
-            </span>
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mt-4">
-              Sei brava con le mani.<br className="hidden sm:inline" /> Ma questo basta a riempire l'agenda?
-            </h2>
+            </motion.div>
+            <motion.h2 
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-gray-900 leading-tight"
+            >
+              Sei brava con le mani.<br className="hidden sm:inline" />
+              <span className="italic font-normal text-primary-800"> Ma questo basta a riempire l'agenda?</span>
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="mt-5 text-gray-600 text-base sm:text-lg leading-relaxed"
+            >
+              La maggior parte delle operatrici pensa che per guadagnare di più serva lavorare più ore. La realtà è che senza un servizio ad altissima marginalità e un protocollo geometrico sicuro, resti prigioniera della cabina.
+            </motion.p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <motion.div 
-              whileHover={{ y: -4 }} 
-              className="bg-primary-50/50 p-8 rounded-2xl border border-primary-100 flex flex-col justify-between"
+          {/* Bento Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            {/* Card 1: Tempo vs Margine */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4 }}
+              whileHover={{ y: -5 }}
+              className="lg:col-span-6 bg-gradient-to-br from-white via-white to-primary-50/40 p-7 sm:p-9 rounded-3xl border border-primary-100/90 shadow-soft hover:shadow-elegant transition-all flex flex-col justify-between relative overflow-hidden group"
             >
-              <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-800 font-bold mb-4 font-serif">
-                1
+              <div className="absolute top-2 right-4 text-7xl sm:text-8xl font-serif font-bold text-primary-900/[0.04] select-none pointer-events-none group-hover:text-primary-900/[0.08] transition-colors">
+                01
               </div>
-              <p className="text-gray-700 text-base leading-relaxed">
-                Vedi il microblading crescere, ma non sai come inserirti senza una formazione strutturata e autorevole.
-              </p>
+
+              <div>
+                <div className="flex items-center justify-between gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200/60 flex items-center justify-center text-rose-700 shadow-xs">
+                    <Clock className="w-6 h-6 text-rose-600" />
+                  </div>
+                  <span className="text-[11px] font-bold tracking-wider uppercase px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200/70">
+                    La Trappola del Tempo
+                  </span>
+                </div>
+
+                <h3 className="text-xl sm:text-2xl font-serif font-bold text-gray-900 mb-3">
+                  8 ore in cabina per coprire solo le spese fisse
+                </h3>
+                <p className="text-gray-600 text-sm sm:text-base leading-relaxed mb-6">
+                  Passi la giornata a incastrare appuntamenti da 20€–45€: cerette, manicure, trattamenti base. A fine mese l'agenda sembra satura e le braccia bruciano, ma il margine netto dopo affitto, collaboratrici e consumabili è deludente.
+                </p>
+              </div>
+
+              {/* Visual Contrast Pill */}
+              <div className="pt-4 border-t border-primary-100/80 bg-primary-50/40 -mx-7 sm:-mx-9 -mb-7 sm:-mb-9 p-5 sm:px-8 rounded-b-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <span className="text-[11px] text-gray-500 uppercase tracking-wider block font-semibold">Trattamento Base Medio</span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-xl font-bold text-gray-900">~25€ - 40€</span>
+                    <span className="text-xs text-gray-500">/ 60-90 minuti</span>
+                  </div>
+                </div>
+                <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-700 bg-white/90 px-3 py-1.5 rounded-xl border border-rose-200/60 shadow-xs self-start sm:self-center">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                  Marginalità oraria ridotta
+                </div>
+              </div>
             </motion.div>
 
-            <motion.div 
-              whileHover={{ y: -4 }} 
-              className="bg-primary-50/50 p-8 rounded-2xl border border-primary-100 flex flex-col justify-between"
+            {/* Card 2: Paura Tecnica */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              whileHover={{ y: -5 }}
+              className="lg:col-span-6 bg-gradient-to-br from-white via-white to-amber-50/30 p-7 sm:p-9 rounded-3xl border border-amber-100/80 shadow-soft hover:shadow-elegant transition-all flex flex-col justify-between relative overflow-hidden group"
             >
-              <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-800 font-bold mb-4 font-serif">
-                2
+              <div className="absolute top-2 right-4 text-7xl sm:text-8xl font-serif font-bold text-amber-900/[0.04] select-none pointer-events-none group-hover:text-amber-900/[0.08] transition-colors">
+                02
               </div>
-              <p className="text-gray-700 text-base leading-relaxed">
-                Sai fare trattamenti estetici generici, ma non un servizio ad altissima marginalità come il PMU.
-              </p>
+
+              <div>
+                <div className="flex items-center justify-between gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-800 shadow-xs">
+                    <AlertTriangle className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <span className="text-[11px] font-bold tracking-wider uppercase px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200/70">
+                    Il Blocco della Paura
+                  </span>
+                </div>
+
+                <h3 className="text-xl sm:text-2xl font-serif font-bold text-gray-900 mb-3">
+                  La paura di rovinare per sempre il viso di una cliente
+                </h3>
+                <p className="text-gray-600 text-sm sm:text-base leading-relaxed mb-6">
+                  Vedi il Microblading esplodere ovunque, ma i corsi del weekend da 2 giorni ti hanno lasciata sola: paura della profondità errata, viraggi al grigio o al rosso, asimmetrie indelebili. Senza un metodo rigoroso, preferisci non rischiare.
+                </p>
+              </div>
+
+              {/* Visual Reality Stat */}
+              <div className="pt-4 border-t border-amber-100/80 bg-amber-50/40 -mx-7 sm:-mx-9 -mb-7 sm:-mb-9 p-5 sm:px-8 rounded-b-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <span className="text-[11px] text-gray-500 uppercase tracking-wider block font-semibold">Abbandono Post-Corsi Brevi</span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-xl font-bold text-gray-900">&gt; 80%</span>
+                    <span className="text-xs text-gray-500">non inizia a lavorare</span>
+                  </div>
+                </div>
+                <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 bg-white/90 px-3 py-1.5 rounded-xl border border-amber-200/60 shadow-xs self-start sm:self-center">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                  Mancanza di protocollo scientifico
+                </div>
+              </div>
             </motion.div>
 
-            <motion.div 
-              whileHover={{ y: -4 }} 
-              className="bg-primary-900 text-white p-8 rounded-2xl shadow-md flex flex-col justify-between"
+            {/* Card 3: FULL WIDTH 12 cols - Hero Luxury Bento Masterpiece */}
+            <motion.div
+              initial={{ opacity: 0, y: 25 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              whileHover={{ y: -3 }}
+              className="lg:col-span-12 rounded-3xl p-7 sm:p-10 lg:p-12 relative overflow-hidden bg-gradient-to-br from-[#1c0c11] via-[#280f17] to-[#120508] text-white shadow-2xl border border-[#E5C378]/35"
             >
-              <div className="w-10 h-10 rounded-xl bg-primary-800 flex items-center justify-center text-primary-200 font-bold mb-4 font-serif">
-                ★
+              {/* Ambient Background Glows */}
+              <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#E5C378]/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute bottom-0 left-10 w-80 h-80 bg-primary-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+              <div className="relative z-10">
+                {/* Top Badge & Positioning */}
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-7">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#E5C378]/15 border border-[#E5C378]/40 text-[#F3DE9C] text-xs font-bold tracking-wider uppercase shadow-inner">
+                    <Sparkles className="w-3.5 h-3.5 text-[#E5C378]" />
+                    Il Cambio di Paradigma
+                  </div>
+                  <span className="text-xs text-primary-200/80 font-medium tracking-wide">
+                    Da esecutrice oraria a Specialista PMU Autorevole
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+                  {/* Left Column: The Core Philosophy */}
+                  <div className="lg:col-span-6 space-y-5">
+                    <h3 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold text-white leading-tight">
+                      Non è mai stato un problema di talento.<br />
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F7E7B4] via-[#E5C378] to-[#d4af37] italic font-serif">
+                        È un problema di metodo
+                      </span>{' '}
+                      — tecnico ed economico.
+                    </h3>
+                    <p className="text-primary-100/90 text-sm sm:text-base leading-relaxed">
+                      Il Microblading è il trattamento viso a più alta marginalità nell'estetica avanzata. Quando possiedi un protocollo geometrico millimetrico, non ti trema la mano: le clienti riconoscono l'autorevolezza e non contrattano sul prezzo.
+                    </p>
+                    <div className="pt-2 flex items-center gap-3 text-xs sm:text-sm text-[#F3DE9C] font-medium">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#E5C378] shadow-[0_0_8px_#E5C378]"></span>
+                      Protocollo geometrico codificato replicabile su ogni forma di viso
+                    </div>
+                  </div>
+
+                  {/* Right Column: Comparative Transformation Matrix (PRIMA vs DOPO) */}
+                  <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Box Prima */}
+                    <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-5 backdrop-blur-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-3.5 pb-2.5 border-b border-white/10">
+                          <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                          <span className="text-xs font-bold uppercase tracking-wider text-rose-300">Modello Tradizionale</span>
+                        </div>
+                        <ul className="space-y-2.5 text-xs text-gray-300">
+                          <li className="flex items-start gap-2">
+                            <span className="text-rose-400 font-bold">•</span>
+                            <span>8 ore al giorno continue in cabina</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-rose-400 font-bold">•</span>
+                            <span>Prezzi bassi per paura della concorrenza</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-rose-400 font-bold">•</span>
+                            <span>Ansia continua su simmetrie e viraggi</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-rose-400 font-bold">•</span>
+                            <span>Margine eroso da costi vivi e tempo</span>
+                          </li>
+                        </ul>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-white/10 text-[11px] text-gray-400">
+                        Fatturato vincolato alle sole ore lavorate
+                      </div>
+                    </div>
+
+                    {/* Box Dopo: Metodo Morocutti */}
+                    <div className="bg-gradient-to-b from-[#E5C378]/20 to-white/[0.06] border border-[#E5C378]/50 rounded-2xl p-5 backdrop-blur-sm relative overflow-hidden shadow-xl flex flex-col justify-between">
+                      <div className="absolute top-2.5 right-2.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#E5C378] text-[#1a0c10] shadow-sm">
+                          TOP MARGINE
+                        </span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-3.5 pb-2.5 border-b border-[#E5C378]/30">
+                          <CheckCircle2 className="w-4 h-4 text-[#E5C378] shrink-0" />
+                          <span className="text-xs font-bold uppercase tracking-wider text-[#F3DE9C]">Con Metodo Morocutti</span>
+                        </div>
+                        <ul className="space-y-2.5 text-xs text-primary-50">
+                          <li className="flex items-start gap-2">
+                            <span className="text-[#E5C378] font-bold">✓</span>
+                            <span><strong>1 seduta (2h) = 350€ – 500€</strong></span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-[#E5C378] font-bold">✓</span>
+                            <span>Marginalità netta reale <strong>&gt; 85%</strong></span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-[#E5C378] font-bold">✓</span>
+                            <span>Sicurezza assoluta: zero ansia sul risultato</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-[#E5C378] font-bold">✓</span>
+                            <span>Posizionamento da specialista autorevole</span>
+                          </li>
+                        </ul>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-[#E5C378]/30 text-[11px] text-[#F3DE9C] font-semibold flex items-center justify-between">
+                        <span>1 cliente PMU = 2 giorni di cabina</span>
+                        <TrendingUp className="w-3.5 h-3.5 text-[#E5C378]" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p className="text-primary-100 text-base leading-relaxed font-medium">
-                Non è un problema di talento.<br />
-                <strong>È un problema di metodo — tecnico e commerciale.</strong>
-              </p>
             </motion.div>
           </div>
         </div>
@@ -368,7 +584,8 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 6. VIDEO IN AZIONE SECTION */}
+      {/* 6. VIDEO IN AZIONE SECTION - Temporaneamente rimossa su richiesta (in attesa delle prime recensioni delle studentesse) */}
+      {/* 
       <section id="anteprima" className="py-20 bg-white">
         <div className="container mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
@@ -401,6 +618,7 @@ export const LandingPage: React.FC = () => {
           </div>
         </div>
       </section>
+      */}
 
       {/* 7. AUTHORITY QUOTE SECTION */}
       <section className="py-20 bg-primary-950 text-white relative">
@@ -409,7 +627,7 @@ export const LandingPage: React.FC = () => {
             <Award className="w-8 h-8" />
           </div>
           <blockquote className="text-2xl sm:text-3xl md:text-4xl font-serif italic leading-snug text-primary-100">
-            “Ho costruito un business da <span className="text-amber-300 not-italic font-bold">15.000€ al mese</span> con il microblading. Ora ti insegno come farlo anche a te.”
+            “Ho costruito un business da <span className="text-amber-300 not-italic font-bold">15.000€ al mese</span> con il microblading. Ora insegno a farlo anche a te.”
           </blockquote>
           <div className="mt-8 flex flex-col items-center">
             <span className="text-lg font-bold tracking-wider uppercase text-white font-serif">Chiara Morocutti</span>
@@ -464,8 +682,8 @@ export const LandingPage: React.FC = () => {
                 </div>
 
                 <div className="mb-6">
-                  <span className="text-4xl font-serif font-bold text-gray-900">890 €</span>
-                  <span className="text-xs text-gray-500 block mt-1">+ IVA — rateizzabile</span>
+                  <span className="text-xl sm:text-2xl font-serif font-bold text-gray-900">Accesso su Candidatura</span>
+                  <span className="text-xs text-gray-500 block mt-1">Dettagli e disponibilità in call conoscitiva</span>
                 </div>
 
                 <ul className="space-y-3 text-sm text-gray-700 mb-8">
@@ -492,12 +710,14 @@ export const LandingPage: React.FC = () => {
                 </ul>
               </div>
 
-              <Link
-                to="/checkout?courseId=mai-fatto-microblading-inizio"
-                className="w-full py-3.5 px-6 rounded-xl border border-gray-300 text-gray-900 font-semibold text-center hover:bg-gray-50 transition"
+              <a
+                href="https://wa.me/393282247737?text=Ciao%20Chiara,%20vorrei%20informazioni%20e%20prenotare%20una%20call%20per%20il%20Percorso%20Base"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 px-6 rounded-xl border border-gray-300 text-gray-900 font-semibold text-center hover:bg-gray-50 transition block"
               >
-                Iscriviti a Base
-              </Link>
+                Candidati per il Percorso Base
+              </a>
             </div>
 
             {/* 2. PLUS */}
@@ -518,8 +738,8 @@ export const LandingPage: React.FC = () => {
                 </div>
 
                 <div className="mb-6">
-                  <span className="text-4xl font-serif font-bold text-gray-900">1.490 €</span>
-                  <span className="text-xs text-gray-500 block mt-1">+ IVA — rateizzabile</span>
+                  <span className="text-xl sm:text-2xl font-serif font-bold text-primary-950">Accesso con Affiancamento</span>
+                  <span className="text-xs text-gray-500 block mt-1">Posti limitati mensili — dettagli in call</span>
                 </div>
 
                 <ul className="space-y-3 text-sm text-gray-700 mb-8">
@@ -542,18 +762,20 @@ export const LandingPage: React.FC = () => {
                 </ul>
               </div>
 
-              <Link
-                to="/checkout?courseId=mai-fatto-microblading-inizio"
-                className="w-full py-3.5 px-6 rounded-xl bg-primary-700 text-white font-semibold text-center hover:bg-primary-800 transition shadow-md"
+              <a
+                href="https://wa.me/393282247737?text=Ciao%20Chiara,%20vorrei%20candidarmi%20e%20prenotare%20una%20call%20per%20il%20Percorso%20Plus"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 px-6 rounded-xl bg-primary-700 text-white font-semibold text-center hover:bg-primary-800 transition shadow-md block"
               >
-                Iscriviti a Plus
-              </Link>
+                Candidati per il Percorso Plus
+              </a>
             </div>
 
             {/* 3. FULL */}
             <div className="bg-primary-950 text-white rounded-3xl p-8 shadow-2xl flex flex-col justify-between relative border border-amber-400/30 overflow-hidden">
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 text-xs font-extrabold px-4 py-1 rounded-full uppercase tracking-wider shadow">
-                Offerta Lancio: -500€
+                Esperienza Completa in Studio
               </div>
 
               <div>
@@ -569,11 +791,8 @@ export const LandingPage: React.FC = () => {
                 </div>
 
                 <div className="mb-6">
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-xl text-gray-400 line-through font-serif">2.200 €</span>
-                    <span className="text-4xl font-serif font-bold text-amber-300">1.690 €</span>
-                  </div>
-                  <span className="text-xs text-primary-200 block mt-1">Sconto lancio di 500€ — + IVA, rateizzabile</span>
+                  <span className="text-xl sm:text-2xl font-serif font-bold text-amber-300">Masterclass con Pratica Live</span>
+                  <span className="text-xs text-primary-200 block mt-1">Disponibilità esclusiva — selezione e posti in call</span>
                 </div>
 
                 <ul className="space-y-3 text-sm text-primary-100 mb-8">
@@ -591,7 +810,7 @@ export const LandingPage: React.FC = () => {
                   </li>
                   <li className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                    <span>Call strategica dedicata con <strong>Sabrina Perrotta</strong></span>
+                    <span>Call strategica dedicata con <strong>Sabrina Perrotta</strong>, esperta di marketing nel settore dermopigmentazione</span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
@@ -604,12 +823,14 @@ export const LandingPage: React.FC = () => {
                 </ul>
               </div>
 
-              <Link
-                to="/checkout?courseId=mai-fatto-microblading-inizio"
-                className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 font-bold text-center hover:from-amber-300 hover:to-amber-400 transition shadow-lg"
+              <a
+                href="https://wa.me/393282247737?text=Ciao%20Chiara,%20vorrei%20prenotare%20la%20call%20strategica%20per%20il%20Percorso%20Full%20in%20studio"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 font-bold text-center hover:from-amber-300 hover:to-amber-400 transition shadow-lg block"
               >
-                Approfitta dell'Offerta Full
-              </Link>
+                Prenota la tua Call Strategica
+              </a>
             </div>
 
           </div>
@@ -626,9 +847,9 @@ export const LandingPage: React.FC = () => {
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="py-4 px-4 font-semibold text-gray-900">Caratteristica</th>
-                    <th className="py-4 px-4 font-bold text-center text-gray-700 bg-gray-50/50 rounded-t-xl">BASE (890€)</th>
-                    <th className="py-4 px-4 font-bold text-center text-primary-900 bg-primary-50/60 rounded-t-xl">PLUS (1.490€)</th>
-                    <th className="py-4 px-4 font-bold text-center text-amber-950 bg-amber-50 rounded-t-xl">FULL (1.690€)</th>
+                    <th className="py-4 px-4 font-bold text-center text-gray-700 bg-gray-50/50 rounded-t-xl">BASE</th>
+                    <th className="py-4 px-4 font-bold text-center text-primary-900 bg-primary-50/60 rounded-t-xl">PLUS</th>
+                    <th className="py-4 px-4 font-bold text-center text-amber-950 bg-amber-50 rounded-t-xl">FULL</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -669,7 +890,7 @@ export const LandingPage: React.FC = () => {
                     <td className="py-3.5 px-4 text-center font-semibold text-emerald-600 bg-amber-50/30">Sì</td>
                   </tr>
                   <tr>
-                    <td className="py-3.5 px-4 text-gray-800">Call strategica con Sabrina Perrotta</td>
+                    <td className="py-3.5 px-4 text-gray-800">Call strategica con Sabrina Perrotta, esperta di marketing nel settore dermopigmentazione</td>
                     <td className="py-3.5 px-4 text-center text-gray-400 bg-gray-50/30">—</td>
                     <td className="py-3.5 px-4 text-center text-gray-400 bg-primary-50/30">—</td>
                     <td className="py-3.5 px-4 text-center font-semibold text-emerald-600 bg-amber-50/30">Sì</td>
@@ -710,9 +931,9 @@ export const LandingPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Trustindex Live Reviews Widget */}
+          {/* Featurable Live Google Reviews Widget */}
           <div className="max-w-6xl mx-auto bg-primary-50/40 rounded-3xl p-4 sm:p-8 border border-primary-100/80 shadow-sm">
-            <TrustindexWidget scriptSrc="https://cdn.trustindex.io/loader.js?6d4fbfe80b0925814246238f8e4" className="w-full" />
+            <FeaturableWidget widgetId="ad093005-2b9f-4776-9a52-2fce81c19bf9" className="w-full" />
           </div>
         </div>
       </section>
@@ -770,10 +991,12 @@ export const LandingPage: React.FC = () => {
 
           <div className="mt-10">
             <a 
-              href="#corso" 
+              href="https://wa.me/393282247737?text=Ciao%20Chiara,%20vorrei%20prenotare%20una%20call%20conoscitiva%20per%20il%20corso%20di%20Microblading" 
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-10 py-5 bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 font-bold text-lg rounded-full hover:from-amber-300 hover:to-amber-400 transition shadow-2xl inline-block active:scale-95"
             >
-              Iscriviti alla Masterclass Ora
+              Prenota la tua Call con Chiara
             </a>
           </div>
 

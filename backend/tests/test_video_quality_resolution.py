@@ -1,10 +1,16 @@
 """Unit tests for deterministic rendition selection in the video endpoint."""
 
 import importlib.util
+import base64
 import json
+import os
 import pathlib
 import sys
 import types
+from urllib.parse import parse_qs, urlsplit
+
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 
 ROOT = pathlib.Path(__file__).parent.parent
@@ -63,6 +69,36 @@ def test_source_is_served_only_while_no_rendition_exists():
     assert handler.resolve_served_video_key(source, 'high', {}) == (source, None)
 
 
+def test_cloudfront_url_is_sha256_signed_and_expires():
+    handler = load_video_handler()
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    handler._cloudfront_private_key = private_key
+    os.environ['CLOUDFRONT_KEY_PAIR_ID'] = 'TESTKEY123'
+    try:
+        resource = 'https://media.example.test/videos/lesson/source.mp4'
+        expires = 1_800_000_000
+        signed_url = handler.generate_cloudfront_signed_url(resource, expires)
+    finally:
+        os.environ.pop('CLOUDFRONT_KEY_PAIR_ID', None)
+
+    parsed = urlsplit(signed_url)
+    query = parse_qs(parsed.query)
+    assert f'{parsed.scheme}://{parsed.netloc}{parsed.path}' == resource
+    assert query['Expires'] == [str(expires)]
+    assert query['Key-Pair-Id'] == ['TESTKEY123']
+    assert query['Hash-Algorithm'] == ['SHA256']
+
+    encoded_signature = query['Signature'][0].replace('-', '+').replace('_', '=').replace('~', '/')
+    signature = base64.b64decode(encoded_signature)
+    policy = json.dumps({
+        'Statement': [{
+            'Resource': resource,
+            'Condition': {'DateLessThan': {'AWS:EpochTime': expires}},
+        }],
+    }, separators=(',', ':')).encode('utf-8')
+    private_key.public_key().verify(signature, policy, padding.PKCS1v15(), hashes.SHA256())
+
+
 class _StaticTable:
     def __init__(self, item):
         self.item = item
@@ -86,6 +122,7 @@ def test_global_access_can_open_a_protected_video_and_is_audited():
         'lesson_id': 'lesson-1',
         'chapter_id': 'chapter-1',
         'video_s3_key': 'videos/lesson-1/source.mp4',
+        'transcode_status': 'NATIVE',
         'is_free_preview': False,
     })
     handler.chapters_table = _StaticTable({'chapter_id': 'chapter-1', 'course_id': 'course-1'})
@@ -107,3 +144,29 @@ def test_global_access_can_open_a_protected_video_and_is_audited():
     assert response['statusCode'] == 200
     assert json.loads(response['body'])['video_url'] == 'https://video.example.test/signed'
     assert access_log.items[0]['purchase_id'] == 'global_access'
+
+
+def test_get_available_renditions_uses_source_as_1080p_fallback():
+    handler = load_video_handler()
+    source_key = 'videos/lesson-test/version-1/source.mp4'
+
+    class MockClientError(Exception):
+        response = {'Error': {'Code': '404'}}
+
+    def mock_head_object(Bucket, Key):
+        if 'source_720p.mp4' in Key or 'source_480p.mp4' in Key:
+            return {}
+        raise MockClientError('NoSuchKey')
+
+    handler.s3_client = types.SimpleNamespace(head_object=mock_head_object)
+    handler.video_bucket_name = 'test-bucket'
+
+    renditions = handler.get_available_renditions(source_key, lesson={'max_quality': None})
+    assert renditions['1080p'] == source_key
+    assert 'source_720p.mp4' in renditions['720p']
+    assert 'source_480p.mp4' in renditions['480p']
+
+    # When max_quality is explicitly 720p, 1080p is excluded
+    renditions_720 = handler.get_available_renditions('videos/lesson-test-720/version-1/source.mp4', lesson={'max_quality': '720p'})
+    assert '1080p' not in renditions_720
+

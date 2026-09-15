@@ -91,6 +91,7 @@ Tutti i segreti di produzione sono memorizzati come `SecureString` in AWS SSM Pa
 | --- | --- |
 | `/videocorso/prod/stripe/secret-key` | Chiave API segreta Stripe per incasso pagamenti |
 | `/videocorso/prod/stripe/webhook-secret` | Firma crittografica per validazione webhook Stripe |
+| `/videocorso/prod/cloudfront/private-key` | Chiave privata RSA degli URL video firmati (Standard SecureString) |
 
 ### Aggiornamento di un Segreto:
 ```bash
@@ -130,12 +131,23 @@ done
 
 ---
 
-## 📹 7. Elaborazione Video MediaConvert & Storage S3
+## 📹 7. Distribuzione video privata e storage S3
 
 * **Bucket Video Sorgente & Streaming**: `prod-videocorso-content`
 * **Bucket Copertine / Thumbnail**: `prod-videocorso-thumbnails`
-* I video caricati nel prefisso `videos/` attivano automaticamente la Lambda `prod-videocorso-video-transcode` che avvia un job AWS MediaConvert con profili QVBR a 4 risoluzioni (`1080p`, `720p`, `480p`, `360p`).
-* Al termine, lo stato della lezione in `prod-videocorso-lessons` viene aggiornato automaticamente a `COMPLETE`.
+* `EnableTranscoding=false` è il vincolo di produzione: la Lambda non avvia MediaConvert e non genera costi di transcodifica.
+* CloudFront usa OAC per leggere il bucket privato e accetta i video soltanto con URL firmati SHA-256 a scadenza.
+* La chiave privata è conservata come parametro SSM `Standard`; la chiave pubblica appartiene al Trusted Key Group CloudFront.
+* Gli URL anonimi devono restituire `403`; un URL emesso da `prod-videocorso-video-handler` deve restituire `206` a una richiesta Range.
+* La compressione e le eventuali rendition si generano esclusivamente in locale con `ffmpeg`, quando l'SSD dei sorgenti è collegato. Prima di sostituire un originale bisogna verificare durata, orientamento e backup.
+
+Verifica rapida della protezione, senza stampare token o chiavi nei log:
+
+```bash
+aws --profile personale cloudfront get-distribution-config \
+  --id E3RGTK4NRBCHH1 \
+  --query 'DistributionConfig.DefaultCacheBehavior.TrustedKeyGroups'
+```
 
 ---
 
@@ -175,4 +187,3 @@ aws --profile personale --region us-east-1 sesv2 send-email \
   --destination '{"ToAddresses":["tuamail@example.com"]}' \
   --content '{"Simple":{"Subject":{"Data":"Test SES","Charset":"UTF-8"},"Body":{"Html":{"Data":"<p>Test consegna riuscito</p>","Charset":"UTF-8"}}}}'
 ```
-

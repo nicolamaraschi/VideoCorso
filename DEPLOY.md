@@ -32,7 +32,9 @@ sam deploy \
   --stack-name corso-video-chiara \
   --parameter-overrides \
     Environment=prod \
-    AllowedCheckoutOrigins='https://main.d26u0xz2smmxfz.amplifyapp.com,https://development.d26u0xz2smmxfz.amplifyapp.com' \
+    EnableTranscoding=false \
+    EnforceSignedVideoUrls=true \
+    AllowedCheckoutOrigins='https://chiaramorocuttiacademy.it,https://www.chiaramorocuttiacademy.it,https://main.d26u0xz2smmxfz.amplifyapp.com,https://development.d26u0xz2smmxfz.amplifyapp.com' \
     AllowedCorsOrigin='*' \
   --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
   --resolve-s3 \
@@ -45,3 +47,7 @@ sam deploy \
 Poi ispezionare il change set con i comandi in `docs/OPERATIONS.md`; solo se
 non contiene sostituzioni/rimozioni non previste, eseguirlo e attendere il
 completamento dello stack.
+
+`EnforceSignedVideoUrls` deve restare `true` in produzione. Il valore `false`
+serve esclusivamente alla prima fase di una rotazione chiave, mentre backend e
+CloudFront vengono aggiornati senza interrompere le riproduzioni.

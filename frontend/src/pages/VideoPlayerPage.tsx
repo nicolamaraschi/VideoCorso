@@ -257,12 +257,14 @@ export const VideoPlayerPage: React.FC = () => {
       const activeTag = document.activeElement?.tagName.toLowerCase();
       if (activeTag === 'input' || activeTag === 'textarea') return;
 
-      if (e.key === 'ArrowRight' && (e.shiftKey || e.altKey || !e.metaKey)) {
+      if (e.key === 'ArrowRight' && (e.shiftKey || e.altKey)) {
+        e.preventDefault();
         if (nextLesson && courseId) {
           triggerSwipeFeedback('next', nextLesson.title);
           navigate(`/courses/${courseId}/lessons/${nextLesson.lesson_id}`);
         }
-      } else if (e.key === 'ArrowLeft' && (e.shiftKey || e.altKey || !e.metaKey)) {
+      } else if (e.key === 'ArrowLeft' && (e.shiftKey || e.altKey)) {
+        e.preventDefault();
         if (previousLesson && courseId) {
           triggerSwipeFeedback('prev', previousLesson.title);
           navigate(`/courses/${courseId}/lessons/${previousLesson.lesson_id}`);

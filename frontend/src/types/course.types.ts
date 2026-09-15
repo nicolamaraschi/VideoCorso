@@ -30,7 +30,7 @@ export interface Course {
   is_purchasable?: boolean;
   public_slug?: string;
   display_order?: number;
-  badge?: '' | 'bestseller' | 'new' | 'sale';
+  badge?: string;
   created_at: string;
   updated_at: string;
   is_active: boolean;

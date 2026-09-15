@@ -136,7 +136,10 @@ def main():
             Filename=filepath,
             Bucket=BUCKET_NAME,
             Key=s3_key,
-            ExtraArgs={'ContentType': 'video/mp4'},
+            ExtraArgs={
+                'ContentType': 'video/mp4',
+                'CacheControl': 'public, max-age=31536000, immutable',
+            },
             Config=transfer_config,
             Callback=progress
         )
