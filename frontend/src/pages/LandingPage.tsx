@@ -13,7 +13,7 @@ import {
   XCircle,
   CheckCircle2
 } from 'lucide-react';
-import { FeaturableWidget } from '../components/common/FeaturableWidget';
+import { GoogleReviewsCarousel } from '../components/common/GoogleReviewsCarousel';
 import { MarqueeBanner } from "../components/common/MarqueeBanner";
 
 
@@ -927,9 +927,9 @@ export const LandingPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Featurable Live Google Reviews Widget */}
+          {/* Native Verified Google Reviews Carousel (100% Italian, 0 external scripts, 0 ad-block issues) */}
           <div className="max-w-6xl mx-auto bg-primary-50/40 rounded-3xl p-4 sm:p-8 border border-primary-100/80 shadow-sm">
-            <FeaturableWidget widgetId="ad093005-2b9f-4776-9a52-2fce81c19bf9" className="w-full" />
+            <GoogleReviewsCarousel className="w-full" />
           </div>
         </div>
       </section>
