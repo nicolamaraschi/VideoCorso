@@ -141,7 +141,7 @@ export const DashboardPage: React.FC = () => {
             >
               <div>
                 {/* Course Banner Cover */}
-                <div className="aspect-video bg-gray-100 border-b border-primary-100/80 overflow-hidden relative">
+                <div className="aspect-video bg-black border-b border-primary-100/80 overflow-hidden relative">
                   {course.cover_image_url ? (
                     <img
                       src={course.cover_image_url}
@@ -149,7 +149,7 @@ export const DashboardPage: React.FC = () => {
                       loading="lazy"
                       width={640}
                       height={360}
-                      className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500"
+                      className="w-full h-full object-cover img-sharp group-hover:scale-102 transition-transform duration-500"
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-primary-100 via-primary-50 to-white flex items-center justify-center">
@@ -296,7 +296,7 @@ export const DashboardPage: React.FC = () => {
                 className="overflow-hidden bg-white rounded-3xl border border-primary-100 shadow-xs flex flex-col justify-between"
               >
                 <div>
-                  <div className="aspect-video bg-gray-100 border-b border-primary-100 overflow-hidden">
+                  <div className="aspect-video bg-black border-b border-primary-100 overflow-hidden">
                     {course.cover_image_url ? (
                       <img
                         src={course.cover_image_url}
@@ -304,7 +304,7 @@ export const DashboardPage: React.FC = () => {
                         loading="lazy"
                         width={640}
                         height={360}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover img-sharp"
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200" />

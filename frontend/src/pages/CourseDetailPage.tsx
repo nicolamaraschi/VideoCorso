@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Lock, Play, Sparkles } from 'lucide-react';
+import { ArrowLeft, Lock, Play, Sparkles, ZoomIn, X } from 'lucide-react';
 import { useCourse } from '../hooks/useCourse';
 import { Loading } from '../components/common/Loading';
 import { ErrorMessage } from '../components/common/ErrorMessage';
@@ -13,6 +13,7 @@ export const CourseDetailPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
   const { courseStructure, courseProgress, loading, error, reload } = useCourse(courseId);
+  const [showCourseCoverZoom, setShowCourseCoverZoom] = useState(false);
 
   const handleLessonClick = (lesson: Lesson) => {
     if (!courseStructure?.course.has_access && !lesson.is_free_preview) {
@@ -51,15 +52,23 @@ export const CourseDetailPage: React.FC = () => {
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
           <div className="flex-1 max-w-4xl">
             {course.cover_image_url && (
-              <div className="mb-4 sm:mb-6 overflow-hidden rounded-xl sm:rounded-2xl border border-primary-100 shadow-xs bg-gray-50">
+              <div
+                onClick={() => setShowCourseCoverZoom(true)}
+                className="mb-4 sm:mb-6 overflow-hidden rounded-xl sm:rounded-2xl border border-primary-200/90 shadow-sm bg-black relative group cursor-zoom-in"
+                title="Clicca per ingrandire la copertina del corso in HD"
+              >
                 <img
                   src={course.cover_image_url}
                   alt={`Copertina ${course.title}`}
                   loading="lazy"
                   width={1280}
                   height={720}
-                  className="aspect-video w-full object-contain"
+                  className="aspect-video w-full object-cover img-sharp group-hover:scale-101 transition-transform duration-500"
                 />
+                <div className="absolute bottom-3 right-3 bg-black/75 hover:bg-black/90 text-white px-3 py-1.5 rounded-xl text-xs font-semibold backdrop-blur-xs flex items-center gap-1.5 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity shadow-md pointer-events-none">
+                  <ZoomIn className="w-4 h-4" />
+                  <span>Ingrandisci copertina HD</span>
+                </div>
               </div>
             )}
             <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-primary-50 border border-primary-200 text-primary-900 text-xs font-bold uppercase tracking-wider mb-2">
@@ -158,6 +167,43 @@ export const CourseDetailPage: React.FC = () => {
           isPreview={!course.has_access}
         />
       </section>
+
+      {/* Course Cover Full HD Zoom Modal */}
+      {showCourseCoverZoom && course.cover_image_url && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
+          onClick={() => setShowCourseCoverZoom(false)}
+        >
+          <div
+            className="relative max-w-5xl w-full flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-full flex items-center justify-between text-white mb-3 px-1">
+              <span className="text-sm sm:text-base font-semibold truncate pr-4 text-gray-200">
+                {course.title} • Copertina Ufficiale HD
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowCourseCoverZoom(false)}
+                className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                aria-label="Chiudi anteprima"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="w-full rounded-2xl overflow-hidden border border-white/20 shadow-2xl bg-black">
+              <img
+                src={course.cover_image_url}
+                alt={`Copertina ${course.title}`}
+                className="w-full h-auto max-h-[82vh] object-contain mx-auto img-sharp"
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-2 text-center">
+              Clicca ovunque fuori dall'immagine o sulla X per chiudere
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

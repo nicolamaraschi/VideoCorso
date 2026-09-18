@@ -27,6 +27,12 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+  .img-sharp {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: high-quality;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
 }
 
 @keyframes marquee {

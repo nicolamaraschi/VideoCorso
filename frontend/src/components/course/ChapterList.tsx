@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, CheckCircle, Sparkles, Layers } from 'lucide-react';
+import { ChevronDown, CheckCircle, Sparkles, Layers, ZoomIn, X } from 'lucide-react';
 import type { Chapter, Lesson, Progress } from '../../types';
 import { LessonCard } from './LessonCard';
 
@@ -18,6 +18,9 @@ export const ChapterList: React.FC<ChapterListProps> = ({
   currentLessonId,
   isPreview = false,
 }) => {
+  // HD Zoom Modal state
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
+
   // By default, expand the first chapter (or all chapters if only 1)
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(() => {
     if (chapters.length > 0) {
@@ -107,26 +110,53 @@ export const ChapterList: React.FC<ChapterListProps> = ({
               className="border-2 border-primary-100/90 rounded-2xl sm:rounded-3xl overflow-hidden bg-white shadow-xs hover:shadow-md hover:border-primary-200 transition-all duration-300 group/chap"
             >
               {/* Chapter Header Button */}
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => toggleChapter(chapter.chapter_id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleChapter(chapter.chapter_id);
+                  }
+                }}
                 aria-expanded={isExpanded}
-                className={`w-full flex items-center justify-between gap-4 sm:gap-6 p-4 sm:p-6 lg:p-7 text-left transition-all ${
+                className={`w-full cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 p-4 sm:p-6 lg:p-7 text-left transition-all select-none ${
                   isExpanded
                     ? 'bg-gradient-to-r from-primary-50/80 via-primary-50/30 to-white border-b border-primary-100/80'
                     : 'bg-white hover:bg-primary-50/30'
                 }`}
               >
-                <div className="flex items-center gap-4 sm:gap-6 min-w-0 flex-1">
-                  {/* Chapter Cover Thumbnail (Large, prominent, cinematic) */}
-                  <div className="w-28 h-20 sm:w-44 sm:h-28 md:w-56 md:h-36 rounded-xl sm:rounded-2xl overflow-hidden bg-primary-950 border border-primary-200/80 flex-shrink-0 shadow-sm relative group/chapterthumb">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 min-w-0 flex-1">
+                  {/* Chapter Cover Thumbnail (Large, prominent, cinematic 16:9, crystal clear) */}
+                  <div
+                    onClick={(e) => {
+                      if (chapter.image_url) {
+                        e.stopPropagation();
+                        setPreviewImage({
+                          url: chapter.image_url,
+                          title: `Modulo ${chapter.order_number}: ${chapter.title}`,
+                        });
+                      }
+                    }}
+                    className={`w-full sm:w-64 md:w-80 lg:w-[360px] xl:w-[400px] aspect-video rounded-xl sm:rounded-2xl overflow-hidden bg-black border border-primary-200/90 shrink-0 shadow-sm relative group/chapterthumb ${
+                      chapter.image_url ? 'cursor-zoom-in' : ''
+                    }`}
+                    title={chapter.image_url ? 'Clicca per ingrandire la copertina in HD' : undefined}
+                  >
                     {chapter.image_url ? (
-                      <img
-                        src={chapter.image_url}
-                        alt={`Copertina ${chapter.title}`}
-                        loading="lazy"
-                        className="w-full h-full object-cover group-hover/chapterthumb:scale-105 transition-transform duration-500"
-                      />
+                      <>
+                        <img
+                          src={chapter.image_url}
+                          alt={`Copertina ${chapter.title}`}
+                          loading="lazy"
+                          className="w-full h-full object-cover img-sharp group-hover/chapterthumb:scale-102 transition-transform duration-500"
+                        />
+                        <div className="absolute bottom-2 right-2 bg-black/75 hover:bg-black/90 text-white px-2.5 py-1 rounded-lg text-xs font-semibold backdrop-blur-xs flex items-center gap-1.5 opacity-90 sm:opacity-0 group-hover/chapterthumb:opacity-100 transition-opacity shadow-md pointer-events-none">
+                          <ZoomIn className="w-3.5 h-3.5" />
+                          <span className="text-[11px] tracking-wide">Ingrandisci HD</span>
+                        </div>
+                      </>
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary-900 to-primary-950 text-white p-2 text-center">
                         <Sparkles className="w-6 h-6 text-primary-300 mb-1" />
@@ -137,8 +167,8 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                     )}
 
                     {isAllDone && (
-                      <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 p-1 rounded-md bg-emerald-600 text-white shadow-md">
-                        <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <div className="absolute top-2 left-2 p-1 rounded-md bg-emerald-600 text-white shadow-md">
+                        <CheckCircle className="w-4 h-4" />
                       </div>
                     )}
                   </div>
@@ -189,14 +219,14 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                 </div>
 
                 {/* Chevron icon button */}
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary-50 border border-primary-200/80 flex items-center justify-center flex-shrink-0 text-primary-900 transition-all duration-300 ml-2 shadow-2xs group-hover/chap:bg-primary-100">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary-50 border border-primary-200/80 flex items-center justify-center flex-shrink-0 text-primary-900 transition-all duration-300 ml-2 shadow-2xs group-hover/chap:bg-primary-100 self-end sm:self-center">
                   <ChevronDown
                     className={`w-5 h-5 text-primary-900 transition-transform duration-300 ${
                       isExpanded ? 'rotate-180 text-primary-950' : 'rotate-0 text-primary-700'
                     }`}
                   />
                 </div>
-              </button>
+              </div>
 
               {/* Lessons List */}
               {isExpanded && chapter.lessons && chapter.lessons.length > 0 && (
@@ -222,6 +252,43 @@ export const ChapterList: React.FC<ChapterListProps> = ({
           );
         })}
       </div>
+
+      {/* Full HD Zoom Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="relative max-w-5xl w-full flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-full flex items-center justify-between text-white mb-3 px-1">
+              <span className="text-sm sm:text-base font-semibold truncate pr-4 text-gray-200">
+                {previewImage.title} • Copertina Ufficiale HD
+              </span>
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                aria-label="Chiudi anteprima"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="w-full rounded-2xl overflow-hidden border border-white/20 shadow-2xl bg-black">
+              <img
+                src={previewImage.url}
+                alt={previewImage.title}
+                className="w-full h-auto max-h-[82vh] object-contain mx-auto img-sharp"
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-2 text-center">
+              Clicca ovunque fuori dall'immagine o sulla X per chiudere
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
