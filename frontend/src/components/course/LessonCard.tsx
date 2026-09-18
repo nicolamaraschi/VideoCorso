@@ -41,7 +41,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
             src={lesson.thumbnail_url}
             alt={`Copertina ${lesson.title}`}
             loading="lazy"
-            className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover img-smooth group-hover/thumb:scale-[1.02] transition-transform duration-500"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-900 to-primary-950 text-primary-300">

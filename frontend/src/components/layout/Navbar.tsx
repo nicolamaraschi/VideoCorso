@@ -16,7 +16,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
   const [internalMobileMenuOpen, setInternalMobileMenuOpen] = useState(false);
   const mobileMenuOpen = externalMobileMenuOpen !== undefined ? externalMobileMenuOpen : internalMobileMenuOpen;
   const setMobileMenuOpen = externalSetMobileMenuOpen || setInternalMobileMenuOpen;
-  const { isAuthenticated, isAdmin, user } = useAuthContext();
+  const { isAuthenticated, isAdmin } = useAuthContext();
   const location = useLocation();
   const isAdminViewingStudentArea = isAdmin && (
     location.pathname === '/dashboard' || location.pathname.startsWith('/courses/')
@@ -59,60 +59,49 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200 w-full">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          
-          {/* Left: Hamburger button + Logo */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            {/* Hamburger Button: visible on < xl when logged in (to open sidebar), or < lg when public */}
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`${
-                isAuthenticated ? 'xl:hidden' : 'lg:hidden'
-              } flex-shrink-0 min-h-10 min-w-10 p-2 rounded-lg hover:bg-gray-100 text-gray-700 flex items-center justify-center -ml-1 transition-colors`}
-              aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
-              aria-expanded={mobileMenuOpen}
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-            
-            {/* Logo & Brand Name */}
-            <Link 
-              to={isAuthenticated ? (isAdminViewingStudentArea ? '/dashboard' : isAdmin ? '/admin' : '/dashboard') : '/'}
-              className="flex items-center gap-2.5 sm:gap-3 min-w-0"
-            >
-              <img 
-                src={logoUrl} 
-                alt="Chiara Morocutti" 
-                width={40}
-                height={40}
-                className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover flex-shrink-0 shadow-sm"
-              />
+        {!isAuthenticated ? (
+          /* Public Header (Landing Page) */
+          <div className="flex justify-between items-center h-16">
+            {/* Left: Hamburger button + Logo */}
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="lg:hidden flex-shrink-0 min-h-10 min-w-10 p-2 rounded-lg hover:bg-gray-100 text-gray-700 flex items-center justify-center -ml-1 transition-colors"
+                aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
+                aria-expanded={mobileMenuOpen}
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
               
-              <div className="flex flex-col min-w-0">
-                <span className="text-sm sm:text-base lg:text-lg font-bold text-primary-600 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
-                  Chiara Morocutti Academy
-                </span>
-                <span className="text-[9px] sm:text-xs text-gray-500 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
-                  {isAdminViewingStudentArea ? 'Area Corsista' : isAdmin ? 'Pannello Amministrazione' : "Formazione d'Eccellenza"}
-                </span>
-              </div>
-            </Link>
-          </div>
+              <Link to="/" className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <img 
+                  src={logoUrl} 
+                  alt="Chiara Morocutti" 
+                  width={40}
+                  height={40}
+                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover flex-shrink-0 shadow-sm"
+                />
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm sm:text-base lg:text-lg font-bold text-primary-600 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
+                    Chiara Morocutti Academy
+                  </span>
+                  <span className="text-[9px] sm:text-xs text-gray-500 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
+                    Formazione d'Eccellenza
+                  </span>
+                </div>
+              </Link>
+            </div>
 
-          {/* Center: Navigation Links (Public Desktop ONLY >= lg) */}
-          {!isAuthenticated && (
+            {/* Center: Navigation Links (Public Desktop ONLY >= lg) */}
             <div className="hidden lg:flex items-center space-x-6 xl:space-x-8">
               <ScrollLink to="/#corso" className="text-sm xl:text-base font-medium text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Il Corso</ScrollLink>
               <ScrollLink to="/#vantaggi" className="text-sm xl:text-base font-medium text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Vantaggi</ScrollLink>
               <ScrollLink to="/#testimonianze" className="text-sm xl:text-base font-medium text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Testimonianze</ScrollLink>
             </div>
-          )}
 
-          {/* Right: Actions */}
-          {!isAuthenticated ? (
+            {/* Right: Actions */}
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              {/* Desktop Buttons (>= lg) */}
               <div className="hidden lg:flex items-center gap-3">
                 <Link to="/login"><Button variant="ghost">Login</Button></Link>
                 <a
@@ -123,7 +112,6 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
                   <Button variant="primary">Prenota una Call</Button>
                 </a>
               </div>
-              {/* Mobile / Tablet Quick Call Button (< lg) */}
               <a
                 href="https://wa.me/393282247737?text=Ciao%20Chiara,%20vorrei%20informazioni%20sui%20tuoi%20corsi%20di%20Microblading"
                 target="_blank"
@@ -135,26 +123,59 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
                 </Button>
               </a>
             </div>
-          ) : (
-            /* Authenticated User / Admin Header Widget */
-            <div className="flex items-center gap-3 shrink-0">
+          </div>
+        ) : (
+          /* Authenticated Header (Centered Brand, no duplicate user badge) */
+          <div className="relative flex items-center justify-between h-16">
+            {/* Left: Hamburger button for mobile/tablet (< xl) */}
+            <div className="flex items-center min-w-[40px] z-10">
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="xl:hidden flex-shrink-0 min-h-10 min-w-10 p-2 rounded-lg hover:bg-gray-100 text-gray-700 flex items-center justify-center -ml-1 transition-colors"
+                aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
+                aria-expanded={mobileMenuOpen}
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
+
+            {/* Center: Perfectly Centered Chiara Morocutti Academy Brand */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-12">
+              <Link 
+                to={isAdminViewingStudentArea ? '/dashboard' : isAdmin ? '/admin' : '/dashboard'}
+                className="flex items-center gap-2.5 sm:gap-3 pointer-events-auto min-w-0 max-w-full"
+              >
+                <img 
+                  src={logoUrl} 
+                  alt="Chiara Morocutti" 
+                  width={40}
+                  height={40}
+                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover flex-shrink-0 shadow-sm"
+                />
+                
+                <div className="flex flex-col min-w-0 text-center sm:text-left">
+                  <span className="text-sm sm:text-base lg:text-lg font-bold text-primary-600 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
+                    Chiara Morocutti Academy
+                  </span>
+                  <span className="text-[9px] sm:text-xs text-gray-500 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
+                    {isAdminViewingStudentArea ? 'Area Corsista' : isAdmin ? 'Pannello Amministrazione' : "Formazione d'Eccellenza"}
+                  </span>
+                </div>
+              </Link>
+            </div>
+
+            {/* Right: Subtle Admin indicator (if admin) or empty spacer for symmetry */}
+            <div className="flex items-center min-w-[40px] justify-end z-10">
               {isAdmin && (
-                <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-50 border border-primary-200 text-primary-800 text-xs font-bold uppercase tracking-wider">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-50 border border-primary-200 text-primary-800 text-xs font-bold uppercase tracking-wider">
                   <Shield className="w-3.5 h-3.5 text-primary-600" />
-                  <span>Admin</span>
+                  <span className="hidden sm:inline">Admin</span>
                 </span>
               )}
-              <div className="hidden md:flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary-950 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                  {user?.fullName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'A'}
-                </div>
-                <span className="text-xs font-semibold text-gray-700 max-w-[160px] truncate">
-                  {user?.fullName || user?.email}
-                </span>
-              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Public Mobile & Tablet Drawer Menu (< lg when not authenticated) */}

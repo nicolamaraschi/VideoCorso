@@ -27,11 +27,12 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  .img-sharp {
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: high-quality;
-    transform: translateZ(0);
+  .img-sharp,
+  .img-smooth {
+    image-rendering: auto;
+    -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
+    transform: translate3d(0, 0, 0);
   }
 }
 

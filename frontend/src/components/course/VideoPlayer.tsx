@@ -720,16 +720,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       </div>
 
-      {/* Settings Modal (Centered Overlay inside player, never clipped by overflow-hidden) */}
+      {/* Settings Popover (Anchored bottom-right above control bar, non-intrusive so video remains fully visible) */}
       {showSettings && (
-        <div
-          className="absolute inset-0 bg-black/85 backdrop-blur-md z-40 flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-150"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowSettings(false);
-          }}
-        >
-          <div className="w-full max-w-[280px] sm:max-w-xs bg-neutral-900/95 border border-white/15 rounded-2xl p-4 shadow-2xl space-y-3.5 my-auto">
-            {/* Modal Header */}
+        <>
+          {/* Transparent click-away layer (does NOT darken or blur the video) */}
+          <div
+            className="absolute inset-0 z-30 cursor-default"
+            onClick={() => setShowSettings(false)}
+          />
+
+          {/* Floating Settings Card */}
+          <div
+            className="absolute bottom-16 right-3 sm:right-6 z-40 w-64 sm:w-72 max-w-[calc(100vw-24px)] bg-neutral-950/92 border border-white/15 rounded-2xl p-3.5 shadow-2xl backdrop-blur-md space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Popover Header */}
             <div className="flex items-center justify-between border-b border-white/10 pb-2">
               <span className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
                 <Settings className="w-4 h-4 text-primary-400" />
@@ -738,7 +743,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               <button
                 type="button"
                 onClick={() => setShowSettings(false)}
-                className="p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition"
+                className="p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition cursor-pointer"
                 aria-label="Chiudi impostazioni"
               >
                 <X className="w-4 h-4" />
@@ -764,7 +769,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                           handleQualitySelect(q as VideoQuality);
                           setShowSettings(false);
                         }}
-                        className={`w-full text-center px-2 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                        className={`w-full text-center px-2 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                           isSelected
                             ? 'bg-primary-600 text-white shadow-md border border-primary-400'
                             : 'bg-white/5 text-white/80 hover:bg-white/15 hover:text-white border border-white/5'
@@ -773,8 +778,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                         {QUALITY_LABELS[q] || q}
                       </button>
                     );
-                  }
-                  )}
+                  })}
                 </div>
               ) : (
                 <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/75">
@@ -794,7 +798,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                     key={rate}
                     type="button"
                     onClick={() => changePlaybackRate(rate)}
-                    className={`text-center py-1 rounded-lg text-xs font-semibold transition-all ${
+                    className={`text-center py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                       playbackRate === rate
                         ? 'bg-primary-600 text-white shadow-md border border-primary-400'
                         : 'bg-white/5 text-white/80 hover:bg-white/15 border border-white/5'
@@ -806,7 +810,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
