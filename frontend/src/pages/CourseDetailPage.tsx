@@ -130,13 +130,27 @@ export const CourseDetailPage: React.FC = () => {
       )}
 
       {/* Curriculum Module & Lesson List Section */}
-      <section className="bg-white rounded-2xl sm:rounded-3xl border border-primary-100/80 p-3.5 sm:p-6 shadow-xs">
-        <h2
-          className="text-lg sm:text-xl font-bold text-primary-950 mb-4 sm:mb-6"
-          style={{ fontFamily: 'Abhaya Libre, serif' }}
-        >
-          Contenuti e Moduli del corso
-        </h2>
+      <section className="bg-white rounded-2xl sm:rounded-3xl border border-primary-100/90 p-4 sm:p-8 lg:p-10 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6 sm:mb-8 pb-5 border-b border-primary-100/80">
+          <div>
+            <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-primary-800 bg-primary-50 px-3 py-1 rounded-md border border-primary-200/60">
+              Programma Formativo
+            </span>
+            <h2
+              className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary-950 mt-2"
+              style={{ fontFamily: 'Abhaya Libre, serif' }}
+            >
+              Contenuti e Moduli del corso
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">
+              Esplora tutti i moduli pratici e teorici per padroneggiare ogni segreto del microblading.
+            </p>
+          </div>
+          <div className="text-xs sm:text-sm font-semibold text-gray-700 bg-primary-50/60 border border-primary-200/60 px-3.5 py-1.5 rounded-xl whitespace-nowrap self-start sm:self-auto">
+            {courseStructure.chapters.length} Moduli • {courseStructure.chapters.reduce((acc, c) => acc + (c.lessons?.length || 0), 0)} Lezioni HD
+          </div>
+        </div>
+
         <ChapterList
           chapters={courseStructure.chapters}
           progress={courseProgress?.lesson_progress || {}}

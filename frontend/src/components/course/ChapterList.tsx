@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, CheckCircle, Sparkles } from 'lucide-react';
+import { ChevronDown, CheckCircle, Sparkles, Layers } from 'lucide-react';
 import type { Chapter, Lesson, Progress } from '../../types';
 import { LessonCard } from './LessonCard';
 
@@ -18,13 +18,24 @@ export const ChapterList: React.FC<ChapterListProps> = ({
   currentLessonId,
   isPreview = false,
 }) => {
-  // By default, expand the first chapter (or all chapters with 0 progress)
+  // By default, expand the first chapter (or all chapters if only 1)
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(() => {
     if (chapters.length > 0) {
       return new Set([chapters[0].chapter_id]);
     }
     return new Set();
   });
+
+  const allChapterIds = chapters.map((c) => c.chapter_id);
+  const areAllExpanded = allChapterIds.length > 0 && allChapterIds.every((id) => expandedChapters.has(id));
+
+  const toggleAll = () => {
+    if (areAllExpanded) {
+      setExpandedChapters(new Set());
+    } else {
+      setExpandedChapters(new Set(allChapterIds));
+    }
+  };
 
   const toggleChapter = (chapterId: string) => {
     const newExpanded = new Set(expandedChapters);
@@ -51,114 +62,166 @@ export const ChapterList: React.FC<ChapterListProps> = ({
     };
   };
 
+  const totalLessonsCount = chapters.reduce((acc, chap) => acc + (chap.lessons?.length || 0), 0);
+  const totalCompletedCount = chapters.reduce((acc, chap) => {
+    return acc + (chap.lessons?.filter((l) => progress[l.lesson_id]?.completed).length || 0);
+  }, 0);
+
   return (
-    <div className="space-y-3 sm:space-y-4">
-      {chapters.map((chapter) => {
-        const isExpanded = expandedChapters.has(chapter.chapter_id);
-        const chapterProgress = getChapterProgress(chapter);
-        const isAllDone = chapterProgress.total > 0 && chapterProgress.completed === chapterProgress.total;
+    <div className="space-y-4 sm:space-y-6">
+      {/* Top Header Summary & Toggle All Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-1 sm:py-2">
+        <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-gray-700">
+          <Layers className="w-4 h-4 text-primary-700" />
+          <span>
+            {chapters.length} Moduli • {totalLessonsCount} Lezioni totali
+          </span>
+          {totalCompletedCount > 0 && (
+            <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 text-xs">
+              {totalCompletedCount} completate
+            </span>
+          )}
+        </div>
 
-        return (
-          <div
-            key={chapter.chapter_id}
-            className="border border-primary-100 rounded-2xl overflow-hidden bg-white shadow-xs transition-all"
+        {chapters.length > 1 && (
+          <button
+            type="button"
+            onClick={toggleAll}
+            className="text-xs sm:text-sm font-bold text-primary-800 hover:text-primary-950 bg-primary-50/80 hover:bg-primary-100 border border-primary-200/80 px-3 py-1.5 rounded-xl transition-all shadow-2xs"
           >
-            {/* Chapter Header Button */}
-            <button
-              type="button"
-              onClick={() => toggleChapter(chapter.chapter_id)}
-              aria-expanded={isExpanded}
-              className={`w-full flex items-center justify-between gap-3 p-3.5 sm:p-4 text-left transition-colors ${
-                isExpanded ? 'bg-primary-50/50' : 'bg-white hover:bg-gray-50/80'
-              }`}
-            >
-              <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-                
-                {/* Chapter Cover Thumbnail (Compact on mobile, wider on tablet/desktop) */}
-                {chapter.image_url ? (
-                  <div className="w-16 h-12 sm:w-28 sm:h-20 rounded-xl overflow-hidden bg-primary-100 border border-primary-200/80 flex-shrink-0 shadow-xs">
-                    <img
-                      src={chapter.image_url}
-                      alt={`Copertina ${chapter.title}`}
-                      loading="lazy"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-primary-100 border border-primary-200 flex items-center justify-center flex-shrink-0 text-primary-800 font-bold">
-                    <Sparkles className="w-5 h-5 text-primary-700" />
-                  </div>
-                )}
+            {areAllExpanded ? 'Comprimi tutti i moduli' : 'Espandi tutti i moduli'}
+          </button>
+        )}
+      </div>
 
-                {/* Chapter Titles & Progress Bar */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-primary-800 bg-primary-100/80 px-2 py-0.5 rounded-md">
-                      Modulo {chapter.order_number}
-                    </span>
+      {/* Chapters Accordion List */}
+      <div className="space-y-4 sm:space-y-5">
+        {chapters.map((chapter) => {
+          const isExpanded = expandedChapters.has(chapter.chapter_id);
+          const chapterProgress = getChapterProgress(chapter);
+          const isAllDone = chapterProgress.total > 0 && chapterProgress.completed === chapterProgress.total;
+
+          return (
+            <div
+              key={chapter.chapter_id}
+              className="border-2 border-primary-100/90 rounded-2xl sm:rounded-3xl overflow-hidden bg-white shadow-xs hover:shadow-md hover:border-primary-200 transition-all duration-300 group/chap"
+            >
+              {/* Chapter Header Button */}
+              <button
+                type="button"
+                onClick={() => toggleChapter(chapter.chapter_id)}
+                aria-expanded={isExpanded}
+                className={`w-full flex items-center justify-between gap-4 sm:gap-6 p-4 sm:p-6 lg:p-7 text-left transition-all ${
+                  isExpanded
+                    ? 'bg-gradient-to-r from-primary-50/80 via-primary-50/30 to-white border-b border-primary-100/80'
+                    : 'bg-white hover:bg-primary-50/30'
+                }`}
+              >
+                <div className="flex items-center gap-4 sm:gap-6 min-w-0 flex-1">
+                  {/* Chapter Cover Thumbnail (Large, prominent, cinematic) */}
+                  <div className="w-28 h-20 sm:w-44 sm:h-28 md:w-56 md:h-36 rounded-xl sm:rounded-2xl overflow-hidden bg-primary-950 border border-primary-200/80 flex-shrink-0 shadow-sm relative group/chapterthumb">
+                    {chapter.image_url ? (
+                      <img
+                        src={chapter.image_url}
+                        alt={`Copertina ${chapter.title}`}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover/chapterthumb:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary-900 to-primary-950 text-white p-2 text-center">
+                        <Sparkles className="w-6 h-6 text-primary-300 mb-1" />
+                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-primary-200">
+                          Modulo {chapter.order_number}
+                        </span>
+                      </div>
+                    )}
+
                     {isAllDone && (
-                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                        <CheckCircle className="w-3 h-3" />
-                        Completato
-                      </span>
+                      <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 p-1 rounded-md bg-emerald-600 text-white shadow-md">
+                        <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </div>
                     )}
                   </div>
 
-                  <h3
-                    className="text-sm sm:text-base font-bold text-gray-900 leading-snug break-normal line-clamp-2"
-                    style={{ fontFamily: 'Abhaya Libre, serif' }}
-                  >
-                    {chapter.title}
-                  </h3>
-
-                  {/* Progress Indicator */}
-                  <div className="flex items-center gap-2.5 mt-1.5">
-                    <div className="w-20 sm:w-32 h-1.5 bg-gray-200 rounded-full overflow-hidden flex-shrink-0">
-                      <div
-                        className="h-full bg-primary-600 rounded-full transition-all duration-300"
-                        style={{ width: `${chapterProgress.percentage}%` }}
-                      />
+                  {/* Chapter Titles & Progress Bar */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                      <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-primary-900 bg-primary-100 px-3 py-0.5 rounded-lg border border-primary-200/80">
+                        Modulo {chapter.order_number}
+                      </span>
+                      {isAllDone && (
+                        <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-emerald-800 bg-emerald-50 px-3 py-0.5 rounded-lg border border-emerald-200 shadow-2xs">
+                          <CheckCircle className="w-4 h-4 text-emerald-600" />
+                          Completato
+                        </span>
+                      )}
                     </div>
-                    <span className="text-[11px] sm:text-xs font-medium text-gray-500 whitespace-nowrap">
-                      {chapterProgress.completed}/{chapterProgress.total} lezioni
-                    </span>
+
+                    <h3
+                      className="text-base sm:text-xl md:text-2xl font-bold text-gray-950 leading-snug break-normal line-clamp-2"
+                      style={{ fontFamily: 'Abhaya Libre, serif' }}
+                    >
+                      {chapter.title}
+                    </h3>
+
+                    {/* Progress Indicator */}
+                    <div className="flex flex-wrap items-center gap-3 mt-2 sm:mt-3">
+                      <div className="w-28 sm:w-48 md:w-60 h-2 sm:h-2.5 bg-gray-200/80 rounded-full overflow-hidden flex-shrink-0 shadow-inner">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            isAllDone
+                              ? 'bg-emerald-500'
+                              : 'bg-gradient-to-r from-primary-700 to-primary-500'
+                          }`}
+                          style={{ width: `${chapterProgress.percentage}%` }}
+                        />
+                      </div>
+                      <span className="text-xs sm:text-sm font-semibold text-gray-600 whitespace-nowrap">
+                        {chapterProgress.completed} / {chapterProgress.total} lezioni
+                        {isAllDone
+                          ? ' • 100%'
+                          : chapterProgress.completed > 0
+                          ? ` • ${Math.round(chapterProgress.percentage)}%`
+                          : ''}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Chevron icon */}
-              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 text-gray-600 ml-1">
-                {isExpanded ? (
-                  <ChevronDown className="w-4 h-4 text-primary-900" />
-                ) : (
-                  <ChevronRight className="w-4 h-4 text-gray-500" />
-                )}
-              </div>
-            </button>
+                {/* Chevron icon button */}
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary-50 border border-primary-200/80 flex items-center justify-center flex-shrink-0 text-primary-900 transition-all duration-300 ml-2 shadow-2xs group-hover/chap:bg-primary-100">
+                  <ChevronDown
+                    className={`w-5 h-5 text-primary-900 transition-transform duration-300 ${
+                      isExpanded ? 'rotate-180 text-primary-950' : 'rotate-0 text-primary-700'
+                    }`}
+                  />
+                </div>
+              </button>
 
-            {/* Lessons List */}
-            {isExpanded && chapter.lessons && chapter.lessons.length > 0 && (
-              <div className="divide-y divide-primary-100/60 border-t border-primary-100/60 bg-white">
-                {chapter.lessons.map((lesson) => {
-                  const lessonProgress = progress[lesson.lesson_id];
-                  const isLocked = isPreview && !lesson.is_free_preview;
+              {/* Lessons List */}
+              {isExpanded && chapter.lessons && chapter.lessons.length > 0 && (
+                <div className="divide-y divide-primary-100/70 bg-white">
+                  {chapter.lessons.map((lesson) => {
+                    const lessonProgress = progress[lesson.lesson_id];
+                    const isLocked = isPreview && !lesson.is_free_preview;
 
-                  return (
-                    <LessonCard
-                      key={lesson.lesson_id}
-                      lesson={lesson}
-                      progress={lessonProgress}
-                      isActive={currentLessonId === lesson.lesson_id}
-                      isLocked={isLocked}
-                      onClick={() => !isLocked && onLessonClick(lesson)}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })}
+                    return (
+                      <LessonCard
+                        key={lesson.lesson_id}
+                        lesson={lesson}
+                        progress={lessonProgress}
+                        isActive={currentLessonId === lesson.lesson_id}
+                        isLocked={isLocked}
+                        onClick={() => !isLocked && onLessonClick(lesson)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
