@@ -718,7 +718,7 @@ export const LandingPage: React.FC = () => {
 
             {/* 2. PLUS */}
             <div className="bg-white rounded-3xl p-8 border-2 border-primary-300 shadow-md flex flex-col justify-between relative">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-600 text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wider shadow">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-600 text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wider shadow whitespace-nowrap">
                 Più Richiesto
               </div>
               <div>
@@ -769,8 +769,8 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* 3. FULL */}
-            <div className="bg-primary-950 text-white rounded-3xl p-8 shadow-2xl flex flex-col justify-between relative border border-amber-400/30 overflow-hidden">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 text-xs font-extrabold px-4 py-1 rounded-full uppercase tracking-wider shadow">
+            <div className="bg-primary-950 text-white rounded-3xl p-8 shadow-2xl flex flex-col justify-between relative border-2 border-amber-400/50">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 text-gray-950 text-[10.5px] sm:text-xs font-extrabold px-3.5 sm:px-4 py-1 rounded-full uppercase tracking-wider shadow-md whitespace-nowrap border border-amber-200/60">
                 Esperienza Completa in Studio
               </div>
 
