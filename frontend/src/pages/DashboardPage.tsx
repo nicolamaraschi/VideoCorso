@@ -88,7 +88,10 @@ export const DashboardPage: React.FC = () => {
   const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8 sm:space-y-10 bg-[#FAF7F8] min-h-full">
+    <div className="dashboard-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8 sm:space-y-10 bg-[#FAF7F8] min-h-full">
+      <div className="dashboard-page__monogram" aria-hidden="true">
+        <img src="/logo-white.svg" alt="" />
+      </div>
       
       {/* Header Section */}
       <section className="space-y-2">

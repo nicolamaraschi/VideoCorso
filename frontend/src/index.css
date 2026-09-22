@@ -60,3 +60,50 @@
   -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.75);
   color: transparent;
 }
+
+/* Authenticated workspace: a soft brand layer for both admin and student areas. */
+.academy-workspace {
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse 52rem 40rem at 100% 8%, rgba(225, 190, 196, 0.18), transparent 70%),
+    radial-gradient(ellipse 42rem 34rem at 0% 100%, rgba(248, 235, 232, 0.72), transparent 72%),
+    #fcf9fa;
+}
+
+/* A restrained illuminated motif used only in the dashboard's unused right column. */
+.dashboard-page {
+  isolation: isolate;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-page > :not(.dashboard-page__monogram) {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-page__monogram {
+  position: absolute;
+  z-index: 0;
+  top: 8.5rem;
+  right: clamp(1rem, 5vw, 5rem);
+  width: clamp(16rem, 23vw, 23rem);
+  pointer-events: none;
+  opacity: 0.065;
+  transform: rotate(-9deg);
+}
+
+.dashboard-page__monogram img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: invert(28%) sepia(24%) saturate(1758%) hue-rotate(292deg) brightness(88%) contrast(89%);
+}
+
+@media (max-width: 1023px) {
+  .dashboard-page__monogram {
+    right: -9rem;
+    top: 10rem;
+    opacity: 0.045;
+  }
+}

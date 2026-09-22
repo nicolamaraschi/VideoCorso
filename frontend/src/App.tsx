@@ -98,10 +98,11 @@ function App() {
           )}
           <Sidebar isAdmin={isAdmin} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
 
-          <main data-app-scroll className="flex-1 w-full min-w-0 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain relative">
-            <ErrorBoundary>
-              <Suspense fallback={<Loading fullScreen text="Loading..." />}>
-                <Routes>
+          <main data-app-scroll className="academy-workspace flex-1 w-full min-w-0 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain relative">
+            <div className="relative z-10 min-h-full">
+              <ErrorBoundary>
+                <Suspense fallback={<Loading fullScreen text="Loading..." />}>
+                  <Routes>
                   <Route
                     path="/dashboard"
                     element={(
@@ -213,9 +214,10 @@ function App() {
                     element={isAdmin ? <Navigate to="/admin" replace /> : <Navigate to="/dashboard" replace />}
                   />
                   <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </Suspense>
-            </ErrorBoundary>
+                  </Routes>
+                </Suspense>
+              </ErrorBoundary>
+            </div>
           </main>
         </div>
       </div>
