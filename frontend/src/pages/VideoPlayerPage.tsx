@@ -61,6 +61,7 @@ export const VideoPlayerPage: React.FC = () => {
     refreshProgress,
     courseStructure,
     courseProgress,
+    loading: courseLoading,
   } = useCourse(courseId);
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -280,7 +281,10 @@ export const VideoPlayerPage: React.FC = () => {
     courseStructure?.course?.public_slug || courseStructure?.course?.course_id || courseId
   }`;
 
-  if (loading) {
+  // The video URL and the course structure are requested concurrently.  Do
+  // not show the missing-video state while the structure has not arrived yet:
+  // a fast video response previously created a brief, misleading 404 screen.
+  if (loading || courseLoading) {
     return <Loading fullScreen text="Caricamento video in corso..." />;
   }
 
