@@ -8,6 +8,7 @@ interface ModalProps {
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   showCloseButton?: boolean;
+  backdropStyle?: React.CSSProperties;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -17,6 +18,7 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   size = 'md',
   showCloseButton = true,
+  backdropStyle,
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
@@ -100,7 +102,8 @@ export const Modal: React.FC<ModalProps> = ({
     <div className="fixed inset-0 z-[60] flex items-end justify-center p-2 sm:items-center sm:p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
+        className="absolute inset-0 bg-black/60 transition-opacity"
+        style={backdropStyle}
         onClick={onClose}
       />
 
