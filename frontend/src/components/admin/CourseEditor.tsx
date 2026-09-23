@@ -1036,23 +1036,12 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         </div>
       </Modal>
 
-      {/* FIX: Modale per l'anteprima del video */}
+      {/* Modale per l'anteprima del video */}
       <Modal
         isOpen={showPreviewModal}
         onClose={closePreviewModal}
         title="Lesson Preview"
         size="2xl"
-        backdropStyle={{
-          // Mantiene il banner di navigazione bianco e leggibile anche con l'anteprima aperta.
-          clipPath: 'inset(4rem 0 0)',
-          backgroundColor: '#230b14',
-          backgroundImage: [
-            'radial-gradient(circle at 14% 12%, rgba(232, 180, 190, 0.42), transparent 30%)',
-            'radial-gradient(circle at 88% 82%, rgba(169, 81, 97, 0.52), transparent 36%)',
-            'radial-gradient(circle at 52% 45%, rgba(116, 45, 62, 0.4), transparent 42%)',
-            'linear-gradient(135deg, rgba(45, 12, 23, 0.98), rgba(111, 46, 61, 0.96) 50%, rgba(32, 8, 16, 0.98))',
-          ].join(', '),
-        }}
       >
         {previewLoading ? (
           <Loading text="Loading video..." />

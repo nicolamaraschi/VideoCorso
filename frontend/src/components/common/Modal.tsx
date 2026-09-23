@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface ModalProps {
@@ -98,35 +99,35 @@ export const Modal: React.FC<ModalProps> = ({
     '2xl': 'max-w-6xl',
   };
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center p-2 sm:items-center sm:p-4">
+  const modalNode = (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 transition-opacity"
+        className="fixed inset-0 bg-black/70 backdrop-blur-xs transition-opacity"
         style={backdropStyle}
         onClick={onClose}
       />
 
-      {/* Modal */}
+      {/* Modal Dialog */}
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className={`relative flex max-h-[calc(100dvh-1rem)] w-full ${sizeStyles[size]} flex-col overflow-hidden rounded-xl bg-white shadow-xl sm:max-h-[90vh]`}
+        className={`relative z-10 flex max-h-[92vh] w-full ${sizeStyles[size]} flex-col overflow-hidden rounded-2xl bg-white shadow-2xl transition-all my-auto`}
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between gap-4 border-b p-4 sm:p-6">
-            {title && <h3 className="min-w-0 text-lg font-semibold text-gray-900 sm:text-xl">{title}</h3>}
+          <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-5 py-4 sm:px-6 sm:py-5 bg-white shrink-0">
+            {title && <h3 className="min-w-0 text-lg font-bold text-gray-900 sm:text-xl truncate">{title}</h3>}
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="-mr-2 -my-2 min-h-11 min-w-11 rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                className="-mr-1.5 -my-1.5 p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
                 aria-label="Chiudi finestra"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             )}
           </div>
@@ -137,4 +138,6 @@ export const Modal: React.FC<ModalProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(modalNode, document.body);
 };
