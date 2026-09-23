@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Shield } from 'lucide-react';
 import { useAuthContext } from '../auth/useAuthContext'; 
 import { Button } from '../common/Button';
 
-// Logo URL dal sito della cliente
-const logoUrl = "https://assets.cdn.filesafe.space/ceYe4VnMXLjh1ENSEbH0/media/64107bc74d97b25219e10bcf.png";
+// Versione locale WebP dimensionata per l'uso reale nella navbar (40 px).
+const logoUrl = "/chiara-morocutti-logo.webp";
 
 interface NavbarProps {
   mobileMenuOpen?: boolean;
@@ -21,6 +21,10 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
   const isAdminViewingStudentArea = isAdmin && (
     location.pathname === '/dashboard' || location.pathname.startsWith('/courses/')
   );
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname, setMobileMenuOpen]);
 
   const ScrollLink = ({
     to,
@@ -44,9 +48,10 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
           const yOffset = -70;
           const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
           window.scrollTo({ top: y, behavior: 'smooth' });
-          if (onClick) onClick();
         }
-      } 
+      }
+
+      onClick?.();
     };
 
     return (
@@ -57,7 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
   };
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200 w-full">
+    <nav className="relative z-50 bg-white shadow-sm border-b border-gray-200 w-full">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {!isAuthenticated ? (
           /* Public Header (Landing Page) */
@@ -70,6 +75,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
                 className="lg:hidden flex-shrink-0 min-h-10 min-w-10 p-2 rounded-lg hover:bg-gray-100 text-gray-700 flex items-center justify-center -ml-1 transition-colors"
                 aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
                 aria-expanded={mobileMenuOpen}
+                aria-controls="public-navigation-menu"
               >
                 {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
@@ -105,7 +111,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
               <div className="hidden lg:flex items-center gap-3">
                 <Link to="/login"><Button variant="ghost">Login</Button></Link>
                 <a
-                  href="https://wa.me/393282247737?text=Ciao%20Chiara,%20vorrei%20informazioni%20sui%20tuoi%20corsi%20di%20Microblading"
+                  href="https://wa.me/393428077768?text=Ciao%20Chiara,%20vorrei%20informazioni%20sui%20tuoi%20corsi%20di%20Microblading"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -113,7 +119,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
                 </a>
               </div>
               <a
-                href="https://wa.me/393282247737?text=Ciao%20Chiara,%20vorrei%20informazioni%20sui%20tuoi%20corsi%20di%20Microblading"
+                href="https://wa.me/393428077768?text=Ciao%20Chiara,%20vorrei%20informazioni%20sui%20tuoi%20corsi%20di%20Microblading"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="lg:hidden shrink-0"
@@ -178,27 +184,40 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
         )}
       </div>
 
-      {/* Public Mobile & Tablet Drawer Menu (< lg when not authenticated) */}
+      {/* Menu a comparsa: non spinge la landing verso il basso su tablet. */}
       {mobileMenuOpen && !isAuthenticated && (
-        <div className="lg:hidden border-t border-gray-200 bg-white shadow-xl animate-in slide-in-from-top-2 duration-200">
-          <div className="px-5 py-4 space-y-1">
-            <ScrollLink to="/#corso" className="block px-3 py-2.5 rounded-xl text-base font-semibold text-gray-800 hover:bg-primary-50 hover:text-primary-700 transition" onClick={() => setMobileMenuOpen(false)}>Il Corso</ScrollLink>
-            <ScrollLink to="/#vantaggi" className="block px-3 py-2.5 rounded-xl text-base font-semibold text-gray-800 hover:bg-primary-50 hover:text-primary-700 transition" onClick={() => setMobileMenuOpen(false)}>Vantaggi</ScrollLink>
-            <ScrollLink to="/#testimonianze" className="block px-3 py-2.5 rounded-xl text-base font-semibold text-gray-800 hover:bg-primary-50 hover:text-primary-700 transition" onClick={() => setMobileMenuOpen(false)}>Testimonianze</ScrollLink>
-            
-            <div className="border-t border-gray-100 pt-3 mt-2 flex flex-col gap-2">
-              <Link to="/login" className="block text-center py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 border border-gray-200" onClick={() => setMobileMenuOpen(false)}>Login Corsiste</Link>
-              <a
-                href="https://wa.me/393282247737?text=Ciao%20Chiara,%20vorrei%20informazioni%20sui%20tuoi%20corsi%20di%20Microblading"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Button variant="primary" fullWidth size="lg">Prenota una Call</Button>
-              </a>
+        <>
+          <button
+            type="button"
+            className="fixed inset-x-0 top-16 bottom-0 z-40 cursor-default lg:hidden"
+            aria-label="Chiudi menu"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div
+            id="public-navigation-menu"
+            className="absolute inset-x-0 top-full z-50 lg:hidden border-t border-gray-200 bg-white shadow-xl animate-in slide-in-from-top-2 duration-200"
+          >
+            <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
+              <div className="grid gap-1 sm:grid-cols-3 sm:gap-2">
+                <ScrollLink to="/#corso" className="block px-3 py-2.5 rounded-xl text-base font-semibold text-gray-800 hover:bg-primary-50 hover:text-primary-700 transition sm:text-sm sm:text-center" onClick={() => setMobileMenuOpen(false)}>Il Corso</ScrollLink>
+                <ScrollLink to="/#vantaggi" className="block px-3 py-2.5 rounded-xl text-base font-semibold text-gray-800 hover:bg-primary-50 hover:text-primary-700 transition sm:text-sm sm:text-center" onClick={() => setMobileMenuOpen(false)}>Vantaggi</ScrollLink>
+                <ScrollLink to="/#testimonianze" className="block px-3 py-2.5 rounded-xl text-base font-semibold text-gray-800 hover:bg-primary-50 hover:text-primary-700 transition sm:text-sm sm:text-center" onClick={() => setMobileMenuOpen(false)}>Testimonianze</ScrollLink>
+              </div>
+
+              <div className="border-t border-gray-100 pt-3 mt-3 grid gap-2 sm:grid-cols-2 sm:gap-3">
+                <Link to="/login" className="block text-center py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 border border-gray-200" onClick={() => setMobileMenuOpen(false)}>Login Corsiste</Link>
+                <a
+                  href="https://wa.me/393428077768?text=Ciao%20Chiara,%20vorrei%20informazioni%20sui%20tuoi%20corsi%20di%20Microblading"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Button variant="primary" fullWidth size="md">Prenota una Call</Button>
+                </a>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </nav>
   );

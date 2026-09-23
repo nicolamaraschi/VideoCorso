@@ -165,7 +165,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false, mobileMenuOpe
 
               <div className="pt-1 flex flex-col gap-1.5">
                 <a
-                  href="https://wa.me/393282247737?text=Ciao%20Chiara,%20sono%20una%20corsista%20del%20videocorso%20di%20Microblading"
+                  href="https://wa.me/393428077768?text=Ciao%20Chiara,%20sono%20una%20corsista%20del%20videocorso%20di%20Microblading"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition-all"

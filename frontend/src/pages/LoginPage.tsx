@@ -6,6 +6,9 @@ import { CheckCircle, Sparkles, Star } from 'lucide-react';
 export const LoginPage: React.FC = () => {
   const location = useLocation();
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showLoginVisual, setShowLoginVisual] = useState(() => (
+    typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches
+  ));
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -14,6 +17,17 @@ export const LoginPage: React.FC = () => {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [location]);
+
+  // L'immagine è decorativa: su telefono non è visibile, quindi non la
+  // montiamo nemmeno e risparmiamo il download su reti lente.
+  useEffect(() => {
+    const tabletLayout = window.matchMedia('(min-width: 768px)');
+    const updateVisualVisibility = () => setShowLoginVisual(tabletLayout.matches);
+
+    updateVisualVisibility();
+    tabletLayout.addEventListener('change', updateVisualVisibility);
+    return () => tabletLayout.removeEventListener('change', updateVisualVisibility);
+  }, []);
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex bg-white">
@@ -82,10 +96,13 @@ export const LoginPage: React.FC = () => {
       </div>
       
       {/* Right Column: Luxury Image & Quote (46% on iPad/tablet, 50% on desktop) */}
+      {showLoginVisual && (
       <div className="hidden md:block md:w-[46%] lg:w-1/2 relative bg-primary-950 overflow-hidden min-h-[calc(100vh-4rem)]">
         <img 
           src="/login-beauty.webp" 
           alt="Microblading Masterclass" 
+          decoding="async"
+          fetchPriority="low"
           className="absolute inset-0 w-full h-full object-cover object-[center_35%]"
         />
         {/* Luxury Vignette Gradient Overlay (darker at top for card, clear at center/bottom for treatment) */}
@@ -115,6 +132,7 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };
