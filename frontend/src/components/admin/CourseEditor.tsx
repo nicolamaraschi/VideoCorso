@@ -468,9 +468,9 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                         src={chapter.image_url}
                         alt={chapter.title}
                         loading="lazy"
-                        width={192}
-                        height={108}
-                        className="aspect-video h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 rounded-xl border border-gray-200 object-contain bg-white shadow-sm group-hover:shadow-md group-hover:scale-[1.02] transition-all"
+                        width={256}
+                        height={144}
+                        className="aspect-video h-24 w-44 sm:h-28 sm:w-52 md:h-36 md:w-64 rounded-xl border border-gray-200 object-contain bg-white shadow-sm group-hover:shadow-md group-hover:scale-[1.02] transition-all"
                       />
                       <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[9px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
                         🔍 Zoom
@@ -559,16 +559,16 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                                 src={lesson.thumbnail_url}
                                 alt={lesson.title}
                                 loading="lazy"
-                                width={192}
-                                height={108}
-                                className="aspect-video h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 rounded-xl border border-gray-200 object-contain bg-white shadow-sm group-hover:shadow-md group-hover:scale-[1.02] transition-all"
+                                width={320}
+                                height={180}
+                                className="aspect-video h-28 w-52 sm:h-36 sm:w-64 md:h-[180px] md:w-80 rounded-xl border border-gray-200 object-contain bg-white shadow-sm group-hover:shadow-md group-hover:scale-[1.02] transition-all"
                               />
                               <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[9px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
                                 🔍 Zoom
                               </span>
                             </div>
                           ) : (
-                            <div className="flex aspect-video h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-xs font-medium text-gray-400">
+                            <div className="flex aspect-video h-28 w-52 sm:h-36 sm:w-64 md:h-[180px] md:w-80 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-xs font-medium text-gray-400">
                               No cover
                             </div>
                           )}
