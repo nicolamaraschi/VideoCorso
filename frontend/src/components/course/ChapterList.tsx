@@ -256,11 +256,16 @@ export const ChapterList: React.FC<ChapterListProps> = ({
       {/* Full HD Zoom Modal */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
-          onClick={() => setPreviewImage(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
         >
+          {/* The cover preview dims only the workspace: the white navigation bar stays visible. */}
           <div
-            className="relative max-w-5xl w-full flex flex-col items-center"
+            className="absolute inset-0 bg-black/90 backdrop-blur-md"
+            style={{ clipPath: 'inset(4rem 0 0)' }}
+            onClick={() => setPreviewImage(null)}
+          />
+          <div
+            className="relative z-10 max-w-5xl w-full flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-full flex items-center justify-between text-white mb-3 px-1">

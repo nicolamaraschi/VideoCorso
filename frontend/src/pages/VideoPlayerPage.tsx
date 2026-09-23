@@ -185,7 +185,10 @@ export const VideoPlayerPage: React.FC = () => {
     if (!lessonId || isTogglingComplete) return;
     try {
       setIsTogglingComplete(true);
-      await courseService.markLessonComplete(lessonId);
+      // The progress API derives completion from watched time. Supplying the
+      // lesson duration makes this explicit user action a real completion
+      // instead of posting a zero-second progress update.
+      await courseService.markLessonComplete(lessonId, lesson?.duration_seconds);
       await refreshProgress();
     } catch (err) {
       console.error('Error updating completion:', err);
@@ -425,7 +428,9 @@ export const VideoPlayerPage: React.FC = () => {
                   : 'bg-white text-gray-700 border border-gray-200 hover:border-primary-300 hover:bg-primary-50/50'
               }`}
             >
-              {isCompleted ? (
+              {isTogglingComplete ? (
+                <span>Salvataggio...</span>
+              ) : isCompleted ? (
                 <>
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   <span>Completata</span>
