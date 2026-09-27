@@ -8,6 +8,9 @@ import {
   Play,
   ArrowUp,
   ArrowDown,
+  ChevronDown,
+  ChevronUp,
+  ChevronRight,
   Paperclip,
   FileText,
   Upload,
@@ -163,6 +166,29 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
 
+  // Moduli compressi/chiusi di default per una navigazione comoda
+  const [expandedChapterIds, setExpandedChapterIds] = useState<Set<string>>(() => new Set());
+
+  const toggleChapter = (chapterId: string) => {
+    setExpandedChapterIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(chapterId)) {
+        next.delete(chapterId);
+      } else {
+        next.add(chapterId);
+      }
+      return next;
+    });
+  };
+
+  const expandAllChapters = () => {
+    setExpandedChapterIds(new Set(localChapters.map((c) => c.chapter_id)));
+  };
+
+  const collapseAllChapters = () => {
+    setExpandedChapterIds(new Set());
+  };
+
   // FIX: Aggiungi stato per il modale di anteprima
   // Confirmation modal replacing native confirm() for delete actions, to
   // stay consistent with the rest of the app's UI instead of the browser's
@@ -176,6 +202,10 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     if (confirmDelete.type === 'chapter') {
       onDeleteChapter(confirmDelete.chapterId);
     } else {
+      const chapterOfLesson = localChapters.find((c) => c.lessons?.some((l) => l.lesson_id === confirmDelete.lessonId));
+      if (chapterOfLesson) {
+        setExpandedChapterIds((prev) => new Set(prev).add(chapterOfLesson.chapter_id));
+      }
       onDeleteLesson(confirmDelete.lessonId);
     }
     setConfirmDelete(null);
@@ -301,6 +331,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
 
   const handleCreateLesson = (chapterId: string) => {
     setSelectedChapterId(chapterId);
+    setExpandedChapterIds((prev) => new Set(prev).add(chapterId));
     setReplacingThumbnail(false);
     setMaterialError(null);
     setLessonForm({
@@ -318,6 +349,9 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const handleSaveLesson = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+    const targetChapterId = selectedChapterId || (editingLesson ? localChapters.find((c) => c.lessons?.some((l) => l.lesson_id === editingLesson.lesson_id))?.chapter_id : null);
+    const targetLessonId = editingLesson?.lesson_id;
+
     try {
       const lessonPayload: Partial<LessonFormData> = {
         title: lessonForm.title,
@@ -337,6 +371,22 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       } else if (selectedChapterId) {
         await onCreateLesson(selectedChapterId, lessonPayload as LessonFormData);
       }
+
+      if (targetChapterId) {
+        setExpandedChapterIds((prev) => new Set(prev).add(targetChapterId));
+        // Mantiene lo scroll sulla sezione/lezione appena modificata senza rimandare l'utente all'inizio
+        setTimeout(() => {
+          const targetEl = targetLessonId 
+            ? document.getElementById(`lesson-card-${targetLessonId}`) 
+            : document.getElementById(`chapter-card-${targetChapterId}`);
+          if (targetEl) {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          } else {
+            document.getElementById(`chapter-card-${targetChapterId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }, 150);
+      }
+
       setShowLessonModal(false);
       setEditingLesson(null);
       setSelectedChapterId(null);
@@ -407,226 +457,340 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h2 className="text-2xl font-bold text-gray-900">Course Structure</h2>
-        <Button
-          onClick={() => {
-            setEditingChapter(null);
-            setReplacingChapterImage(false);
-            setChapterForm({ title: '', description: '', image_url: '' });
-            setShowChapterModal(true);
-          }}
-          variant="primary"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Chapter
-        </Button>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Course Structure</h2>
+          <p className="text-xs text-gray-500 mt-1">
+            I moduli sono chiusi di default. Clicca su un modulo per visualizzare o modificare le relative lezioni.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {expandedChapterIds.size > 0 ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={collapseAllChapters}
+              className="text-xs font-medium"
+            >
+              <ChevronUp className="w-4 h-4 mr-1.5" />
+              Comprimi tutti ({expandedChapterIds.size})
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={expandAllChapters}
+              className="text-xs font-medium"
+            >
+              <ChevronDown className="w-4 h-4 mr-1.5" />
+              Espandi tutti ({localChapters.length})
+            </Button>
+          )}
+          <Button
+            onClick={() => {
+              setEditingChapter(null);
+              setReplacingChapterImage(false);
+              setChapterForm({ title: '', description: '', image_url: '' });
+              setShowChapterModal(true);
+            }}
+            variant="primary"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Chapter
+          </Button>
+        </div>
       </div>
 
       {/* Chapters List */}
       <div className="space-y-4">
         <Reorder.Group axis="y" values={localChapters} onReorder={handleReorderChapters} className="space-y-4">
-          {localChapters.map((chapter) => (
-            <Reorder.Item
-              key={chapter.chapter_id}
-              value={chapter}
-              onDragEnd={handleSaveChapterOrder}
-              className="bg-white rounded-lg border border-gray-200 overflow-hidden"
-            >
-              {/* Chapter Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50 p-3 sm:p-4 border-b border-gray-200">
-                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto overflow-hidden">
-                  <div className="cursor-move p-1 hover:bg-gray-200 rounded">
-                    <GripVertical className="w-5 h-5 text-gray-400" />
-                  </div>
-                  <div className="flex flex-col">
-                    <button
-                      type="button"
-                      onClick={() => moveChapter(chapter.chapter_id, -1)}
-                      disabled={chapter.order_number <= 1}
-                      className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
-                      aria-label={`Sposta capitolo "${chapter.title}" su`}
-                    >
-                      <ArrowUp className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveChapter(chapter.chapter_id, 1)}
-                      disabled={chapter.order_number >= localChapters.length}
-                      className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
-                      aria-label={`Sposta capitolo "${chapter.title}" giù`}
-                    >
-                      <ArrowDown className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  {chapter.image_url ? (
-                    <div
-                      onClick={() => setZoomImage({ url: chapter.image_url!, title: `Capitolo ${chapter.order_number}: ${chapter.title}` })}
-                      className="group relative cursor-pointer flex-shrink-0"
-                      title="Clicca per ingrandire la copertina"
-                    >
-                      <img
-                        src={chapter.image_url}
-                        alt={chapter.title}
-                        loading="lazy"
-                        width={352}
-                        height={198}
-                        className="aspect-video h-28 w-52 sm:h-32 sm:w-56 md:h-[198px] md:w-[352px] rounded-xl border border-gray-200 object-contain bg-white shadow-sm group-hover:shadow-md group-hover:scale-[1.02] transition-all"
-                      />
-                      <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[9px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                        🔍 Zoom
-                      </span>
-                    </div>
-                  ) : null}
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-gray-900 truncate text-base sm:text-lg">
-                      Chapter {chapter.order_number}: {chapter.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 truncate mt-0.5">{chapter.description}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end sm:justify-start">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleCreateLesson(chapter.chapter_id)}
-                    className="pointer-events-auto"
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add Lesson
-                  </Button>
-                  <button
-                    onClick={() => handleEditChapter(chapter)}
-                    className="p-2 text-gray-600 hover:text-primary-600 pointer-events-auto"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete({ type: 'chapter', chapterId: chapter.chapter_id })}
-                    className="p-2 text-gray-600 hover:text-red-600 pointer-events-auto"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+          {localChapters.map((chapter) => {
+            const isExpanded = expandedChapterIds.has(chapter.chapter_id);
+            const lessonCount = chapter.lessons?.length || 0;
 
-              {/* Lessons */}
-              {chapter.lessons && chapter.lessons.length > 0 && (
-                <div className="p-4 bg-gray-50/50">
-                  <Reorder.Group
-                    axis="y"
-                    values={chapter.lessons}
-                    onReorder={(newLessons) => handleReorderLessonsLocal(chapter.chapter_id, newLessons)}
-                    className="space-y-3"
-                  >
-                    {chapter.lessons.map((lesson) => (
-                      <Reorder.Item
-                        key={lesson.lesson_id}
-                        value={lesson}
-                        onDragEnd={() => handleSaveLessonOrder(chapter.chapter_id)}
-                        className="flex flex-col items-stretch gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+            return (
+              <Reorder.Item
+                key={chapter.chapter_id}
+                id={`chapter-card-${chapter.chapter_id}`}
+                value={chapter}
+                onDragEnd={handleSaveChapterOrder}
+                className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs hover:border-gray-300 transition-all scroll-mt-24"
+              >
+                {/* Chapter Header */}
+                <div
+                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 transition-colors ${
+                    isExpanded ? 'bg-gray-50/90 border-b border-gray-200' : 'bg-white hover:bg-gray-50/70 cursor-pointer'
+                  }`}
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (target.closest('button') || target.closest('a') || target.closest('input')) {
+                      return;
+                    }
+                    toggleChapter(chapter.chapter_id);
+                  }}
+                >
+                  <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto overflow-hidden">
+                    {/* Expand/Collapse Chevron Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleChapter(chapter.chapter_id);
+                      }}
+                      className="p-1.5 text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-200/70 transition-colors flex-shrink-0"
+                      title={isExpanded ? 'Comprimi modulo' : 'Espandi modulo'}
+                      aria-expanded={isExpanded}
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="w-5 h-5 text-primary-600" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-gray-400" />
+                      )}
+                    </button>
+
+                    <div className="cursor-move p-1 hover:bg-gray-200 rounded flex-shrink-0">
+                      <GripVertical className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <div className="flex flex-col flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveChapter(chapter.chapter_id, -1);
+                        }}
+                        disabled={chapter.order_number <= 1}
+                        className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
+                        aria-label={`Sposta capitolo "${chapter.title}" su`}
                       >
-                        <div className="flex min-w-0 items-center gap-3 sm:gap-4 flex-1">
-                          <div className="cursor-move p-1 hover:bg-gray-100 rounded text-gray-400 flex-shrink-0">
-                            <GripVertical className="w-4 h-4" />
-                          </div>
-                          <div className="flex flex-shrink-0 flex-col">
-                            <button
-                              type="button"
-                              onClick={() => moveLesson(chapter.chapter_id, lesson.lesson_id, -1)}
-                              disabled={lesson.order_number <= 1}
-                              className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
-                              aria-label={`Sposta lezione "${lesson.title}" su`}
-                            >
-                              <ArrowUp className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => moveLesson(chapter.chapter_id, lesson.lesson_id, 1)}
-                              disabled={lesson.order_number >= (chapter.lessons?.length || 0)}
-                              className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
-                              aria-label={`Sposta lezione "${lesson.title}" giù`}
-                            >
-                              <ArrowDown className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                          {lesson.thumbnail_url ? (
-                            <div
-                              onClick={() => setZoomImage({ url: lesson.thumbnail_url!, title: `Lezione ${lesson.order_number}: ${lesson.title}` })}
-                              className="group relative cursor-pointer flex-shrink-0"
-                              title="Clicca per ingrandire la copertina"
-                            >
-                              <img
-                                src={lesson.thumbnail_url}
-                                alt={lesson.title}
-                                loading="lazy"
-                                width={320}
-                                height={180}
-                                className="aspect-video h-28 w-52 sm:h-36 sm:w-64 md:h-[180px] md:w-80 rounded-xl border border-gray-200 object-contain bg-white shadow-sm group-hover:shadow-md group-hover:scale-[1.02] transition-all"
-                              />
-                              <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[9px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                                🔍 Zoom
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="flex aspect-video h-28 w-52 sm:h-36 sm:w-64 md:h-[180px] md:w-80 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-xs font-medium text-gray-400">
-                              No cover
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium text-gray-900 text-sm leading-5 break-words">
-                              Lesson {lesson.order_number}: {lesson.title}
-                            </p>
-                            <p className="text-xs text-gray-500 break-words sm:truncate sm:max-w-md">{lesson.description}</p>
-                            {lesson.is_free_preview && (
-                              <span className="inline-block mt-1 text-[10px] font-medium text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded">
-                                Free Preview
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex self-end sm:self-auto items-center gap-1">
-                          {/* FIX: Pulsante Anteprima */}
-                          <button
-                            onClick={() => handlePreviewLesson(lesson)}
-                            className="p-2 sm:p-1.5 text-gray-500 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors"
-                            title="Preview Lesson"
-                          >
-                            <Play className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditingLesson(lesson);
-                              setReplacingThumbnail(false);
-                              setMaterialError(null);
-                              setLessonForm({
-                                title: lesson.title,
-                                description: lesson.description,
-                                duration_seconds: lesson.duration_seconds,
-                                video_s3_key: lesson.video_s3_key,
-                                thumbnail_url: lesson.thumbnail_url || '',
-                                is_free_preview: lesson.is_free_preview || false,
-                                attachments: lesson.attachments ? [...lesson.attachments] : [],
-                              });
-                              setShowLessonModal(true);
-                            }}
-                            className="p-2 sm:p-1.5 text-gray-500 hover:text-primary-600 rounded hover:bg-primary-50 transition-colors"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => setConfirmDelete({ type: 'lesson', lessonId: lesson.lesson_id })}
-                            className="p-2 sm:p-1.5 text-gray-500 hover:text-red-600 rounded hover:bg-red-50 transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </Reorder.Item>
-                    ))}
-                  </Reorder.Group>
+                        <ArrowUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveChapter(chapter.chapter_id, 1);
+                        }}
+                        disabled={chapter.order_number >= localChapters.length}
+                        className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
+                        aria-label={`Sposta capitolo "${chapter.title}" giù`}
+                      >
+                        <ArrowDown className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    {chapter.image_url ? (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setZoomImage({ url: chapter.image_url!, title: `Capitolo ${chapter.order_number}: ${chapter.title}` });
+                        }}
+                        className="group relative cursor-pointer flex-shrink-0"
+                        title="Clicca per ingrandire la copertina"
+                      >
+                        <img
+                          src={chapter.image_url}
+                          alt={chapter.title}
+                          loading="lazy"
+                          width={352}
+                          height={198}
+                          className="aspect-video h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 rounded-xl border border-gray-200 object-contain bg-white shadow-2xs group-hover:shadow-md group-hover:scale-[1.02] transition-all"
+                        />
+                        <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[9px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                          🔍 Zoom
+                        </span>
+                      </div>
+                    ) : null}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-gray-900 truncate text-base sm:text-lg">
+                          Chapter {chapter.order_number}: {chapter.title}
+                        </h3>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          lessonCount > 0 
+                            ? 'bg-primary-50 text-primary-700 border border-primary-200/60' 
+                            : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          {lessonCount} {lessonCount === 1 ? 'lezione' : 'lezioni'}
+                        </span>
+                      </div>
+                      {chapter.description ? (
+                        <p className="text-sm text-gray-600 truncate mt-0.5">{chapter.description}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end sm:justify-start flex-shrink-0">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCreateLesson(chapter.chapter_id);
+                      }}
+                      className="pointer-events-auto"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add Lesson
+                    </Button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditChapter(chapter);
+                      }}
+                      className="p-2 text-gray-600 hover:text-primary-600 pointer-events-auto rounded-lg hover:bg-gray-100 transition-colors"
+                      title="Modifica capitolo"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmDelete({ type: 'chapter', chapterId: chapter.chapter_id });
+                      }}
+                      className="p-2 text-gray-600 hover:text-red-600 pointer-events-auto rounded-lg hover:bg-gray-100 transition-colors"
+                      title="Elimina capitolo"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              )}
-            </Reorder.Item>
-          ))}
+
+                {/* Lessons (Visible only if chapter is expanded) */}
+                {isExpanded && (
+                  <div className="p-4 bg-gray-50/50">
+                    {chapter.lessons && chapter.lessons.length > 0 ? (
+                      <Reorder.Group
+                        axis="y"
+                        values={chapter.lessons}
+                        onReorder={(newLessons) => handleReorderLessonsLocal(chapter.chapter_id, newLessons)}
+                        className="space-y-3"
+                      >
+                        {chapter.lessons.map((lesson) => (
+                          <Reorder.Item
+                            key={lesson.lesson_id}
+                            id={`lesson-card-${lesson.lesson_id}`}
+                            value={lesson}
+                            onDragEnd={() => handleSaveLessonOrder(chapter.chapter_id)}
+                            className="flex flex-col items-stretch gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow scroll-mt-28"
+                          >
+                            <div className="flex min-w-0 items-center gap-3 sm:gap-4 flex-1">
+                              <div className="cursor-move p-1 hover:bg-gray-100 rounded text-gray-400 flex-shrink-0">
+                                <GripVertical className="w-4 h-4" />
+                              </div>
+                              <div className="flex flex-shrink-0 flex-col">
+                                <button
+                                  type="button"
+                                  onClick={() => moveLesson(chapter.chapter_id, lesson.lesson_id, -1)}
+                                  disabled={lesson.order_number <= 1}
+                                  className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
+                                  aria-label={`Sposta lezione "${lesson.title}" su`}
+                                >
+                                  <ArrowUp className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => moveLesson(chapter.chapter_id, lesson.lesson_id, 1)}
+                                  disabled={lesson.order_number >= (chapter.lessons?.length || 0)}
+                                  className="p-0.5 text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-400"
+                                  aria-label={`Sposta lezione "${lesson.title}" giù`}
+                                >
+                                  <ArrowDown className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              {lesson.thumbnail_url ? (
+                                <div
+                                  onClick={() => setZoomImage({ url: lesson.thumbnail_url!, title: `Lezione ${lesson.order_number}: ${lesson.title}` })}
+                                  className="group relative cursor-pointer flex-shrink-0"
+                                  title="Clicca per ingrandire la copertina"
+                                >
+                                  <img
+                                    src={lesson.thumbnail_url}
+                                    alt={lesson.title}
+                                    loading="lazy"
+                                    width={320}
+                                    height={180}
+                                    className="aspect-video h-28 w-52 sm:h-36 sm:w-64 md:h-[180px] md:w-80 rounded-xl border border-gray-200 object-contain bg-white shadow-sm group-hover:shadow-md group-hover:scale-[1.02] transition-all"
+                                  />
+                                  <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[9px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                    🔍 Zoom
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="flex aspect-video h-28 w-52 sm:h-36 sm:w-64 md:h-[180px] md:w-80 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-xs font-medium text-gray-400">
+                                  No cover
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-gray-900 text-sm leading-5 break-words">
+                                  Lesson {lesson.order_number}: {lesson.title}
+                                </p>
+                                <p className="text-xs text-gray-500 break-words sm:truncate sm:max-w-md">{lesson.description}</p>
+                                {lesson.is_free_preview && (
+                                  <span className="inline-block mt-1 text-[10px] font-medium text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded">
+                                    Free Preview
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex self-end sm:self-auto items-center gap-1">
+                              {/* FIX: Pulsante Anteprima */}
+                              <button
+                                onClick={() => handlePreviewLesson(lesson)}
+                                className="p-2 sm:p-1.5 text-gray-500 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors"
+                                title="Preview Lesson"
+                              >
+                                <Play className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingLesson(lesson);
+                                  setSelectedChapterId(chapter.chapter_id);
+                                  setExpandedChapterIds((prev) => new Set(prev).add(chapter.chapter_id));
+                                  setReplacingThumbnail(false);
+                                  setMaterialError(null);
+                                  setLessonForm({
+                                    title: lesson.title,
+                                    description: lesson.description,
+                                    duration_seconds: lesson.duration_seconds,
+                                    video_s3_key: lesson.video_s3_key,
+                                    thumbnail_url: lesson.thumbnail_url || '',
+                                    is_free_preview: lesson.is_free_preview || false,
+                                    attachments: lesson.attachments ? [...lesson.attachments] : [],
+                                  });
+                                  setShowLessonModal(true);
+                                }}
+                                className="p-2 sm:p-1.5 text-gray-500 hover:text-primary-600 rounded hover:bg-primary-50 transition-colors"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setConfirmDelete({ type: 'lesson', lessonId: lesson.lesson_id })}
+                                className="p-2 sm:p-1.5 text-gray-500 hover:text-red-600 rounded hover:bg-red-50 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </Reorder.Item>
+                        ))}
+                      </Reorder.Group>
+                    ) : (
+                      <div className="text-center py-6 text-sm text-gray-500 bg-white rounded-xl border border-dashed border-gray-200">
+                        <p>Nessuna lezione presente in questo capitolo.</p>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleCreateLesson(chapter.chapter_id)}
+                          className="mt-2 text-primary-600 hover:text-primary-700"
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          Aggiungi la prima lezione
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Reorder.Item>
+            );
+          })}
         </Reorder.Group>
       </div>
 

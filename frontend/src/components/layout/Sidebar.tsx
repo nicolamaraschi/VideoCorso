@@ -142,7 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false, mobileMenuOpe
               </a>
             </div>
 
-            {/* Luxury Box: Supporto Corsiste & Domande Pratica */}
+            {/* Box: Assistenza Corsiste */}
             <div className="mt-4 p-4 rounded-2xl bg-gradient-to-br from-primary-50 via-[#FAF4F6] to-primary-100/50 border border-primary-200/80 shadow-xs space-y-2.5">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-primary-800 text-white flex items-center justify-center shadow-xs">
@@ -153,30 +153,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false, mobileMenuOpe
                     className="text-xs font-bold text-primary-950 leading-none"
                     style={{ fontFamily: 'Abhaya Libre, serif' }}
                   >
-                    Supporto Didattico
+                    Assistenza Corsiste
                   </h4>
                   <p className="text-[10px] text-primary-800 font-medium mt-0.5">Accademia Chiara Morocutti</p>
                 </div>
               </div>
 
-              <p className="text-xs text-gray-600 leading-relaxed">
-                Hai dubbi sulla corretta impugnatura, la pelle sintetica o i pigmenti?
-              </p>
-
-              <div className="pt-1 flex flex-col gap-1.5">
+              <div className="pt-1">
                 <a
-                  href="https://wa.me/393428077768?text=Ciao%20Chiara,%20sono%20una%20corsista%20del%20videocorso%20di%20Microblading"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition-all"
-                >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  <span>Scrivi su WhatsApp</span>
-                </a>
-
-                <a
-                  href="mailto:info@pmumorocutti.it?subject=Supporto%20Didattico%20Videocorso%20Microblading"
-                  className="inline-flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded-xl bg-white border border-primary-200 hover:bg-primary-50 text-primary-900 text-[11px] font-medium transition-all"
+                  href="mailto:info@pmumorocutti.it?subject=Assistenza%20Piattaforma%20Videocorso"
+                  className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-xl bg-white border border-primary-200 hover:bg-primary-50 text-primary-900 text-xs font-medium transition-all shadow-2xs"
                 >
                   <HelpCircle className="w-3.5 h-3.5 text-primary-700" />
                   <span>Assistenza via Email</span>

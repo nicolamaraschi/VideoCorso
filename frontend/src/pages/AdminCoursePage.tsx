@@ -917,11 +917,11 @@ export const AdminCoursePage: React.FC = () => {
           <p className="text-lg font-medium">Salva il corso per iniziare ad aggiungere i contenuti</p>
           <p className="mt-2 text-sm">Dopo aver salvato, potrai creare capitoli e lezioni.</p>
         </div>
-      ) : loading ? (
+      ) : loading && !courseStructure ? (
         <Loading fullScreen text="Loading course structure..." />
-      ) : error || !courseStructure ? (
+      ) : error && !courseStructure ? (
         <ErrorMessage variant="card" message={error || 'Failed to load course structure'} onRetry={reload} />
-      ) : (
+      ) : courseStructure ? (
         <CourseEditor
           chapters={courseStructure.chapters}
           onCreateChapter={handleCreateChapter}
@@ -933,7 +933,7 @@ export const AdminCoursePage: React.FC = () => {
           onReorderChapters={handleReorderChapters}
           onReorderLessons={handleReorderLessons}
         />
-      ))}
+      ) : null)}
     </div>
   );
 };
