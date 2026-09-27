@@ -587,18 +587,18 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                           setZoomImage({ url: chapter.image_url!, title: `Capitolo ${chapter.order_number}: ${chapter.title}` });
                         }}
                         className="group relative cursor-pointer flex-shrink-0"
-                        title="Clicca per ingrandire la copertina"
+                        title="Clicca per ingrandire la copertina in HD"
                       >
                         <img
                           src={chapter.image_url}
                           alt={chapter.title}
                           loading="lazy"
-                          width={352}
-                          height={198}
-                          className="aspect-video h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 rounded-xl border border-gray-200 object-contain bg-white shadow-2xs"
+                          width={400}
+                          height={225}
+                          className="aspect-video w-48 sm:w-64 md:w-80 lg:w-[360px] rounded-xl border border-gray-200 object-cover bg-black shadow-sm group-hover:scale-[1.01] transition-transform"
                         />
-                        <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[9px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                          🔍 Zoom
+                        <span className="absolute bottom-1.5 right-1.5 rounded-md bg-black/75 px-2 py-0.5 text-[10px] font-semibold text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-xs flex items-center gap-1 shadow-sm">
+                          🔍 Zoom HD
                         </span>
                       </div>
                     ) : null}
@@ -710,16 +710,16 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                                     src={lesson.thumbnail_url}
                                     alt={lesson.title}
                                     loading="lazy"
-                                    width={320}
-                                    height={180}
-                                    className="aspect-video h-28 w-52 sm:h-36 sm:w-64 md:h-[180px] md:w-80 rounded-xl border border-gray-200 object-contain bg-white shadow-sm"
+                                    width={260}
+                                    height={146}
+                                    className="aspect-video w-36 sm:w-44 md:w-52 rounded-xl border border-gray-200 object-contain bg-black shadow-xs"
                                   />
                                   <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[9px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
                                     🔍 Zoom
                                   </span>
                                 </div>
                               ) : (
-                                <div className="flex aspect-video h-28 w-52 sm:h-36 sm:w-64 md:h-[180px] md:w-80 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-xs font-medium text-gray-400">
+                                <div className="flex aspect-video w-36 sm:w-44 md:w-52 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-xs font-medium text-gray-400">
                                   No cover
                                 </div>
                               )}
