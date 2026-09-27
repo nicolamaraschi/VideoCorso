@@ -17,6 +17,9 @@ import { useVideoProgress } from '../../hooks/useVideoProgress';
 import type { VideoQuality } from '../../types';
 
 const QUALITY_LABELS: Record<string, string> = {
+  '4k': '4K (2160p)',
+  '2k': '2K (1440p)',
+  '1440p': '2K (1440p)',
   '1080p': 'Full HD (1080p)',
   '720p': 'Alta (720p)',
   '480p': 'Media (480p)',

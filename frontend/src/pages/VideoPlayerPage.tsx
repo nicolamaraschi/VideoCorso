@@ -35,6 +35,9 @@ const readStoredQuality = (): VideoQuality | undefined => {
   try {
     const stored = window.localStorage.getItem(QUALITY_STORAGE_KEY);
     if (
+      stored === '4k' ||
+      stored === '2k' ||
+      stored === '1440p' ||
       stored === '1080p' ||
       stored === '720p' ||
       stored === '480p' ||

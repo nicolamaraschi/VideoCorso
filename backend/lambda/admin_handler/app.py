@@ -122,13 +122,13 @@ def get_optimized_video_keys(video_s3_key: Any) -> list[str]:
     if len(parts) >= 4 and parts[0] == 'videos' and parts[-1].startswith('source.'):
         prefix = '/'.join(parts[1:-1])
         return [f'streaming/{prefix}/source_{quality}.mp4'
-                for quality in ('720p', '480p', '360p', '1080p')]
+                for quality in ('4k', '2k', '1440p', '1080p', '720p', '480p', '360p')]
     source_name = key.rsplit('/', 1)[-1]
     source_stem = source_name.rsplit('.', 1)[0]
     if not source_stem:
         return []
     return [f'streaming/{source_stem}/{source_stem}_{quality}.mp4'
-            for quality in ('720p', '480p', '360p', '1080p')]
+            for quality in ('4k', '2k', '1440p', '1080p', '720p', '480p', '360p')]
 
 
 def delete_lesson_assets(lesson: dict[str, Any]) -> None:
