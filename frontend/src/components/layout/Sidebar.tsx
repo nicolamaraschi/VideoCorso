@@ -13,7 +13,6 @@ import {
   LogOut,
   Terminal,
   ExternalLink,
-  MessageCircle,
   Sparkles,
   HelpCircle,
 } from 'lucide-react';
