@@ -380,11 +380,11 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             ? document.getElementById(`lesson-card-${targetLessonId}`) 
             : document.getElementById(`chapter-card-${targetChapterId}`);
           if (targetEl) {
-            targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            targetEl.scrollIntoView({ behavior: 'auto', block: 'nearest' });
           } else {
-            document.getElementById(`chapter-card-${targetChapterId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            document.getElementById(`chapter-card-${targetChapterId}`)?.scrollIntoView({ behavior: 'auto', block: 'nearest' });
           }
-        }, 150);
+        }, 50);
       }
 
       setShowLessonModal(false);
@@ -514,12 +514,14 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                 key={chapter.chapter_id}
                 id={`chapter-card-${chapter.chapter_id}`}
                 value={chapter}
+                layout="position"
+                transition={{ duration: 0 }}
                 onDragEnd={handleSaveChapterOrder}
-                className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs hover:border-gray-300 transition-all scroll-mt-24"
+                className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs hover:border-gray-300 scroll-mt-24"
               >
                 {/* Chapter Header */}
                 <div
-                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 transition-colors ${
+                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 ${
                     isExpanded ? 'bg-gray-50/90 border-b border-gray-200' : 'bg-white hover:bg-gray-50/70 cursor-pointer'
                   }`}
                   onClick={(e) => {
@@ -593,7 +595,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                           loading="lazy"
                           width={352}
                           height={198}
-                          className="aspect-video h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 rounded-xl border border-gray-200 object-contain bg-white shadow-2xs group-hover:shadow-md group-hover:scale-[1.02] transition-all"
+                          className="aspect-video h-20 w-36 sm:h-24 sm:w-44 md:h-28 md:w-52 rounded-xl border border-gray-200 object-contain bg-white shadow-2xs"
                         />
                         <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[9px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
                           🔍 Zoom
@@ -669,8 +671,10 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                             key={lesson.lesson_id}
                             id={`lesson-card-${lesson.lesson_id}`}
                             value={lesson}
+                            layout="position"
+                            transition={{ duration: 0 }}
                             onDragEnd={() => handleSaveLessonOrder(chapter.chapter_id)}
-                            className="flex flex-col items-stretch gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow scroll-mt-28"
+                            className="flex flex-col items-stretch gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md scroll-mt-28"
                           >
                             <div className="flex min-w-0 items-center gap-3 sm:gap-4 flex-1">
                               <div className="cursor-move p-1 hover:bg-gray-100 rounded text-gray-400 flex-shrink-0">
@@ -708,7 +712,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                                     loading="lazy"
                                     width={320}
                                     height={180}
-                                    className="aspect-video h-28 w-52 sm:h-36 sm:w-64 md:h-[180px] md:w-80 rounded-xl border border-gray-200 object-contain bg-white shadow-sm group-hover:shadow-md group-hover:scale-[1.02] transition-all"
+                                    className="aspect-video h-28 w-52 sm:h-36 sm:w-64 md:h-[180px] md:w-80 rounded-xl border border-gray-200 object-contain bg-white shadow-sm"
                                   />
                                   <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[9px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
                                     🔍 Zoom
