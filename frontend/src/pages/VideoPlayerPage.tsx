@@ -457,7 +457,7 @@ export const VideoPlayerPage: React.FC = () => {
             <div className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full bg-primary-100/90 border border-primary-200/90 text-primary-900 text-xs font-bold uppercase tracking-wider mb-3 shadow-xs">
               <Sparkles className="w-3.5 h-3.5 text-primary-700" />
               <span>
-                Modulo {chapterNumber} • {currentChapter.title}
+                Modulo {chapterNumber} • {currentChapter.title.replace(/^modulo\s*\d+[:\s-]*/i, '').trim() || currentChapter.title}
               </span>
             </div>
           )}

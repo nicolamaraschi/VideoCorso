@@ -191,7 +191,7 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                       className="text-base sm:text-xl md:text-2xl font-bold text-gray-950 leading-snug break-normal line-clamp-2"
                       style={{ fontFamily: 'Abhaya Libre, serif' }}
                     >
-                      {chapter.title}
+                      {chapter.title.replace(/^modulo\s*\d+[:\s-]*/i, '').trim() || chapter.title}
                     </h3>
 
                     {/* Progress Indicator */}

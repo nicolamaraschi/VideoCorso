@@ -51,6 +51,24 @@ interface CourseEditorProps {
   onReorderLessons: (items: { id: string; order_number: number }[]) => Promise<void>;
 }
 
+export const formatChapterTitle = (orderNumber: number, rawTitle: string) => {
+  if (!rawTitle) return `Modulo ${orderNumber}`;
+  const cleaned = rawTitle.replace(/^modulo\s*\d+[:\s-]*/i, '').trim();
+  if (cleaned) {
+    return `Modulo ${orderNumber}: ${cleaned}`;
+  }
+  return `Modulo ${orderNumber}`;
+};
+
+export const formatLessonTitle = (orderNumber: number, rawTitle: string) => {
+  if (!rawTitle) return `Lezione ${orderNumber}`;
+  const cleaned = rawTitle.replace(/^lezione\s*\d+[:\s-]*/i, '').trim();
+  if (cleaned) {
+    return `Lezione ${orderNumber}: ${cleaned}`;
+  }
+  return `Lezione ${orderNumber}`;
+};
+
 export const CourseEditor: React.FC<CourseEditorProps> = ({
   chapters,
   onCreateChapter,
@@ -497,7 +515,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             variant="primary"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add Chapter
+            Aggiungi Modulo
           </Button>
         </div>
       </div>
@@ -584,7 +602,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                       <div
                         onClick={(e) => {
                           e.stopPropagation();
-                          setZoomImage({ url: chapter.image_url!, title: `Capitolo ${chapter.order_number}: ${chapter.title}` });
+                          setZoomImage({ url: chapter.image_url!, title: formatChapterTitle(chapter.order_number, chapter.title) });
                         }}
                         className="group relative cursor-pointer flex-shrink-0"
                         title="Clicca per ingrandire la copertina in HD"
@@ -605,7 +623,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-gray-900 truncate text-base sm:text-lg">
-                          Chapter {chapter.order_number}: {chapter.title}
+                          {formatChapterTitle(chapter.order_number, chapter.title)}
                         </h3>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                           lessonCount > 0 
@@ -631,7 +649,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                       className="pointer-events-auto"
                     >
                       <Plus className="w-4 h-4 mr-1" />
-                      Add Lesson
+                      Aggiungi Lezione
                     </Button>
                     <button
                       onClick={(e) => {
@@ -639,7 +657,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                         handleEditChapter(chapter);
                       }}
                       className="p-2 text-gray-600 hover:text-primary-600 pointer-events-auto rounded-lg hover:bg-gray-100 transition-colors"
-                      title="Modifica capitolo"
+                      title="Modifica modulo"
                     >
                       <Edit className="w-4 h-4" />
                     </button>
@@ -649,7 +667,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                         setConfirmDelete({ type: 'chapter', chapterId: chapter.chapter_id });
                       }}
                       className="p-2 text-gray-600 hover:text-red-600 pointer-events-auto rounded-lg hover:bg-gray-100 transition-colors"
-                      title="Elimina capitolo"
+                      title="Elimina modulo"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -725,12 +743,12 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                               )}
                               <div className="min-w-0 flex-1">
                                 <p className="font-medium text-gray-900 text-sm leading-5 break-words">
-                                  Lesson {lesson.order_number}: {lesson.title}
+                                  {formatLessonTitle(lesson.order_number, lesson.title)}
                                 </p>
                                 <p className="text-xs text-gray-500 break-words sm:truncate sm:max-w-md">{lesson.description}</p>
                                 {lesson.is_free_preview && (
                                   <span className="inline-block mt-1 text-[10px] font-medium text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded">
-                                    Free Preview
+                                    Anteprima Gratuita
                                   </span>
                                 )}
                               </div>
@@ -802,12 +820,12 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       <Modal
         isOpen={showChapterModal}
         onClose={() => setShowChapterModal(false)}
-        title={editingChapter ? 'Edit Chapter' : 'Create Chapter'}
+        title={editingChapter ? 'Modifica Modulo' : 'Crea Modulo'}
       >
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Title
+              Titolo Modulo
             </label>
             <input
               type="text"
@@ -820,7 +838,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description
+              Descrizione
             </label>
             <textarea
               value={chapterForm.description}
@@ -833,13 +851,13 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
           </div>
           <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700">
-              Copertina capitolo
+              Copertina modulo
             </label>
             {chapterForm.image_url && !replacingChapterImage ? (
               <div className="space-y-3">
                 <img
                   src={chapterForm.image_url}
-                  alt="Anteprima copertina capitolo"
+                  alt="Anteprima copertina modulo"
                   width={400}
                   height={160}
                   className="max-h-40 w-auto rounded-lg border border-gray-200 object-contain mx-auto shadow-xs"
@@ -868,7 +886,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               <div className="space-y-3">
                 <ImageUploader
                   folder="chapters"
-                  label="Copertina capitolo"
+                  label="Copertina modulo"
                   onUploadComplete={(imageUrl) => {
                     setChapterForm((prev) => ({ ...prev, image_url: imageUrl }));
                     setReplacingChapterImage(false);
@@ -894,7 +912,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             disabled={isSubmitting || !chapterForm.title.trim()}
           >
             <Save className="w-4 h-4 mr-2" />
-            {isSubmitting ? 'Saving...' : (editingChapter ? 'Update Chapter' : 'Create Chapter')}
+            {isSubmitting ? 'Salvataggio...' : (editingChapter ? 'Aggiorna Modulo' : 'Crea Modulo')}
           </Button>
         </div>
       </Modal>
@@ -1183,22 +1201,22 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       <Modal
         isOpen={!!confirmDelete}
         onClose={() => setConfirmDelete(null)}
-        title={confirmDelete?.type === 'chapter' ? 'Delete chapter?' : 'Delete lesson?'}
+        title={confirmDelete?.type === 'chapter' ? 'Elimina modulo?' : 'Elimina lezione?'}
         size="sm"
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
             {confirmDelete?.type === 'chapter'
-              ? 'This will permanently delete the chapter and all its lessons. This action cannot be undone.'
-              : 'This will permanently delete the lesson. This action cannot be undone.'}
+              ? 'Questo eliminerà definitivamente il modulo e tutte le relative lezioni. L\'azione non può essere annullata.'
+              : 'Questo eliminerà definitivamente la lezione. L\'azione non può essere annullata.'}
           </p>
           <div className="flex gap-3">
             <Button variant="secondary" fullWidth onClick={() => setConfirmDelete(null)}>
-              Cancel
+              Annulla
             </Button>
             <Button variant="danger" fullWidth onClick={handleConfirmDelete}>
               <Trash2 className="w-4 h-4 mr-2" />
-              Delete
+              Elimina
             </Button>
           </div>
         </div>
