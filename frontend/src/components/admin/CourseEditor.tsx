@@ -51,7 +51,7 @@ interface CourseEditorProps {
   onReorderLessons: (items: { id: string; order_number: number }[]) => Promise<void>;
 }
 
-export const formatChapterTitle = (orderNumber: number, rawTitle: string) => {
+const formatChapterTitle = (orderNumber: number, rawTitle: string) => {
   if (!rawTitle) return `Modulo ${orderNumber}`;
   const cleaned = rawTitle.replace(/^modulo\s*\d+[:\s-]*/i, '').trim();
   if (cleaned) {
@@ -60,7 +60,7 @@ export const formatChapterTitle = (orderNumber: number, rawTitle: string) => {
   return `Modulo ${orderNumber}`;
 };
 
-export const formatLessonTitle = (orderNumber: number, rawTitle: string) => {
+const formatLessonTitle = (orderNumber: number, rawTitle: string) => {
   if (!rawTitle) return `Lezione ${orderNumber}`;
   const cleaned = rawTitle.replace(/^lezione\s*\d+[:\s-]*/i, '').trim();
   if (cleaned) {
