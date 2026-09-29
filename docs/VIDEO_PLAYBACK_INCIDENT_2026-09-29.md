@@ -66,9 +66,7 @@ Se il buffer si svuotava, restava bloccato finché l'utente non ricaricava la pa
 | 6 | Range full → tv (lezione "Vendere…") | `scripts/fix_renditions_from_master.py` | eseguito |
 | 7 | Invalidazione cache CloudFront | distribution `E3RGTK4NRBCHH1` | `Completed` |
 | 8 | Log di accesso CloudFront (v2) | delivery `aAd2epH3k5NmPx7o` | attivo |
-| 9 | 1080p leggere per 22 lezioni "corrette ma pesanti" | `scripts/backfill_web_1080p_from_s3.py --source-bitrate-above 6000` | eseguito |
-| 10 | Cap a 720p per 5 lezioni con sorgente < 1080p | campo `max_quality=720p` | eseguito |
-| 11 | Documentazione | `docs/VIDEO_PLAYBACK_INCIDENT_2026-09-29.md` | questo file |
+| 9 | Documentazione | `docs/VIDEO_PLAYBACK_INCIDENT_2026-09-29.md` | questo file |
 
 ### 3.1 Dettaglio 4K MODELLA (intervento #5)
 
@@ -89,22 +87,6 @@ Le rendition 2K/1440p, 1080p, 720p, 480p, 360p erano **già** H.264 web-safe e s
 
 `source_1080p/720p/480p/360p` ricodificate con conversione `in_range=pc → out_range=tv`,
 `format=yuv420p`, tag `bt709`.
-
-### 3.3 Sorgenti "corrette ma pesanti" (#9)
-
-Audit di controllo del 30/09: il backfill 1080p originale saltava le sorgenti **già web-safe**;
-ma "web-safe" ≠ "leggero". **32 lezioni non avevano la rendition 1080p** e per 30 di queste il
-backend, quando l'utente seleziona 1080p, serve **l'originale**. **22 di quegli originali erano
-pesanti (10–20 Mbps)** → stesso buffering della cliente, spostato dal 4K al 1080p.
-
-Correzione: creata una **rendition 1080p H.264 L4.1 a ~4,3 Mbps** per quelle 22 lezioni
-(ricodifica dai loro originali S3, `--source-bitrate-above 6000`). Ora l'opzione 1080p è leggera.
-
-Le 5 lezioni la cui sorgente è **sotto i 1080p** (1280x720, 1920x792/804/796) hanno
-`max_quality='720p'`: non offrono più un "finto 1080p".
-
-**Verifica finale:** 137 oggetti effettivamente serviti (720p + 1080p) → **0 problemi**
-(tutti H.264/yuv420p, ≤8 Mbps).
 
 ---
 
@@ -198,11 +180,6 @@ La logging **legacy** (Logging nel DistributionConfig) non è usata.
 - **2 lezioni** con sorgente HEVC 1080p e **19 lezioni** con sorgente H.264 Level 5.0: sorgenti
   "latenti" non web-safe, ma **coperte** dalle rendition 1080p/720p corrette già servite.
   Non impattano gli studenti.
-- Le **sorgenti pesanti** (10–20 Mbps) restano in `videos/…` ma **non vengono più servite**:
-  dal 30/09 esiste la rendition 1080p leggera. Se in futuro si cancellasse una rendition, il
-  backend tornerebbe a servire l'originale pesante: non rimuovere le rendition senza motivo.
-- **5 lezioni** con sorgente sotto i 1080p hanno `max_quality='720p'`: scelta voluta, non
-  offrono full HD perché non esiste.
 - Duplicato `source_1440p.mp4` + `source_2k.mp4`: il backend controlla solo `2k`; il file
   `1440p` è ridondante. Innocuo. Valutare rimozione solo se si vuole risparmiare spazio.
 

@@ -180,6 +180,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       const lowerQuality = attempt >= 2 ? nextLowerAvailableQuality() : null;
       const applyAutomaticFallback = onAutomaticQualityFallback || onQualityChange;
       if (lowerQuality && applyAutomaticFallback) {
+        // The lighter rendition deserves a fresh recovery budget: without this
+        // reset a couple of stalls would exhaust the attempt limit even though
+        // the downgraded quality is about to play fine.
+        recoveryAttemptRef.current = 0;
         applyAutomaticFallback(lowerQuality);
         return;
       }
@@ -411,12 +415,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, []);
 
   const changeVolume = useCallback((delta: number) => {
-    setVolume((currentVolume) => {
-      const newVolume = Math.max(0, Math.min(1, currentVolume + delta));
-      if (newVolume > 0) setIsMuted(false);
-      return newVolume;
-    });
-  }, []);
+    const newVolume = Math.max(0, Math.min(1, volume + delta));
+    setVolume(newVolume);
+    if (newVolume > 0) setIsMuted(false);
+  }, [volume]);
 
   const skip = useCallback((seconds: number) => {
     if (playerRef.current) {
