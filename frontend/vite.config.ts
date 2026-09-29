@@ -5,7 +5,10 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
-    target: 'esnext',
+    // Keep the authenticated course usable on older still-supported Safari,
+    // iOS, Chromium, Firefox and Edge releases instead of shipping esnext
+    // syntax that only the newest browsers can parse.
+    target: ['es2019', 'chrome80', 'edge80', 'firefox78', 'safari13.1', 'ios13.4'],
     minify: 'esbuild',
     modulePreload: {
       resolveDependencies(_filename, deps) {

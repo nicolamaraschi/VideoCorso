@@ -51,7 +51,10 @@ const readStoredQuality = (): VideoQuality | undefined => {
   } catch {
     // localStorage may be unavailable (private browsing)
   }
-  return undefined;
+  // 720p is visually sharp for the course while remaining broadly reliable
+  // across mobile Safari, Chromium, Firefox and slower/cold CDN paths. Users
+  // can still opt into Full HD from the player settings.
+  return '720p';
 };
 
 export const VideoPlayerPage: React.FC = () => {
@@ -68,6 +71,7 @@ export const VideoPlayerPage: React.FC = () => {
   } = useCourse(courseId);
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoLessonId, setVideoLessonId] = useState<string | null>(null);
   const [availableQualities, setAvailableQualities] = useState<string[]>([]);
   const [quality, setQuality] = useState<VideoQuality | undefined>(() => readStoredQuality());
   const [loading, setLoading] = useState(true);
@@ -134,29 +138,43 @@ export const VideoPlayerPage: React.FC = () => {
 
   // Guard against stale asynchronous video requests
   const requestIdRef = useRef(0);
+  const loadedLessonIdRef = useRef<string | null>(null);
 
-  const loadVideoUrl = useCallback(async () => {
-    if (!lessonId) return;
+  const loadVideoUrl = useCallback(async (background = false): Promise<string | null> => {
+    if (!lessonId) return null;
 
     const requestId = ++requestIdRef.current;
+    const shouldBlockPage = !background && loadedLessonIdRef.current !== lessonId;
     try {
-      setLoading(true);
+      if (shouldBlockPage) setLoading(true);
       setError(null);
       const response = await courseService.getVideoUrl(lessonId, quality);
-      if (requestId !== requestIdRef.current) return;
+      if (requestId !== requestIdRef.current) return null;
+      loadedLessonIdRef.current = lessonId;
       setVideoUrl(response.video_url);
+      setVideoLessonId(lessonId);
       setAvailableQualities(response.available_qualities || []);
+      return response.video_url;
     } catch (err) {
-      if (requestId !== requestIdRef.current) return;
-      setError(getErrorMessage(err, 'Failed to load video'));
+      if (requestId !== requestIdRef.current) return null;
+      if (!background) setError(getErrorMessage(err, 'Failed to load video'));
+      return null;
     } finally {
-      if (requestId === requestIdRef.current) setLoading(false);
+      if (requestId === requestIdRef.current && shouldBlockPage) setLoading(false);
     }
   }, [lessonId, quality]);
 
   useEffect(() => {
-    void loadVideoUrl();
+    void loadVideoUrl(false);
   }, [loadVideoUrl]);
+
+  // Used by the player watchdog after a browser/media-pipeline stall. This
+  // obtains a fresh signed URL without unmounting the player, so the current
+  // playback position can be restored automatically.
+  const refreshVideoUrl = useCallback(
+    () => loadVideoUrl(true),
+    [loadVideoUrl]
+  );
 
   const handleQualityChange = (newQuality: VideoQuality) => {
     setQuality(newQuality);
@@ -290,7 +308,7 @@ export const VideoPlayerPage: React.FC = () => {
   // The video URL and the course structure are requested concurrently.  Do
   // not show the missing-video state while the structure has not arrived yet:
   // a fast video response previously created a brief, misleading 404 screen.
-  if (loading || courseLoading) {
+  if (loading || courseLoading || (videoLessonId !== lessonId && !error)) {
     return <Loading fullScreen text="Caricamento video in corso..." />;
   }
 
@@ -357,7 +375,11 @@ export const VideoPlayerPage: React.FC = () => {
             </div>
           </div>
         ) : (
-          <ErrorMessage variant="card" message={error || 'Video non trovato'} onRetry={loadVideoUrl} />
+          <ErrorMessage
+            variant="card"
+            message={error || 'Video non trovato'}
+            onRetry={() => void loadVideoUrl(false)}
+          />
         )}
       </div>
     );
@@ -523,6 +545,7 @@ export const VideoPlayerPage: React.FC = () => {
               availableQualities={availableQualities}
               quality={quality}
               onQualityChange={handleQualityChange}
+              onRequestFreshUrl={refreshVideoUrl}
             />
           </div>
         </div>

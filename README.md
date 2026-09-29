@@ -151,6 +151,10 @@ presente nella cache edge.
   corsista prema Play.
 * Ripresa effettiva dal secondo salvato tramite `seekToSeconds`.
 * Cambio qualità senza perdere posizione e stato Play/Pausa.
+* Qualità iniziale 720p per compatibilità uniforme; Full HD resta selezionabile.
+* Watchdog multipiattaforma su `waiting`, `stalled` ed errori media: rinnova
+  l'URL firmato, riprende dallo stesso secondo e, dopo stalli ripetuti, scala
+  automaticamente a una rendition più leggera senza ricaricare la pagina.
 * Il pannello mostra **Qualità originale** quando non esistono rendition, senza
   proporre pulsanti 1080p/720p/480p/360p non reali.
 * Frecce semplici = salto di 10 secondi; `Shift`/`Alt` + freccia = cambio
@@ -189,7 +193,8 @@ Lo script:
 
 1. non accede ad AWS e non elimina il sorgente;
 2. limita a 30 fps i filmati registrati a 60 fps;
-3. genera MP4 H.264/AAC compatibili con browser e iPhone;
+3. genera MP4 H.264/AAC `yuv420p` con livelli compatibili (4.1 per 1080p,
+   3.1 per 720p/480p) e keyframe ogni due secondi;
 4. posiziona il box `moov` all'inizio per l'avvio rapido;
 5. verifica che la durata di ogni output corrisponda al sorgente;
 6. produce `renditions-report.json` con dimensioni e variazione di storage.

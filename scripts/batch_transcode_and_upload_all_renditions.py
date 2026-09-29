@@ -24,9 +24,9 @@ TABLE_NAME = 'prod-videocorso-lessons'
 TEMP_DIR = '/Volumes/Sviluppo/Chiara Morocutti/RENDITIONS_TEMP'
 
 PROFILES = [
-    ("720p", 720, "2500k", "96k"),
-    ("480p", 480, "1200k", "96k"),
-    ("360p", 360, "750k", "64k"),
+    ("720p", 720, "2500k", "5000k", "96k", "3.1"),
+    ("480p", 480, "1200k", "2400k", "96k", "3.1"),
+    ("360p", 360, "750k", "1500k", "64k", "3.0"),
 ]
 
 # Transfer config for fast S3 multipart uploads
@@ -53,7 +53,9 @@ def probe_video(path: str) -> tuple[int, int, float, float]:
     duration = float(data.get("format", {}).get("duration", 0))
     return w, h, fps, duration
 
-def transcode_rendition(source_path: str, output_path: str, target_short_side: int, v_bitrate: str, a_bitrate: str, w: int, h: int, fps: float) -> bool:
+def transcode_rendition(source_path: str, output_path: str, target_short_side: int,
+                        v_bitrate: str, maxrate: str, a_bitrate: str,
+                        h264_level: str, w: int, h: int, fps: float) -> bool:
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     is_portrait = h > w
     vf = f"scale={target_short_side}:-2" if is_portrait else f"scale=-2:{target_short_side}"
@@ -66,7 +68,10 @@ def transcode_rendition(source_path: str, output_path: str, target_short_side: i
         "-i", source_path,
         "-map", "0:v:0", "-map", "0:a:0?",
         "-vf", vf,
-        "-c:v", "h264_videotoolbox", "-b:v", v_bitrate,
+        "-c:v", "h264_videotoolbox", "-profile:v", "high", "-level:v", h264_level,
+        "-b:v", v_bitrate, "-maxrate", maxrate, "-bufsize", maxrate,
+        "-pix_fmt", "yuv420p", "-tag:v", "avc1", "-g", "60",
+        "-force_key_frames", "expr:gte(t,n_forced*2)",
         "-c:a", "aac", "-b:a", a_bitrate, "-ar", "48000",
         "-movflags", "+faststart",
         output_path
@@ -84,6 +89,11 @@ def transcode_rendition(source_path: str, output_path: str, target_short_side: i
         "-map", "0:v:0", "-map", "0:a:0?",
         "-vf", vf,
         "-c:v", "libx264", "-preset", "fast", "-b:v", v_bitrate,
+        "-maxrate", maxrate, "-bufsize", maxrate,
+        "-profile:v", "high", "-level:v", h264_level,
+        "-pix_fmt", "yuv420p", "-tag:v", "avc1",
+        "-g", "60", "-keyint_min", "60", "-sc_threshold", "0",
+        "-force_key_frames", "expr:gte(t,n_forced*2)",
         "-c:a", "aac", "-b:a", a_bitrate, "-ar", "48000",
         "-movflags", "+faststart",
         output_path
@@ -166,7 +176,7 @@ def main():
         generated_files = []
         renditions_uploaded = 0
 
-        for quality_label, target_side, v_bitrate, a_bitrate in PROFILES:
+        for quality_label, target_side, v_bitrate, maxrate, a_bitrate, h264_level in PROFILES:
             if target_side > short_side:
                 continue
 
@@ -185,7 +195,10 @@ def main():
 
             t0 = time.time()
             print(f"    ⚙️ Encoding {quality_label} ({target_side}p @ {v_bitrate})...", end="", flush=True)
-            success = transcode_rendition(source_file, out_local_path, target_side, v_bitrate, a_bitrate, w, h, fps)
+            success = transcode_rendition(
+                source_file, out_local_path, target_side, v_bitrate, maxrate,
+                a_bitrate, h264_level, w, h, fps,
+            )
             t_elapsed = time.time() - t0
 
             if success and os.path.exists(out_local_path):

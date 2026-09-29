@@ -107,7 +107,7 @@ FALLBACK_CHAINS = {
     '1440p': ['1440p', '2k', '1080p', '720p', '480p', '360p'],
     '1080p': ['1080p', '720p', '480p', '360p'],
     'high': ['1080p', '720p', '480p', '360p'],
-    '720p': ['720p', '1080p', '480p', '360p'],
+    '720p': ['720p', '480p', '360p', '1080p'],
     'medium': ['480p', '720p', '360p', '1080p'],
     '480p': ['480p', '720p', '360p', '1080p'],
     'low': ['360p', '480p', '720p', '1080p'],
@@ -220,8 +220,11 @@ def resolve_served_video_key(
     available_renditions: dict[str, str],
 ) -> tuple[str, Optional[str]]:
     """Returns (s3_key_to_serve, quality_label_or_None_for_source)."""
-    normalized_quality = (requested_quality or 'high').lower()
-    suffix_order = FALLBACK_CHAINS.get(normalized_quality, FALLBACK_CHAINS['high'])
+    # Default to the broadly compatible 720p rendition. Full HD remains an
+    # explicit choice, while older clients that omit `quality` no longer pull
+    # a high-bitrate/source encode by accident.
+    normalized_quality = (requested_quality or '720p').lower()
+    suffix_order = FALLBACK_CHAINS.get(normalized_quality, FALLBACK_CHAINS['720p'])
 
     for suffix in suffix_order:
         if suffix in available_renditions:

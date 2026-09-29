@@ -15,10 +15,12 @@ from pathlib import Path
 
 
 PROFILES = (
-    ("1080p", 1080, 21, "5500k", "11000k", "128k"),
-    ("720p", 720, 22, "2800k", "5600k", "96k"),
-    ("480p", 480, 23, "1400k", "2800k", "96k"),
-    ("360p", 360, 24, "850k", "1700k", "64k"),
+    # H.264 levels are deliberately capped for hardware-decoder compatibility
+    # across Safari/iOS, Chromium, Firefox, Edge and older mobile devices.
+    ("1080p", 1080, 21, "5500k", "11000k", "128k", "4.1"),
+    ("720p", 720, 22, "2800k", "5600k", "96k", "3.1"),
+    ("480p", 480, 23, "1400k", "2800k", "96k", "3.1"),
+    ("360p", 360, 24, "850k", "1700k", "64k", "3.0"),
 )
 
 
@@ -64,7 +66,7 @@ def generate(source: Path, destination_root: Path, overwrite: bool) -> dict:
     destination.mkdir(parents=True, exist_ok=True)
     outputs: list[dict] = []
 
-    for label, target, crf, maxrate, bufsize, audio_rate in PROFILES:
+    for label, target, crf, maxrate, bufsize, audio_rate, h264_level in PROFILES:
         if target > short_side:
             continue
         output = destination / f"source_{label}.mp4"
@@ -83,7 +85,9 @@ def generate(source: Path, destination_root: Path, overwrite: bool) -> dict:
             "-vf", ",".join(filters),
             "-c:v", "libx264", "-preset", "medium", "-crf", str(crf),
             "-maxrate", maxrate, "-bufsize", bufsize,
-            "-profile:v", "high", "-pix_fmt", "yuv420p",
+            "-profile:v", "high", "-level:v", h264_level,
+            "-pix_fmt", "yuv420p", "-tag:v", "avc1",
+            "-g", "60", "-keyint_min", "60", "-sc_threshold", "0",
             "-force_key_frames", "expr:gte(t,n_forced*2)",
             "-c:a", "aac", "-b:a", audio_rate, "-ar", "48000",
             "-movflags", "+faststart", str(output),

@@ -62,6 +62,19 @@ def test_missing_rendition_uses_the_documented_fallback_chain():
     assert handler.resolve_served_video_key(source, 'low', renditions) == (renditions['360p'], '360p')
 
 
+def test_default_and_720p_prefer_lower_renditions_before_source_full_hd():
+    handler = load_video_handler()
+    source = 'videos/lesson-1/version-1/source.mp4'
+    renditions = {
+        '1080p': source,
+        '480p': 'streaming/lesson-1/version-1/source_480p.mp4',
+        '360p': 'streaming/lesson-1/version-1/source_360p.mp4',
+    }
+
+    assert handler.resolve_served_video_key(source, None, renditions) == (renditions['480p'], '480p')
+    assert handler.resolve_served_video_key(source, '720p', renditions) == (renditions['480p'], '480p')
+
+
 def test_source_is_served_only_while_no_rendition_exists():
     handler = load_video_handler()
     source = 'videos/lesson-1/version-1/source.mp4'
@@ -169,4 +182,3 @@ def test_get_available_renditions_uses_source_as_1080p_fallback():
     # When max_quality is explicitly 720p, 1080p is excluded
     renditions_720 = handler.get_available_renditions('videos/lesson-test-720/version-1/source.mp4', lesson={'max_quality': '720p'})
     assert '1080p' not in renditions_720
-

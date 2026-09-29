@@ -29,6 +29,11 @@ const QUALITY_LABELS: Record<string, string> = {
   low: 'Bassa (360p)',
 };
 
+const QUALITY_FALLBACK_ORDER: VideoQuality[] = ['4k', '2k', '1080p', '720p', '480p', '360p'];
+const STALL_RECOVERY_DELAY_MS = 8_000;
+const STABLE_PLAYBACK_RESET_MS = 30_000;
+const MAX_AUTO_RECOVERY_ATTEMPTS = 3;
+
 interface VideoPlayerProps {
   videoUrl: string;
   lessonId: string;
@@ -36,6 +41,7 @@ interface VideoPlayerProps {
   availableQualities?: string[];
   quality?: VideoQuality;
   onQualityChange?: (quality: VideoQuality) => void;
+  onRequestFreshUrl?: () => Promise<string | null>;
   trackProgress?: boolean;
 }
 
@@ -48,12 +54,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   availableQualities = [],
   quality,
   onQualityChange,
+  onRequestFreshUrl,
   trackProgress = true,
 }) => {
   const playerRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const hideControlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stallRecoveryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stablePlaybackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recoveryAttemptRef = useRef(0);
+  const recoveryInFlightRef = useRef(false);
 
   // State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -72,7 +83,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [rotation, setRotation] = useState<0 | 90 | 180 | 270>(0);
   const [videoPlaybackError, setVideoPlaybackError] = useState<string | null>(null);
 
-  const qualitySwitchStateRef = useRef<{ time: number; wasPlaying: boolean } | null>(null);
+  // Shared by quality switches and automatic stall recovery. When the source
+  // changes, loadedmetadata restores both the exact position and play state.
+  const sourceChangeStateRef = useRef<{ time: number; wasPlaying: boolean } | null>(null);
 
   const {
     handleTimeUpdate: trackTimeUpdate,
@@ -92,6 +105,161 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     },
     [trackProgress, trackTimeUpdate]
   );
+
+  const clearStallRecoveryTimer = useCallback(() => {
+    if (stallRecoveryTimerRef.current) {
+      clearTimeout(stallRecoveryTimerRef.current);
+      stallRecoveryTimerRef.current = null;
+    }
+  }, []);
+
+  const clearStablePlaybackTimer = useCallback(() => {
+    if (stablePlaybackTimerRef.current) {
+      clearTimeout(stablePlaybackTimerRef.current);
+      stablePlaybackTimerRef.current = null;
+    }
+  }, []);
+
+  const normalizedQuality = useCallback((): VideoQuality => {
+    if (quality === 'high') return '1080p';
+    if (quality === 'medium') return '480p';
+    if (quality === 'low') return '360p';
+    return quality || '720p';
+  }, [quality]);
+
+  const nextLowerAvailableQuality = useCallback((): VideoQuality | null => {
+    const current = normalizedQuality();
+    const currentIndex = QUALITY_FALLBACK_ORDER.indexOf(current);
+    if (currentIndex < 0) return null;
+    for (const candidate of QUALITY_FALLBACK_ORDER.slice(currentIndex + 1)) {
+      if (availableQualities.includes(candidate)) return candidate;
+    }
+    return null;
+  }, [availableQualities, normalizedQuality]);
+
+  const recoverPlayback = useCallback(async (forcePlay = false) => {
+    const video = playerRef.current;
+    if (!video || recoveryInFlightRef.current || video.ended) return;
+
+    clearStallRecoveryTimer();
+    clearStablePlaybackTimer();
+
+    const attempt = recoveryAttemptRef.current + 1;
+    recoveryAttemptRef.current = attempt;
+    if (attempt > MAX_AUTO_RECOVERY_ATTEMPTS) {
+      setIsBuffering(false);
+      setIsPlaying(false);
+      setVideoPlaybackError(
+        'Il browser non è riuscito a riprendere il video. Tocca per ricaricarlo dal punto raggiunto.'
+      );
+      return;
+    }
+
+    const resumeTime = Number.isFinite(video.currentTime) ? video.currentTime : currentTime;
+    const wasPlaying = forcePlay || isPlaying || !video.paused;
+    sourceChangeStateRef.current = { time: resumeTime, wasPlaying };
+    recoveryInFlightRef.current = true;
+    setIsBuffering(true);
+    setVideoPlaybackError(null);
+
+    try {
+      // On the second failure, prefer a lighter compatible rendition when it
+      // exists. This also avoids repeatedly exercising a decoder profile that
+      // a particular browser/device is struggling with.
+      const lowerQuality = attempt >= 2 ? nextLowerAvailableQuality() : null;
+      if (lowerQuality && onQualityChange) {
+        onQualityChange(lowerQuality);
+        return;
+      }
+
+      const freshUrl = onRequestFreshUrl ? await onRequestFreshUrl() : null;
+      // A URL generated during the same second can be identical. Explicitly
+      // reload in that case; otherwise React will apply the fresh source and
+      // loadedmetadata will restore the saved position.
+      if (!freshUrl || freshUrl === videoUrl) {
+        video.load();
+      }
+    } catch {
+      // Even if refreshing the signed URL fails, retry the already authorised
+      // source. This keeps temporary API problems from stranding playback.
+      video.load();
+    } finally {
+      recoveryInFlightRef.current = false;
+    }
+  }, [
+    clearStablePlaybackTimer,
+    clearStallRecoveryTimer,
+    currentTime,
+    isPlaying,
+    nextLowerAvailableQuality,
+    onQualityChange,
+    onRequestFreshUrl,
+    videoUrl,
+  ]);
+
+  const scheduleStallRecovery = useCallback((delay = STALL_RECOVERY_DELAY_MS) => {
+    clearStallRecoveryTimer();
+    const video = playerRef.current;
+    if (!video || !isPlaying || isScrubbing || video.ended) return;
+    const scheduledAtTime = video.currentTime;
+    stallRecoveryTimerRef.current = setTimeout(() => {
+      const currentVideo = playerRef.current;
+      if (!currentVideo || currentVideo.paused || currentVideo.ended) return;
+      const playbackAdvanced = currentVideo.currentTime > scheduledAtTime + 0.25;
+      if (playbackAdvanced && currentVideo.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) return;
+      void recoverPlayback();
+    }, delay);
+  }, [clearStallRecoveryTimer, isPlaying, isScrubbing, recoverPlayback]);
+
+  const handlePlaying = useCallback(() => {
+    clearStallRecoveryTimer();
+    clearStablePlaybackTimer();
+    setIsPlaying(true);
+    setIsBuffering(false);
+    setVideoPlaybackError(null);
+    stablePlaybackTimerRef.current = setTimeout(() => {
+      recoveryAttemptRef.current = 0;
+      stablePlaybackTimerRef.current = null;
+    }, STABLE_PLAYBACK_RESET_MS);
+  }, [clearStablePlaybackTimer, clearStallRecoveryTimer]);
+
+  const handleCanPlay = useCallback(() => {
+    clearStallRecoveryTimer();
+    setIsBuffering(false);
+  }, [clearStallRecoveryTimer]);
+
+  const handleVideoError = useCallback(() => {
+    if (!isPlaying) {
+      setIsBuffering(false);
+      setVideoPlaybackError('Il browser non è riuscito a caricare il video. Tocca per riprovare.');
+      return;
+    }
+    setIsBuffering(true);
+    clearStallRecoveryTimer();
+    stallRecoveryTimerRef.current = setTimeout(() => {
+      void recoverPlayback();
+    }, 500);
+  }, [clearStallRecoveryTimer, isPlaying, recoverPlayback]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      const video = playerRef.current;
+      if (isPlaying && video && video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+        void recoverPlayback();
+      }
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [isPlaying, recoverPlayback]);
+
+  useEffect(() => {
+    if (!isPlaying) clearStallRecoveryTimer();
+  }, [clearStallRecoveryTimer, isPlaying]);
+
+  useEffect(() => () => {
+    clearStallRecoveryTimer();
+    clearStablePlaybackTimer();
+  }, [clearStablePlaybackTimer, clearStallRecoveryTimer]);
 
   useEffect(() => {
     const video = playerRef.current;
@@ -122,7 +290,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       return;
     }
     const currentVideoTime = playerRef.current?.currentTime ?? currentTime;
-    qualitySwitchStateRef.current = {
+    recoveryAttemptRef.current = 0;
+    sourceChangeStateRef.current = {
       time: currentVideoTime,
       wasPlaying: isPlaying,
     };
@@ -364,19 +533,40 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setIsBuffering(false);
     setVideoPlaybackError(null);
 
-    const pending = qualitySwitchStateRef.current;
+    const pending = sourceChangeStateRef.current;
     if (pending) {
-      qualitySwitchStateRef.current = null;
-      videoEl.currentTime = pending.time;
+      sourceChangeStateRef.current = null;
+      try {
+        videoEl.currentTime = pending.time;
+        setCurrentTime(pending.time);
+      } catch {
+        // Some WebKit versions only accept the seek once more media data is
+        // available. The canplay fallback below repeats it safely.
+        videoEl.addEventListener('canplay', () => {
+          videoEl.currentTime = pending.time;
+          setCurrentTime(pending.time);
+        }, { once: true });
+      }
+      videoEl.playbackRate = playbackRate;
       setIsPlaying(pending.wasPlaying);
+      if (pending.wasPlaying) {
+        const resume = () => {
+          void videoEl.play().catch(() => {
+            setIsPlaying(false);
+            setIsBuffering(false);
+          });
+        };
+        if (videoEl.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) resume();
+        else videoEl.addEventListener('canplay', resume, { once: true });
+      }
     }
-  }, []);
+  }, [playbackRate]);
 
   useEffect(() => {
     const videoEl = playerRef.current;
     if (
       !videoEl ||
-      qualitySwitchStateRef.current ||
+      sourceChangeStateRef.current ||
       seekToSeconds === null ||
       seekToSeconds <= 0 ||
       !Number.isFinite(videoEl.duration) ||
@@ -472,19 +662,22 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           src={videoUrl}
           playsInline
           preload="metadata"
-          onWaiting={() => setIsBuffering(true)}
-          onPlaying={() => {
-            setIsBuffering(false);
-            setVideoPlaybackError(null);
+          onWaiting={() => {
+            setIsBuffering(true);
+            scheduleStallRecovery();
           }}
-          onCanPlay={() => setIsBuffering(false)}
-          onError={() => {
-            setIsBuffering(false);
-            setIsPlaying(false);
-            setVideoPlaybackError('Connessione lenta o errore di caricamento. Tocca per riprovare.');
+          onStalled={() => {
+            setIsBuffering(true);
+            scheduleStallRecovery(4_000);
           }}
+          onPlaying={handlePlaying}
+          onCanPlay={handleCanPlay}
+          onError={handleVideoError}
           onTimeUpdate={(event) => {
             const playedSeconds = event.currentTarget.currentTime;
+            if (event.currentTarget.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+              clearStallRecoveryTimer();
+            }
             if (!isScrubbing) {
               setCurrentTime(playedSeconds);
             }
@@ -493,6 +686,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           onDurationChange={(event) => setDuration(event.currentTarget.duration)}
           onLoadedMetadata={handleLoadedMetadata}
           onEnded={() => {
+            clearStallRecoveryTimer();
+            clearStablePlaybackTimer();
             setIsPlaying(false);
             if (trackProgress) markComplete(currentTime, duration);
             if (onEnded) onEnded();
@@ -527,12 +722,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           <button
             type="button"
             onClick={() => {
+              recoveryAttemptRef.current = 0;
               setVideoPlaybackError(null);
               setIsBuffering(true);
-              if (playerRef.current) {
-                playerRef.current.load();
-                setIsPlaying(true);
-              }
+              setIsPlaying(true);
+              void recoverPlayback(true);
             }}
             className="px-4 py-2 rounded-xl bg-primary-700 hover:bg-primary-800 text-white font-semibold text-xs transition"
           >
