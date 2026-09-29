@@ -69,7 +69,7 @@ def probe(source: str) -> dict:
         [
             "ffprobe", "-v", "error", "-select_streams", "v:0",
             "-show_entries",
-            "stream=codec_name,profile,level,width,height,pix_fmt,r_frame_rate:format=duration",
+            "stream=codec_name,profile,level,width,height,pix_fmt,r_frame_rate:format=duration,bit_rate",
             "-of", "json", source,
         ],
         check=True,
@@ -153,6 +153,7 @@ def encode(source_url: str, output: Path, metadata: dict, hardware: bool) -> Non
             "-level:v", "4.1",
             "-b:v", "5000k", "-maxrate", "6000k", "-bufsize", "6000k",
             "-pix_fmt", "yuv420p", "-tag:v", "avc1", "-g", "60",
+            "-realtime", "1",
             "-force_key_frames", "expr:gte(t,n_forced*2)",
             "-c:a", "aac", "-b:a", "128k", "-ar", "48000",
             "-movflags", "+faststart", str(output),
@@ -223,6 +224,15 @@ def main() -> int:
     parser.add_argument("--lesson-id", action="append", help="Limit to one or more lesson IDs")
     parser.add_argument("--allow-upscale", action="store_true", help="Also process sources below 1080p")
     parser.add_argument("--force", action="store_true", help="Re-encode even sources that are already browser-safe")
+    parser.add_argument(
+        "--source-bitrate-above",
+        type=int,
+        metavar="KBPS",
+        help=(
+            "Also create a 1080p rendition for sources that are already browser-safe H.264 "
+            "but heavier than KBPS (the 'correct but too heavy' case that causes buffering)."
+        ),
+    )
     args = parser.parse_args()
 
     session = boto3.Session(profile_name=PROFILE, region_name=REGION)
@@ -247,7 +257,8 @@ def main() -> int:
             ExpiresIn=21_600,
         )
         try:
-            stream = probe(source_url)["streams"][0]
+            metadata = probe(source_url)
+            stream = metadata["streams"][0]
         except Exception as exc:
             print(f"Skipping {lesson.get('title')}: cannot probe source ({exc})", flush=True)
             continue
@@ -260,15 +271,17 @@ def main() -> int:
             continue
         codec = stream.get("codec_name")
         level = int(stream.get("level") or 999)
+        source_kbps = int((metadata.get("format") or {}).get("bit_rate") or 0) // 1000
         if (
             not args.force
             and codec == "h264"
             and level <= MAX_H264_LEVEL
             and stream.get("pix_fmt") == "yuv420p"
+            and (args.source_bitrate_above is None or source_kbps <= args.source_bitrate_above)
         ):
             print(
                 f"Skipping {lesson.get('title')}: source already browser-safe "
-                f"({codec} L{level / 10:.1f}, {stream['width']}x{stream['height']})",
+                f"({codec} L{level / 10:.1f}, {stream['width']}x{stream['height']}, {source_kbps} kbps)",
                 flush=True,
             )
             continue
@@ -284,21 +297,19 @@ def main() -> int:
         completed = False
         for attempt in range(1, 4):
             try:
-                source_url = s3.generate_presigned_url(
-                    "get_object",
-                    Params={"Bucket": BUCKET, "Key": lesson["video_s3_key"]},
-                    ExpiresIn=21_600,
-                )
-                source_metadata = probe(source_url)
-                source_duration = float(source_metadata["format"]["duration"])
                 with tempfile.TemporaryDirectory(prefix="chiara-1080p-") as temp:
+                    local_source = Path(temp) / "source.mp4"
+                    print("    downloading source...", flush=True)
+                    s3.download_file(BUCKET, lesson["video_s3_key"], str(local_source))
+                    source_metadata = probe(str(local_source))
+                    source_duration = float(source_metadata["format"]["duration"])
                     output = Path(temp) / "source_1080p.mp4"
                     try:
-                        encode(source_url, output, source_metadata, hardware=True)
+                        encode(str(local_source), output, source_metadata, hardware=True)
                         result = validate(output, source_duration, short_side)
                     except Exception as hardware_error:
                         print(f"    hardware encode rejected ({hardware_error}); using libx264", flush=True)
-                        encode(source_url, output, source_metadata, hardware=False)
+                        encode(str(local_source), output, source_metadata, hardware=False)
                         result = validate(output, source_duration, short_side)
                     s3.upload_file(
                         str(output), BUCKET, target,
