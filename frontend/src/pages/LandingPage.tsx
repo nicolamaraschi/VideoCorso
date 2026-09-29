@@ -36,18 +36,31 @@ export const LandingPage: React.FC = () => {
   return (
     <div className="bg-gradient-to-b from-primary-50/60 via-white to-primary-50/40 min-h-screen text-gray-800">
       
-      {/* 1. HERO SECTION */}
-      <section id="hero" className="relative pt-12 pb-14 sm:pt-16 sm:pb-20 lg:pt-28 lg:pb-24 overflow-hidden">
-        <div className="container mx-auto px-4 sm:px-6">
+      {/* 1. HERO SECTION WITH 3D MICROBLADING WAVE & ORGANIC S-CURVE DIVIDER */}
+      <section id="hero" className="relative pt-12 sm:pt-16 lg:pt-24 pb-28 lg:pb-36 bg-gradient-to-br from-[#24070F] via-[#38101A] to-[#1C040A] text-white overflow-hidden">
+        
+        {/* 3D Wave Ribbon Artwork in the background */}
+        <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
+          <img 
+            src="/wave-ribbon-pmu.jpg" 
+            alt="3D Wave Ribbon Microblading" 
+            className="w-full h-full object-cover object-center opacity-60 mix-blend-screen scale-105 transform -translate-y-6"
+          />
+          {/* Subtle vignette and ambient light overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#24070F]/50 via-transparent to-[#1C040A]/80" />
+          <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary-600/20 rounded-full blur-[120px] pointer-events-none" />
+        </div>
+
+        <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
             <div className="lg:w-7/12 text-center lg:text-left flex flex-col items-center lg:items-start">
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-100/70 border border-primary-200 text-primary-900 text-xs sm:text-sm font-semibold mb-6 tracking-wide uppercase"
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-rose-200 text-xs sm:text-sm font-semibold mb-6 tracking-wide uppercase backdrop-blur-md shadow-sm"
               >
-                <Sparkles className="w-4 h-4 text-primary-600" />
+                <Sparkles className="w-4 h-4 text-rose-300" />
                 <span>Chiara Morocutti Academy</span>
               </motion.div>
 
@@ -55,18 +68,21 @@ export const LandingPage: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.1 }}
-                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-gray-900 leading-[1.15] tracking-tight max-w-2xl"
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white leading-[1.15] tracking-tight max-w-2xl"
               >
-                Diventa la dermopigmentista che <span className="text-primary-700 italic font-normal">tutti si contendono.</span>
+                Diventa la dermopigmentista che{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-200 via-amber-100 to-rose-300 italic font-normal">
+                  tutti si contendono.
+                </span>
               </motion.h1>
 
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.2 }}
-                className="mt-6 text-base sm:text-lg lg:text-xl text-gray-600 leading-relaxed max-w-2xl font-light"
+                className="mt-6 text-base sm:text-lg lg:text-xl text-rose-100/85 leading-relaxed max-w-2xl font-light"
               >
-                Il percorso che unisce <strong className="text-gray-900 font-semibold">tecnica del microblading</strong> e <strong className="text-gray-900 font-semibold">mentalità imprenditoriale</strong> per costruire un'agenda piena, con margini alti e meno ore in cabina.
+                Il percorso che unisce <strong className="text-white font-semibold">tecnica del microblading</strong> e <strong className="text-white font-semibold">mentalità imprenditoriale</strong> per costruire un'agenda piena, con margini alti e meno ore in cabina.
               </motion.p>
 
               <motion.div
@@ -77,14 +93,14 @@ export const LandingPage: React.FC = () => {
               >
                 <a 
                   href="#corso" 
-                  className="w-full sm:w-auto px-8 py-4 bg-primary-950 text-white text-center rounded-full font-medium hover:bg-primary-900 transition-all shadow-md hover:shadow-xl active:scale-[0.99] flex items-center justify-center gap-2 group"
+                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-rose-200 via-amber-100 to-rose-200 text-primary-950 text-center rounded-full font-bold hover:shadow-[0_0_25px_rgba(228,181,189,0.5)] transition-all active:scale-[0.99] flex items-center justify-center gap-2 group"
                 >
                   <span>Scegli il tuo percorso</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform text-primary-950" />
                 </a>
                 <a 
                   href="#vantaggi" 
-                  className="w-full sm:w-auto px-8 py-4 bg-white text-primary-900 text-center border border-primary-200 rounded-full font-medium hover:bg-primary-50/60 transition shadow-sm"
+                  className="w-full sm:w-auto px-8 py-4 bg-white/10 text-white text-center border border-white/20 rounded-full font-medium hover:bg-white/20 transition backdrop-blur-md"
                 >
                   Scopri i 2 Pilastri
                 </a>
@@ -98,8 +114,8 @@ export const LandingPage: React.FC = () => {
               className="lg:w-5/12 w-full max-w-md lg:max-w-none mx-auto"
             >
               <div className="relative">
-                <div className="absolute inset-0 bg-primary-200/60 rounded-3xl transform -rotate-3 blur-sm"></div>
-                <div className="relative overflow-hidden rounded-3xl shadow-2xl border-4 border-white aspect-[4/5] bg-primary-950 group">
+                <div className="absolute inset-0 bg-primary-500/30 rounded-3xl transform -rotate-3 blur-xl"></div>
+                <div className="relative overflow-hidden rounded-3xl shadow-2xl border-2 border-white/20 aspect-[4/5] bg-primary-950/80 backdrop-blur-sm group">
                   <video
                     className="w-full h-full object-cover"
                     src="/welcome-opt.mp4"
@@ -115,9 +131,45 @@ export const LandingPage: React.FC = () => {
             </motion.div>
           </div>
         </div>
+
       </section>
 
       <MarqueeBanner />
+
+      {/* ORGANIC S-CURVE WAVE DIVIDER (TRANSITION FROM DARK HERO/MARQUEE TO WHITE SECTION) */}
+      <div className="relative w-full overflow-hidden leading-none bg-[#1e0d11] -mt-0.5">
+        <svg 
+          className="relative block w-full h-14 sm:h-20 md:h-28 lg:h-36" 
+          viewBox="0 0 1440 180" 
+          preserveAspectRatio="none"
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <linearGradient id="waveAccentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#D48E9B" stopOpacity="0.8" />
+              <stop offset="35%" stopColor="#F0D4D8" stopOpacity="1" />
+              <stop offset="65%" stopColor="#E5C378" stopOpacity="0.95" />
+              <stop offset="100%" stopColor="#C26A7A" stopOpacity="0.75" />
+            </linearGradient>
+          </defs>
+
+          {/* Layered Accent Stroke (Floating 3D Ribbon line following the wave) */}
+          <path 
+            d="M-50,65 C280,160 480,20 860,100 C1120,152 1320,55 1490,40" 
+            stroke="url(#waveAccentGrad)" 
+            strokeWidth="9" 
+            strokeLinecap="round"
+            opacity="0.95"
+          />
+
+          {/* Pure white cut-out wave that transitions seamlessly into the next white section */}
+          <path 
+            d="M0,70 C320,155 520,30 900,100 C1160,145 1340,60 1440,45 L1440,180 L0,180 Z" 
+            fill="#FFFFFF"
+          />
+        </svg>
+      </div>
 
       {/* 2. IL PUNTO DI PARTENZA (EDITORIAL LUXURY BENTO GRID) */}
       <section className="py-24 bg-gradient-to-b from-white via-primary-50/30 to-white border-y border-primary-100/60 relative overflow-hidden">
@@ -376,11 +428,20 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* 3. QUELLO CHE TI COSTA RESTARE COSÌ (COSTO DELL'INAZIONE) */}
-      <section className="py-20 bg-gray-900 text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-tr from-primary-950 via-gray-900 to-primary-950 opacity-90"></div>
+      <section className="pt-20 pb-28 sm:pb-36 bg-[#1a0a0e] text-white relative overflow-hidden">
+        {/* Subtle ambient 3D ribbon accent */}
+        <div className="absolute inset-0 opacity-25 pointer-events-none select-none mix-blend-screen overflow-hidden">
+          <img 
+            src="/wave-ribbon-pmu.jpg" 
+            alt="PMU wave" 
+            className="w-full h-full object-cover object-bottom scale-110"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#1a0a0e] via-transparent to-[#1a0a0e] opacity-90" />
+
         <div className="container mx-auto px-6 relative z-10 max-w-5xl">
           <div className="text-center mb-16">
-            <span className="text-xs font-bold tracking-widest uppercase text-primary-300 bg-white/10 px-3.5 py-1.5 rounded-full border border-white/10">
+            <span className="text-xs font-bold tracking-widest uppercase text-rose-300 bg-white/10 px-3.5 py-1.5 rounded-full border border-white/10 backdrop-blur-sm">
               Quello che ti costa restare così
             </span>
             <h2 className="text-3xl md:text-4xl font-serif font-bold mt-4 leading-snug">
@@ -389,43 +450,72 @@ export const LandingPage: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm">
-              <span className="text-3xl font-serif font-bold text-primary-300">01</span>
+            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm hover:border-primary-300/40 transition-colors">
+              <span className="text-3xl font-serif font-bold text-rose-300">01</span>
               <h3 className="text-xl font-bold text-white mt-3 mb-3">Tempo</h3>
-              <p className="text-gray-300 text-sm leading-relaxed">
+              <p className="text-rose-100/75 text-sm leading-relaxed">
                 Ore in cabina su trattamenti a bassa marginalità, invece di un servizio che vale molto di più a parità di tempo investito.
               </p>
             </div>
 
-            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm">
-              <span className="text-3xl font-serif font-bold text-primary-300">02</span>
+            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm hover:border-primary-300/40 transition-colors">
+              <span className="text-3xl font-serif font-bold text-rose-300">02</span>
               <h3 className="text-xl font-bold text-white mt-3 mb-3">Guadagno limitato</h3>
-              <p className="text-gray-300 text-sm leading-relaxed">
+              <p className="text-rose-100/75 text-sm leading-relaxed">
                 Il tuo fatturato mensile resta bloccato e legato unicamente al numero di ore che riesci fisicamente a lavorare ogni giorno.
               </p>
             </div>
 
-            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm">
-              <span className="text-3xl font-serif font-bold text-primary-300">03</span>
+            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm hover:border-primary-300/40 transition-colors">
+              <span className="text-3xl font-serif font-bold text-rose-300">03</span>
               <h3 className="text-xl font-bold text-white mt-3 mb-3">Occasione persa</h3>
-              <p className="text-gray-300 text-sm leading-relaxed">
+              <p className="text-rose-100/75 text-sm leading-relaxed">
                 Il microblading è tra i servizi più richiesti e pagati del settore beauty, con una domanda in costante crescita ogni anno.
               </p>
             </div>
           </div>
         </div>
+
+        {/* ORGANIC WAVE DIVIDER INTO LA TRASFORMAZIONE */}
+        <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden leading-none pointer-events-none z-20">
+          <svg 
+            className="relative block w-full h-14 sm:h-20 md:h-28" 
+            viewBox="0 0 1440 140" 
+            preserveAspectRatio="none"
+            fill="none" 
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path 
+              d="M-50,55 C280,125 500,20 880,80 C1140,125 1320,50 1490,35" 
+              stroke="#D48E9B" 
+              strokeWidth="7" 
+              strokeLinecap="round"
+              opacity="0.9"
+            />
+            <path 
+              d="M0,60 C320,120 520,30 900,80 C1160,118 1340,55 1440,40 L1440,140 L0,140 Z" 
+              fill="#FFFFFF"
+            />
+          </svg>
+        </div>
       </section>
 
       {/* 4. LA TRASFORMAZIONE (PRIMA VS DOPO) */}
-      <section className="py-20 bg-white">
+      <section className="py-24 bg-gradient-to-b from-white via-primary-50/20 to-white relative overflow-hidden">
+        {/* Subtle ambient light accents */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[800px] h-[350px] bg-primary-200/20 rounded-full blur-3xl pointer-events-none -z-10" />
+
         <div className="container mx-auto px-6 max-w-5xl">
-          <div className="text-center mb-16">
-            <span className="text-xs font-bold tracking-widest uppercase text-primary-600 bg-primary-50 px-3.5 py-1.5 rounded-full border border-primary-100">
+          <div className="text-center mb-12">
+            <span className="text-xs font-bold tracking-widest uppercase text-primary-700 bg-primary-100/70 px-4 py-1.5 rounded-full border border-primary-200 shadow-xs">
               La Trasformazione
             </span>
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 mt-4">
+            <h2 className="text-3xl md:text-5xl font-serif font-bold text-gray-900 mt-4 leading-tight">
               Immagina di aprire l'agenda e vederla già piena<br className="hidden sm:inline" /> — di clienti PMU.
             </h2>
+            <p className="mt-3 text-sm md:text-base text-gray-500 font-light max-w-xl mx-auto">
+              Dalla frammentazione quotidiana al metodo che scolpisce la tua autorità nel settore.
+            </p>
           </div>
 
           <div className="space-y-5">
