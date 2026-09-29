@@ -204,6 +204,11 @@ sostituire un originale cloud sono obbligatori backup su SSD e controllo visivo.
 La procedura completa è in
 [`docs/GUIDA_CARICAMENTO_VIDEO_SSD.md`](docs/GUIDA_CARICAMENTO_VIDEO_SSD.md).
 
+Per il recupero non distruttivo di lezioni legacy già presenti soltanto come
+sorgente S3, `scripts/backfill_web_720p_from_s3.py` crea e valida una rendition
+720p H.264 Level 3.1 senza sostituire l'originale. Il comando è dry-run per
+impostazione predefinita e richiede `--apply` per caricare gli output.
+
 ### Verifiche dell'ultimo rilascio
 
 Rilascio `5a69768`, Amplify job `207`:

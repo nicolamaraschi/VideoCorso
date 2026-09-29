@@ -80,6 +80,7 @@ s3_map = {r['lid']: r for r in results}
 # Print detailed report per chapter
 total_lessons_in_course = 0
 total_with_all_renditions = 0
+total_with_web_720 = 0
 total_with_source_only = 0
 total_without_video = 0
 
@@ -108,6 +109,9 @@ for ch in chapters:
         elif s3_res.get('720p') and s3_res.get('480p') and s3_res.get('360p'):
             total_with_all_renditions += 1
             print(f"   {idx:2d}. ✅ {ltitle} -> 1080p, 720p, 480p, 360p (COMPLETED)")
+        elif s3_res.get('720p'):
+            total_with_web_720 += 1
+            print(f"   {idx:2d}. 🟢 {ltitle} -> 1080p source + 720p web-safe ({st})")
         elif s3_res.get('has_source'):
             total_with_source_only += 1
             print(f"   {idx:2d}. 🟡 {ltitle} -> Solo 1080p source ({st})")
@@ -124,6 +128,7 @@ print("=" * 80)
 print(f"Moduli totali: {len(chapters)}")
 print(f"Lezioni totali nei moduli: {total_lessons_in_course}")
 print(f"✅ Lezioni con 4 qualità (1080p + 720p + 480p + 360p): {total_with_all_renditions}")
+print(f"🟢 Lezioni con 720p web-safe + sorgente: {total_with_web_720}")
 print(f"🟡 Lezioni con video sorgente 1080p: {total_with_source_only}")
 print(f"⚪ Lezioni senza video: {total_without_video}")
 print("=" * 80)
