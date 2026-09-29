@@ -185,6 +185,13 @@ export const VideoPlayerPage: React.FC = () => {
     }
   };
 
+  // A watchdog downgrade is temporary for the current session/lesson. Do not
+  // overwrite the learner's explicit preference because of one bad CDN path
+  // or a browser decoder hiccup.
+  const handleAutomaticQualityFallback = (newQuality: VideoQuality) => {
+    setQuality(newQuality);
+  };
+
   const handleVideoEnded = async () => {
     await refreshProgress();
 
@@ -545,6 +552,7 @@ export const VideoPlayerPage: React.FC = () => {
               availableQualities={availableQualities}
               quality={quality}
               onQualityChange={handleQualityChange}
+              onAutomaticQualityFallback={handleAutomaticQualityFallback}
               onRequestFreshUrl={refreshVideoUrl}
             />
           </div>

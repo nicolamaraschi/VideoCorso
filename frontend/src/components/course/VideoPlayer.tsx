@@ -31,6 +31,7 @@ const QUALITY_LABELS: Record<string, string> = {
 
 const QUALITY_FALLBACK_ORDER: VideoQuality[] = ['4k', '2k', '1080p', '720p', '480p', '360p'];
 const STALL_RECOVERY_DELAY_MS = 8_000;
+const PLAYBACK_HEARTBEAT_TIMEOUT_MS = 15_000;
 const STABLE_PLAYBACK_RESET_MS = 30_000;
 const MAX_AUTO_RECOVERY_ATTEMPTS = 3;
 
@@ -41,6 +42,7 @@ interface VideoPlayerProps {
   availableQualities?: string[];
   quality?: VideoQuality;
   onQualityChange?: (quality: VideoQuality) => void;
+  onAutomaticQualityFallback?: (quality: VideoQuality) => void;
   onRequestFreshUrl?: () => Promise<string | null>;
   trackProgress?: boolean;
 }
@@ -54,6 +56,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   availableQualities = [],
   quality,
   onQualityChange,
+  onAutomaticQualityFallback,
   onRequestFreshUrl,
   trackProgress = true,
 }) => {
@@ -65,6 +68,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const stablePlaybackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recoveryAttemptRef = useRef(0);
   const recoveryInFlightRef = useRef(false);
+  const playIntentRef = useRef(false);
+  const isScrubbingRef = useRef(false);
+  const playbackPositionRef = useRef({ currentTime: 0, duration: 0 });
 
   // State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -89,6 +95,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const {
     handleTimeUpdate: trackTimeUpdate,
+    flushProgress,
     markComplete,
     seekToSeconds,
     clearSeekTo,
@@ -147,6 +154,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const attempt = recoveryAttemptRef.current + 1;
     recoveryAttemptRef.current = attempt;
     if (attempt > MAX_AUTO_RECOVERY_ATTEMPTS) {
+      playIntentRef.current = false;
       setIsBuffering(false);
       setIsPlaying(false);
       setVideoPlaybackError(
@@ -155,8 +163,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       return;
     }
 
-    const resumeTime = Number.isFinite(video.currentTime) ? video.currentTime : currentTime;
-    const wasPlaying = forcePlay || isPlaying || !video.paused;
+    const resumeTime = Number.isFinite(video.currentTime)
+      ? video.currentTime
+      : playbackPositionRef.current.currentTime;
+    const wasPlaying = forcePlay || playIntentRef.current || !video.paused;
+    playIntentRef.current = wasPlaying;
     sourceChangeStateRef.current = { time: resumeTime, wasPlaying };
     recoveryInFlightRef.current = true;
     setIsBuffering(true);
@@ -167,8 +178,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       // exists. This also avoids repeatedly exercising a decoder profile that
       // a particular browser/device is struggling with.
       const lowerQuality = attempt >= 2 ? nextLowerAvailableQuality() : null;
-      if (lowerQuality && onQualityChange) {
-        onQualityChange(lowerQuality);
+      const applyAutomaticFallback = onAutomaticQualityFallback || onQualityChange;
+      if (lowerQuality && applyAutomaticFallback) {
+        applyAutomaticFallback(lowerQuality);
         return;
       }
 
@@ -189,9 +201,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [
     clearStablePlaybackTimer,
     clearStallRecoveryTimer,
-    currentTime,
-    isPlaying,
     nextLowerAvailableQuality,
+    onAutomaticQualityFallback,
     onQualityChange,
     onRequestFreshUrl,
     videoUrl,
@@ -200,20 +211,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const scheduleStallRecovery = useCallback((delay = STALL_RECOVERY_DELAY_MS) => {
     clearStallRecoveryTimer();
     const video = playerRef.current;
-    if (!video || !isPlaying || isScrubbing || video.ended) return;
+    if (!video || !playIntentRef.current || isScrubbingRef.current || video.ended) return;
     const scheduledAtTime = video.currentTime;
     stallRecoveryTimerRef.current = setTimeout(() => {
       const currentVideo = playerRef.current;
-      if (!currentVideo || currentVideo.paused || currentVideo.ended) return;
+      if (!currentVideo || !playIntentRef.current || currentVideo.ended) return;
       const playbackAdvanced = currentVideo.currentTime > scheduledAtTime + 0.25;
       if (playbackAdvanced && currentVideo.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) return;
       void recoverPlayback();
     }, delay);
-  }, [clearStallRecoveryTimer, isPlaying, isScrubbing, recoverPlayback]);
+  }, [clearStallRecoveryTimer, recoverPlayback]);
 
   const handlePlaying = useCallback(() => {
     clearStallRecoveryTimer();
     clearStablePlaybackTimer();
+    playIntentRef.current = true;
     setIsPlaying(true);
     setIsBuffering(false);
     setVideoPlaybackError(null);
@@ -221,15 +233,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       recoveryAttemptRef.current = 0;
       stablePlaybackTimerRef.current = null;
     }, STABLE_PLAYBACK_RESET_MS);
-  }, [clearStablePlaybackTimer, clearStallRecoveryTimer]);
+    scheduleStallRecovery(PLAYBACK_HEARTBEAT_TIMEOUT_MS);
+  }, [clearStablePlaybackTimer, clearStallRecoveryTimer, scheduleStallRecovery]);
 
   const handleCanPlay = useCallback(() => {
     clearStallRecoveryTimer();
     setIsBuffering(false);
-  }, [clearStallRecoveryTimer]);
+    if (playIntentRef.current) scheduleStallRecovery(PLAYBACK_HEARTBEAT_TIMEOUT_MS);
+  }, [clearStallRecoveryTimer, scheduleStallRecovery]);
 
   const handleVideoError = useCallback(() => {
-    if (!isPlaying) {
+    if (!playIntentRef.current) {
       setIsBuffering(false);
       setVideoPlaybackError('Il browser non è riuscito a caricare il video. Tocca per riprovare.');
       return;
@@ -239,18 +253,95 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     stallRecoveryTimerRef.current = setTimeout(() => {
       void recoverPlayback();
     }, 500);
-  }, [clearStallRecoveryTimer, isPlaying, recoverPlayback]);
+  }, [clearStallRecoveryTimer, recoverPlayback]);
+
+  const handlePause = useCallback((event: React.SyntheticEvent<HTMLVideoElement>) => {
+    clearStallRecoveryTimer();
+    clearStablePlaybackTimer();
+    setIsBuffering(false);
+    const video = event.currentTarget;
+    playbackPositionRef.current = {
+      currentTime: video.currentTime,
+      duration: Number.isFinite(video.duration) ? video.duration : playbackPositionRef.current.duration,
+    };
+    if (trackProgress) {
+      void flushProgress(
+        playbackPositionRef.current.currentTime,
+        playbackPositionRef.current.duration
+      );
+    }
+
+    // WebKit can pause while a hidden tab is suspended or while the source is
+    // being replaced. Preserve intent so visibility/pageshow can resume it.
+    if (document.hidden || sourceChangeStateRef.current || recoveryInFlightRef.current) return;
+    playIntentRef.current = false;
+    setIsPlaying(false);
+  }, [clearStablePlaybackTimer, clearStallRecoveryTimer, flushProgress, trackProgress]);
+
+  const handleSeeking = useCallback(() => {
+    clearStallRecoveryTimer();
+    if (playIntentRef.current) setIsBuffering(true);
+  }, [clearStallRecoveryTimer]);
+
+  const handleSeeked = useCallback((event: React.SyntheticEvent<HTMLVideoElement>) => {
+    const video = event.currentTarget;
+    isScrubbingRef.current = false;
+    setIsScrubbing(false);
+    setIsBuffering(false);
+    playbackPositionRef.current = {
+      currentTime: video.currentTime,
+      duration: Number.isFinite(video.duration) ? video.duration : playbackPositionRef.current.duration,
+    };
+    if (!playIntentRef.current || video.ended) return;
+    if (video.paused) {
+      void video.play().catch(() => scheduleStallRecovery(500));
+    } else if (video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+      scheduleStallRecovery();
+    }
+  }, [scheduleStallRecovery]);
 
   useEffect(() => {
     const handleOnline = () => {
       const video = playerRef.current;
-      if (isPlaying && video && video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+      if (playIntentRef.current && video && video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
         void recoverPlayback();
       }
     };
+    const resumeAfterSuspension = () => {
+      if (document.hidden || !playIntentRef.current) return;
+      const video = playerRef.current;
+      if (!video || video.ended) return;
+      if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+        scheduleStallRecovery(500);
+      } else if (video.paused) {
+        void video.play().catch(() => scheduleStallRecovery(500));
+      }
+    };
+    const flushBeforeLeaving = () => {
+      if (!trackProgress) return;
+      const video = playerRef.current;
+      if (video) {
+        playbackPositionRef.current = {
+          currentTime: video.currentTime,
+          duration: Number.isFinite(video.duration) ? video.duration : playbackPositionRef.current.duration,
+        };
+      }
+      void flushProgress(
+        playbackPositionRef.current.currentTime,
+        playbackPositionRef.current.duration
+      );
+    };
     window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
-  }, [isPlaying, recoverPlayback]);
+    window.addEventListener('pageshow', resumeAfterSuspension);
+    window.addEventListener('pagehide', flushBeforeLeaving);
+    document.addEventListener('visibilitychange', resumeAfterSuspension);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('pageshow', resumeAfterSuspension);
+      window.removeEventListener('pagehide', flushBeforeLeaving);
+      document.removeEventListener('visibilitychange', resumeAfterSuspension);
+    };
+  }, [flushProgress, recoverPlayback, scheduleStallRecovery, trackProgress]);
 
   useEffect(() => {
     if (!isPlaying) clearStallRecoveryTimer();
@@ -265,11 +356,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const video = playerRef.current;
     if (!video) return;
     if (isPlaying) {
-      video.play().catch(() => {});
+      playIntentRef.current = true;
+      video.play().catch((error: DOMException) => {
+        if (error?.name === 'NotAllowedError') {
+          playIntentRef.current = false;
+          setIsPlaying(false);
+          setIsBuffering(false);
+          return;
+        }
+        setIsBuffering(true);
+        scheduleStallRecovery(500);
+      });
     } else {
       video.pause();
     }
-  }, [isPlaying]);
+  }, [isPlaying, scheduleStallRecovery]);
 
   useEffect(() => {
     const video = playerRef.current;
@@ -293,14 +394,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     recoveryAttemptRef.current = 0;
     sourceChangeStateRef.current = {
       time: currentVideoTime,
-      wasPlaying: isPlaying,
+      wasPlaying: playIntentRef.current || !playerRef.current?.paused,
     };
     setShowSettings(false);
     onQualityChange?.(newQuality);
   };
 
   const togglePlay = useCallback(() => {
-    setIsPlaying((playing) => !playing);
+    const shouldPlay = !playIntentRef.current;
+    playIntentRef.current = shouldPlay;
+    setIsPlaying(shouldPlay);
   }, []);
 
   const toggleMute = useCallback(() => {
@@ -470,6 +573,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [duration]);
 
   const handleProgressBarMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    isScrubbingRef.current = true;
     setIsScrubbing(true);
     seekToTime(calculateTimeFromEvent(e.clientX));
   };
@@ -481,39 +585,58 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setHoverPosition(pos * 100);
     setHoverTime(pos * duration);
 
-    if (isScrubbing) {
+    if (isScrubbingRef.current) {
       seekToTime(pos * duration);
     }
   };
 
   const handleProgressBarMouseLeave = () => {
-    if (!isScrubbing) {
+    if (!isScrubbingRef.current) {
       setHoverPosition(null);
     }
   };
 
+  const finishScrubbing = useCallback(() => {
+    if (!isScrubbingRef.current) return;
+    isScrubbingRef.current = false;
+    setIsScrubbing(false);
+    setHoverPosition(null);
+    const video = playerRef.current;
+    if (
+      playIntentRef.current &&
+      video &&
+      !video.ended &&
+      video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA
+    ) {
+      scheduleStallRecovery();
+    }
+  }, [scheduleStallRecovery]);
+
   useEffect(() => {
     const handleGlobalMouseUp = () => {
-      if (isScrubbing) {
-        setIsScrubbing(false);
-        setHoverPosition(null);
-      }
+      finishScrubbing();
     };
 
     const handleGlobalMouseMove = (e: MouseEvent) => {
-      if (isScrubbing) {
+      if (isScrubbingRef.current) {
         seekToTime(calculateTimeFromEvent(e.clientX));
       }
     };
 
+    const handleGlobalTouchEnd = () => finishScrubbing();
+
     window.addEventListener('mouseup', handleGlobalMouseUp);
     window.addEventListener('mousemove', handleGlobalMouseMove);
+    window.addEventListener('touchend', handleGlobalTouchEnd);
+    window.addEventListener('touchcancel', handleGlobalTouchEnd);
 
     return () => {
       window.removeEventListener('mouseup', handleGlobalMouseUp);
       window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.removeEventListener('touchend', handleGlobalTouchEnd);
+      window.removeEventListener('touchcancel', handleGlobalTouchEnd);
     };
-  }, [calculateTimeFromEvent, isScrubbing, seekToTime]);
+  }, [calculateTimeFromEvent, finishScrubbing, seekToTime]);
 
   const displayAspectRatio = rotation === 90 || rotation === 270 ? 1 / aspectRatio : aspectRatio;
   const isPortrait = displayAspectRatio < 1;
@@ -527,6 +650,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const handleLoadedMetadata = useCallback((event: React.SyntheticEvent<HTMLVideoElement>) => {
     const videoEl = event.currentTarget;
+    if (Number.isFinite(videoEl.duration) && videoEl.duration > 0) {
+      playbackPositionRef.current.duration = videoEl.duration;
+      setDuration(videoEl.duration);
+    }
     if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
       setAspectRatio(videoEl.videoWidth / videoEl.videoHeight);
     }
@@ -548,10 +675,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }, { once: true });
       }
       videoEl.playbackRate = playbackRate;
+      playIntentRef.current = pending.wasPlaying;
       setIsPlaying(pending.wasPlaying);
       if (pending.wasPlaying) {
         const resume = () => {
           void videoEl.play().catch(() => {
+            playIntentRef.current = false;
             setIsPlaying(false);
             setIsBuffering(false);
           });
@@ -575,6 +704,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       return;
     }
     videoEl.currentTime = seekToSeconds;
+    playbackPositionRef.current.currentTime = seekToSeconds;
     setCurrentTime(seekToSeconds);
     clearSeekTo();
   }, [clearSeekTo, duration, seekToSeconds]);
@@ -671,25 +801,48 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             scheduleStallRecovery(4_000);
           }}
           onPlaying={handlePlaying}
+          onPause={handlePause}
           onCanPlay={handleCanPlay}
+          onSeeking={handleSeeking}
+          onSeeked={handleSeeked}
           onError={handleVideoError}
           onTimeUpdate={(event) => {
             const playedSeconds = event.currentTarget.currentTime;
-            if (event.currentTarget.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
-              clearStallRecoveryTimer();
+            playbackPositionRef.current = {
+              currentTime: playedSeconds,
+              duration: Number.isFinite(event.currentTarget.duration)
+                ? event.currentTarget.duration
+                : duration,
+            };
+            if (
+              playIntentRef.current &&
+              event.currentTarget.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+            ) {
+              scheduleStallRecovery(PLAYBACK_HEARTBEAT_TIMEOUT_MS);
             }
-            if (!isScrubbing) {
+            if (!isScrubbingRef.current) {
               setCurrentTime(playedSeconds);
             }
-            handleTimeUpdate(playedSeconds, duration);
+            handleTimeUpdate(playedSeconds, playbackPositionRef.current.duration);
           }}
-          onDurationChange={(event) => setDuration(event.currentTarget.duration)}
+          onDurationChange={(event) => {
+            const nextDuration = event.currentTarget.duration;
+            if (!Number.isFinite(nextDuration) || nextDuration <= 0) return;
+            playbackPositionRef.current.duration = nextDuration;
+            setDuration(nextDuration);
+          }}
           onLoadedMetadata={handleLoadedMetadata}
-          onEnded={() => {
+          onEnded={async (event) => {
             clearStallRecoveryTimer();
             clearStablePlaybackTimer();
+            playIntentRef.current = false;
             setIsPlaying(false);
-            if (trackProgress) markComplete(currentTime, duration);
+            const endedAt = event.currentTarget.currentTime;
+            const totalDuration = Number.isFinite(event.currentTarget.duration)
+              ? event.currentTarget.duration
+              : duration;
+            playbackPositionRef.current = { currentTime: endedAt, duration: totalDuration };
+            if (trackProgress) await markComplete(endedAt, totalDuration);
             if (onEnded) onEnded();
           }}
           style={
@@ -723,6 +876,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             type="button"
             onClick={() => {
               recoveryAttemptRef.current = 0;
+              playIntentRef.current = true;
               setVideoPlaybackError(null);
               setIsBuffering(true);
               setIsPlaying(true);
@@ -775,6 +929,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               onMouseLeave={handleProgressBarMouseLeave}
               onTouchStart={(e) => {
                 e.stopPropagation();
+                isScrubbingRef.current = true;
                 setIsScrubbing(true);
                 const touch = e.touches[0];
                 if (touch) seekToTime(calculateTimeFromEvent(touch.clientX));
@@ -782,10 +937,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               onTouchMove={(e) => {
                 e.stopPropagation();
                 const touch = e.touches[0];
-                if (touch && isScrubbing) seekToTime(calculateTimeFromEvent(touch.clientX));
+                if (touch && isScrubbingRef.current) seekToTime(calculateTimeFromEvent(touch.clientX));
+              }}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                finishScrubbing();
+              }}
+              onTouchCancel={(e) => {
+                e.stopPropagation();
+                finishScrubbing();
               }}
               data-no-swipe="true"
-              className="relative w-full py-2 cursor-pointer group/progress select-none"
+              className="relative w-full py-2 cursor-pointer group/progress select-none touch-none"
             >
               {/* Background Track */}
               <div className="w-full h-1.5 group-hover/progress:h-2 bg-white/25 rounded-full overflow-hidden transition-all duration-150 relative">
