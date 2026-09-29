@@ -42,10 +42,13 @@ def test_delete_lesson_assets_deletes_source_and_all_renditions(monkeypatch):
     admin.delete_lesson_assets({"video_s3_key": "uploads/lesson.mov"})
     assert deleted == [
         ("video", "uploads/lesson.mov"),
+        ("video", "streaming/lesson/lesson_4k.mp4"),
+        ("video", "streaming/lesson/lesson_2k.mp4"),
+        ("video", "streaming/lesson/lesson_1440p.mp4"),
+        ("video", "streaming/lesson/lesson_1080p.mp4"),
         ("video", "streaming/lesson/lesson_720p.mp4"),
         ("video", "streaming/lesson/lesson_480p.mp4"),
         ("video", "streaming/lesson/lesson_360p.mp4"),
-        ("video", "streaming/lesson/lesson_1080p.mp4"),
         ("thumb", None),
     ]
 
@@ -59,10 +62,13 @@ def test_versioned_lesson_assets_are_isolated_from_old_versions():
     assert admin.extract_asset_version(key, "lesson-1") == "version-new"
     assert admin.extract_asset_version(key, "lesson-other") is None
     assert admin.get_optimized_video_keys(key) == [
+        "streaming/lesson-1/version-new/source_4k.mp4",
+        "streaming/lesson-1/version-new/source_2k.mp4",
+        "streaming/lesson-1/version-new/source_1440p.mp4",
+        "streaming/lesson-1/version-new/source_1080p.mp4",
         "streaming/lesson-1/version-new/source_720p.mp4",
         "streaming/lesson-1/version-new/source_480p.mp4",
         "streaming/lesson-1/version-new/source_360p.mp4",
-        "streaming/lesson-1/version-new/source_1080p.mp4",
     ]
 
 
