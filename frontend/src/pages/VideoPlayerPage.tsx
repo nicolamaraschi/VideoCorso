@@ -680,7 +680,7 @@ export const VideoPlayerPage: React.FC = () => {
             <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl ring-1 ring-primary-950/15 bg-transparent">
               <VideoPlayer
                 key={lessonId}
-                videoUrl={videoUrl}
+                videoUrl={videoUrl || ''}
                 lessonId={lessonId!}
                 onEnded={handleVideoEnded}
                 availableQualities={availableQualities}
