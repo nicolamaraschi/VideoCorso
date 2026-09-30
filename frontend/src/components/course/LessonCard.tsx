@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, CheckCircle, Lock, Clock, Paperclip } from 'lucide-react';
+import { Play, CheckCircle, Lock, Clock, Paperclip, FileText } from 'lucide-react';
 import type { Lesson, Progress } from '../../types';
 import { formatDuration } from '../../utils/formatters';
 
@@ -19,6 +19,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
   onClick,
 }) => {
   const isCompleted = progress?.completed || false;
+  const isDispensa = !lesson.video_s3_key || lesson.video_s3_key.trim() === '' || lesson.duration_seconds === 0;
   const watchedPercentage = progress && progress.total_seconds > 0
     ? Math.min(100, Math.max(0, (progress.watched_seconds / progress.total_seconds) * 100))
     : 0;
@@ -45,23 +46,36 @@ export const LessonCard: React.FC<LessonCardProps> = ({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-900 to-primary-950 text-primary-300">
-            <Play className="w-8 h-8 opacity-60" />
+            {isDispensa ? (
+              <FileText className="w-8 h-8 opacity-75 text-amber-300" />
+            ) : (
+              <Play className="w-8 h-8 opacity-60" />
+            )}
           </div>
         )}
 
-        {/* Hover Play Icon Overlay */}
+        {/* Hover Play / Read Icon Overlay */}
         {!isLocked && (
           <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity duration-300 flex items-center justify-center">
             <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center text-primary-900 shadow-lg transform scale-90 group-hover/thumb:scale-100 transition-transform duration-300">
-              <Play className="w-5 h-5 fill-current ml-0.5" />
+              {isDispensa ? (
+                <FileText className="w-5 h-5 text-primary-900" />
+              ) : (
+                <Play className="w-5 h-5 fill-current ml-0.5" />
+              )}
             </div>
           </div>
         )}
 
-        {/* Video Duration Badge (Bottom-Right overlay) */}
-        {lesson.duration_seconds > 0 && (
+        {/* Video Duration / Dispensa Badge (Bottom-Right overlay) */}
+        {lesson.duration_seconds > 0 ? (
           <div className="absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 px-2 py-0.5 rounded-md bg-black/85 backdrop-blur-md text-white text-[10px] sm:text-xs font-mono font-semibold shadow-xs">
             {formatDuration(lesson.duration_seconds)}
+          </div>
+        ) : (
+          <div className="absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 px-2 py-0.5 rounded-md bg-amber-950/85 backdrop-blur-md text-amber-200 text-[10px] sm:text-xs font-semibold shadow-xs flex items-center gap-1 border border-amber-400/30">
+            <FileText className="w-2.5 h-2.5 text-amber-300" />
+            <span>Dispensa</span>
           </div>
         )}
 
@@ -145,10 +159,17 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 
       {/* Desktop Right Action & Status Column */}
       <div className="hidden sm:flex flex-col items-end justify-center flex-shrink-0 gap-2.5 min-w-[130px] pl-2">
-        <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-gray-600">
-          <Clock className="w-4 h-4 text-primary-600" />
-          <span>{formatDuration(lesson.duration_seconds)}</span>
-        </div>
+        {lesson.duration_seconds > 0 ? (
+          <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-gray-600">
+            <Clock className="w-4 h-4 text-primary-600" />
+            <span>{formatDuration(lesson.duration_seconds)}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-amber-900 bg-amber-50/90 border border-amber-200/90 px-2.5 py-1 rounded-lg">
+            <FileText className="w-3.5 h-3.5 text-amber-600" />
+            <span>Dispensa PDF</span>
+          </div>
+        )}
 
         {/* Interactive CTA Pill */}
         {isCompleted ? (
@@ -158,8 +179,8 @@ export const LessonCard: React.FC<LessonCardProps> = ({
           </span>
         ) : isActive ? (
           <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary-700 text-white text-xs font-bold shadow-xs">
-            <Play className="w-3.5 h-3.5 fill-current" />
-            <span>In riproduzione</span>
+            {isDispensa ? <FileText className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+            <span>{isDispensa ? 'In lettura' : 'In riproduzione'}</span>
           </span>
         ) : isLocked ? (
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 text-gray-500 border border-gray-200 text-xs font-medium">
@@ -168,8 +189,8 @@ export const LessonCard: React.FC<LessonCardProps> = ({
           </span>
         ) : (
           <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white text-primary-900 border border-primary-300 group-hover:bg-primary-700 group-hover:text-white group-hover:border-primary-700 text-xs font-bold transition-all shadow-2xs">
-            <Play className="w-3.5 h-3.5 fill-current" />
-            <span>{watchedPercentage > 0 ? 'Riprendi' : 'Guarda'}</span>
+            {isDispensa ? <FileText className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+            <span>{isDispensa ? 'Leggi Dispensa' : watchedPercentage > 0 ? 'Riprendi' : 'Guarda'}</span>
           </span>
         )}
       </div>

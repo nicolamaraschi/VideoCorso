@@ -39,13 +39,8 @@ export const LandingPage: React.FC = () => {
       {/* 1. HERO SECTION WITH 3D MICROBLADING WAVE & ORGANIC S-CURVE DIVIDER */}
       <section id="hero" className="relative pt-12 sm:pt-16 lg:pt-24 pb-28 lg:pb-36 bg-gradient-to-br from-[#24070F] via-[#38101A] to-[#1C040A] text-white overflow-hidden">
         
-        {/* 3D Wave Ribbon Artwork in the background */}
+        {/* Ambient subtle light glow in the background */}
         <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
-          <img 
-            src="/wave-ribbon-pmu.jpg" 
-            alt="3D Wave Ribbon Microblading" 
-            className="w-full h-full object-cover object-center opacity-60 mix-blend-screen scale-105 transform -translate-y-6"
-          />
           {/* Subtle vignette and ambient light overlay */}
           <div className="absolute inset-0 bg-gradient-to-b from-[#24070F]/50 via-transparent to-[#1C040A]/80" />
           <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary-600/20 rounded-full blur-[120px] pointer-events-none" />
@@ -429,14 +424,6 @@ export const LandingPage: React.FC = () => {
 
       {/* 3. QUELLO CHE TI COSTA RESTARE COSÌ (COSTO DELL'INAZIONE) */}
       <section className="pt-20 pb-28 sm:pb-36 bg-[#1a0a0e] text-white relative overflow-hidden">
-        {/* Subtle ambient 3D ribbon accent */}
-        <div className="absolute inset-0 opacity-25 pointer-events-none select-none mix-blend-screen overflow-hidden">
-          <img 
-            src="/wave-ribbon-pmu.jpg" 
-            alt="PMU wave" 
-            className="w-full h-full object-cover object-bottom scale-110"
-          />
-        </div>
         <div className="absolute inset-0 bg-gradient-to-b from-[#1a0a0e] via-transparent to-[#1a0a0e] opacity-90" />
 
         <div className="container mx-auto px-6 relative z-10 max-w-5xl">
@@ -722,7 +709,7 @@ export const LandingPage: React.FC = () => {
 
           <div className="mt-12 grid grid-cols-2 gap-6 max-w-md mx-auto">
             <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-              <span className="block text-3xl font-serif font-bold text-amber-300">700+</span>
+              <span className="block text-3xl font-serif font-bold text-amber-300">+2500</span>
               <span className="text-xs text-primary-200 uppercase tracking-wider">Donne Trattate a Milano</span>
             </div>
             <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
@@ -910,12 +897,12 @@ export const LandingPage: React.FC = () => {
               </div>
 
               <a
-                href="https://wa.me/393428077768?text=Ciao%20Chiara,%20vorrei%20prenotare%20la%20call%20strategica%20per%20il%20Percorso%20Full%20in%20studio"
+                href="https://wa.me/393428077768?text=Ciao%20Chiara,%20vorrei%20candidarmi%20e%20prenotare%20una%20call%20per%20il%20Percorso%20Full%20in%20studio"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 font-bold text-center hover:from-amber-300 hover:to-amber-400 transition shadow-lg block"
               >
-                Prenota la tua Call Strategica
+                Candidati per il Percorso Full
               </a>
             </div>
 

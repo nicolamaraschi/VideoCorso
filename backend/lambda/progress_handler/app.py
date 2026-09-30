@@ -364,7 +364,10 @@ def update_progress(user_id: str, body: dict[str, Any], admin_status: bool = Fal
     lesson_duration = Decimal(str(lesson.get('duration_seconds', 0) or 0))
     watched_value = Decimal(str(watched_seconds or 0))
     total_seconds = lesson_duration
-    completed = bool(lesson_duration > 0 and watched_value / lesson_duration >= Decimal('0.90'))
+    completed = bool(
+        (lesson_duration > 0 and watched_value / lesson_duration >= Decimal('0.90')) or
+        (lesson_duration == 0 and bool(body.get('completed')))
+    )
 
     progress_percent = 0
     if total_seconds > 0:

@@ -56,11 +56,12 @@ export const courseService = {
   },
 
   async markLessonComplete(lessonId: string, totalSeconds?: number): Promise<ApiResponse<Progress>> {
+    const sec = totalSeconds && totalSeconds > 0 ? totalSeconds : 1;
     return apiClient.post<ApiResponse<Progress>>('/progress/complete', {
       lesson_id: lessonId,
       completed: true,
-      total_seconds: totalSeconds,
-      watched_seconds: totalSeconds,
+      total_seconds: sec,
+      watched_seconds: sec,
     });
   },
 
