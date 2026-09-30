@@ -707,13 +707,9 @@ export const LandingPage: React.FC = () => {
             <span className="text-sm text-primary-300 font-light mt-1">Master Dermopigmentista & Fondatrice Academy</span>
           </div>
 
-          <div className="mt-12 grid grid-cols-2 gap-6 max-w-md mx-auto">
+          <div className="mt-12 max-w-xs mx-auto">
             <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
               <span className="block text-3xl font-serif font-bold text-amber-300">+2500</span>
-              <span className="text-xs text-primary-200 uppercase tracking-wider">Donne Trattate a Milano</span>
-            </div>
-            <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-              <span className="block text-3xl font-serif font-bold text-amber-300">400+</span>
               <span className="text-xs text-primary-200 uppercase tracking-wider">Clienti Soddisfatte</span>
             </div>
           </div>
