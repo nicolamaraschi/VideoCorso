@@ -809,16 +809,24 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           onSeeked={handleSeeked}
           onError={handleVideoError}
           onTimeUpdate={(event) => {
-            const playedSeconds = event.currentTarget.currentTime;
+            const el = event.currentTarget;
+            // Safari can leave the buffering spinner on even though playback is
+            // advancing: it may fire `waiting` without a matching `playing`
+            // (Chrome always re-fires `playing`). Clear it as soon as real
+            // frames are being produced.
+            if (isBuffering && el.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+              setIsBuffering(false);
+            }
+            const playedSeconds = el.currentTime;
             playbackPositionRef.current = {
               currentTime: playedSeconds,
-              duration: Number.isFinite(event.currentTarget.duration)
-                ? event.currentTarget.duration
+              duration: Number.isFinite(el.duration)
+                ? el.duration
                 : duration,
             };
             if (
               playIntentRef.current &&
-              event.currentTarget.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+              el.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
             ) {
               scheduleStallRecovery(PLAYBACK_HEARTBEAT_TIMEOUT_MS);
             }
