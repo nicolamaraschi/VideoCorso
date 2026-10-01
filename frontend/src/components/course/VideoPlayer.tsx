@@ -221,7 +221,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       const currentVideo = playerRef.current;
       if (!currentVideo || !playIntentRef.current || currentVideo.ended) return;
       const playbackAdvanced = currentVideo.currentTime > scheduledAtTime + 0.25;
-      if (playbackAdvanced && currentVideo.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) return;
+      // If frames are actually being produced, playback is healthy: never
+      // reload. Safari frequently drops readyState while still progressing,
+      // and the old `advanced && readyState>=FUTURE_DATA` check treated that as
+      // a stall, reloading the source and freezing the picture.
+      if (playbackAdvanced) return;
       void recoverPlayback();
     }, delay);
   }, [clearStallRecoveryTimer, recoverPlayback]);
