@@ -6,7 +6,7 @@ interface LandingVslPlayerProps {
   className?: string;
 }
 
-type QualityOption = 'auto' | '1080p' | '720p' | '480p' | '360p';
+type QualityOption = 'auto' | '1080p' | '720p' | '480p' | '360p' | '240p';
 type PlaybackMode = 'hls-js' | 'native-hls' | 'mp4';
 type NetworkInformationLike = {
   effectiveType?: string;
@@ -27,8 +27,9 @@ const FALLBACK_MP4S: Record<Exclude<QualityOption, 'auto'>, string> = {
   '720p': `${CDN_BASE}/vsl_720p.mp4`,
   '480p': `${CDN_BASE}/vsl_480p.mp4`,
   '360p': `${CDN_BASE}/vsl_360p.mp4`,
+  '240p': `${CDN_BASE}/vsl_240p.mp4`,
 };
-const qualityOptions: QualityOption[] = ['auto', '1080p', '720p', '480p', '360p'];
+const qualityOptions: QualityOption[] = ['auto', '1080p', '720p', '480p', '360p', '240p'];
 
 const isSlowNetwork = () => {
   if (typeof navigator === 'undefined') return false;
@@ -105,7 +106,7 @@ export const LandingVslPlayer: React.FC<LandingVslPlayerProps> = ({ className = 
         capLevelToPlayerSize: true,
         // Avoid consuming mobile data before the visitor explicitly presses Play.
         autoStartLoad: false,
-        // Playlist order: 360p, 480p, 720p, 1080p.
+        // Playlist order: 240p, 360p, 480p, 720p, 1080p.
         startLevel: isSlowNetwork() ? 0 : 1,
         lowLatencyMode: false,
         backBufferLength: 30,
@@ -128,7 +129,6 @@ export const LandingVslPlayer: React.FC<LandingVslPlayerProps> = ({ className = 
         setCurrentQualityLabel('720p');
         replaceVideoSource(FALLBACK_MP4S['720p'], true);
       };
-      let hasRetriedNetwork = false;
       let hasRetriedMedia = false;
 
       hlsRef.current = hls;
@@ -141,8 +141,9 @@ export const LandingVslPlayer: React.FC<LandingVslPlayerProps> = ({ className = 
       });
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (!data.fatal) return;
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR && !hasRetriedNetwork) {
-          hasRetriedNetwork = true;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          // On a weak but usable connection, the lowest HLS rendition is safer
+          // than replacing it with a much larger progressive MP4 download.
           hls.startLoad();
         } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR && !hasRetriedMedia) {
           hasRetriedMedia = true;
@@ -392,7 +393,7 @@ export const LandingVslPlayer: React.FC<LandingVslPlayerProps> = ({ className = 
           <div className="flex items-center gap-2 relative">
             <div className="relative">
               <button type="button" onClick={() => setShowQualityMenu((show) => !show)} className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer" title="Impostazioni qualità" aria-haspopup="menu" aria-expanded={showQualityMenu}><Settings className="w-3.5 h-3.5 text-rose-300" /><span>{currentQualityLabel}</span></button>
-              {showQualityMenu && <div role="menu" className="absolute bottom-full right-0 mb-2 w-36 py-1.5 bg-neutral-900/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl text-xs z-50 animate-fade-in"><div className="px-3 py-1 text-[10px] uppercase font-bold text-gray-400 border-b border-white/10">Risoluzione</div>{qualityOptions.map((quality) => <button type="button" role="menuitemradio" aria-checked={selectedQuality === quality} key={quality} onClick={() => handleQualityChange(quality)} className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-white/10 transition-colors cursor-pointer ${selectedQuality === quality ? 'text-rose-300 font-semibold' : 'text-gray-200'}`}><span>{quality === 'auto' ? 'Auto (Adattivo)' : quality === '1080p' ? '1080p (Full HD)' : quality === '720p' ? '720p (HD)' : quality === '480p' ? '480p (Media)' : '360p (Leggera)'}</span>{selectedQuality === quality && <Check className="w-3.5 h-3.5 text-rose-300" />}</button>)}</div>}
+              {showQualityMenu && <div role="menu" className="absolute bottom-full right-0 mb-2 w-36 py-1.5 bg-neutral-900/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl text-xs z-50 animate-fade-in"><div className="px-3 py-1 text-[10px] uppercase font-bold text-gray-400 border-b border-white/10">Risoluzione</div>{qualityOptions.map((quality) => <button type="button" role="menuitemradio" aria-checked={selectedQuality === quality} key={quality} onClick={() => handleQualityChange(quality)} className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-white/10 transition-colors cursor-pointer ${selectedQuality === quality ? 'text-rose-300 font-semibold' : 'text-gray-200'}`}><span>{quality === 'auto' ? 'Auto (Adattivo)' : quality === '1080p' ? '1080p (Full HD)' : quality === '720p' ? '720p (HD)' : quality === '480p' ? '480p (Media)' : quality === '360p' ? '360p (Leggera)' : '240p (Risparmio dati)'}</span>{selectedQuality === quality && <Check className="w-3.5 h-3.5 text-rose-300" />}</button>)}</div>}
             </div>
             <button type="button" onClick={toggleFullscreen} className="p-1.5 hover:text-rose-300 transition-colors cursor-pointer" aria-label={isFullscreen ? 'Esci da schermo intero' : 'Schermo intero'}>{isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}</button>
           </div>
