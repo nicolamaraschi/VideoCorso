@@ -87,4 +87,8 @@ backend/layers/shared/python/*
 !backend/layers/shared/python/shared/
 logs.json
 testenv/
-
+scripts/vsl_build/
+scripts/*.cer
+scripts/*.crt
+*.ts
+*.m3u8

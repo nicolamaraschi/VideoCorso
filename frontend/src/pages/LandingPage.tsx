@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { GoogleReviewsCarousel } from '../components/common/GoogleReviewsCarousel';
 import { MarqueeBanner } from "../components/common/MarqueeBanner";
+import { LandingVslPlayer } from "../components/common/LandingVslPlayer";
 
 
 export const LandingPage: React.FC = () => {
@@ -110,18 +111,7 @@ export const LandingPage: React.FC = () => {
             >
               <div className="relative">
                 <div className="absolute inset-0 bg-primary-500/30 rounded-3xl transform -rotate-3 blur-xl"></div>
-                <div className="relative overflow-hidden rounded-3xl shadow-2xl border-2 border-white/20 aspect-[4/5] bg-primary-950/80 backdrop-blur-sm group">
-                  <video
-                    className="w-full h-full object-cover"
-                    src="/welcome-opt.mp4"
-                    controls
-                    playsInline
-                    preload="none"
-                    poster="/poster-welcome.webp"
-                  >
-                    Il tuo browser non supporta il tag video.
-                  </video>
-                </div>
+                <LandingVslPlayer />
               </div>
             </motion.div>
           </div>
