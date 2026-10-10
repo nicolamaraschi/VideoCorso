@@ -11,7 +11,8 @@ import {
   AlertTriangle,
   TrendingUp,
   XCircle,
-  CheckCircle2
+  CheckCircle2,
+  Play
 } from 'lucide-react';
 import { GoogleReviewsCarousel } from '../components/common/GoogleReviewsCarousel';
 import { MarqueeBanner } from "../components/common/MarqueeBanner";
@@ -35,126 +36,330 @@ export const LandingPage: React.FC = () => {
     }
   }, [location]);
   return (
-    <div className="bg-gradient-to-b from-primary-50/60 via-white to-primary-50/40 min-h-screen text-gray-800">
+    <div className="bg-[#FAF7F2] min-h-screen text-[#1E1B18]">
       
-      {/* 1. HERO SECTION WITH 3D MICROBLADING WAVE & ORGANIC S-CURVE DIVIDER */}
-      <section id="hero" className="relative pt-12 sm:pt-16 lg:pt-24 pb-28 lg:pb-36 bg-gradient-to-br from-[#24070F] via-[#38101A] to-[#1C040A] text-white overflow-hidden">
-        
-        {/* Ambient subtle light glow in the background */}
-        <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
-          {/* Subtle vignette and ambient light overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#24070F]/50 via-transparent to-[#1C040A]/80" />
-          <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary-600/20 rounded-full blur-[120px] pointer-events-none" />
-        </div>
-
-        <div className="container mx-auto px-4 sm:px-6 relative z-10">
-          <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
-            <div className="lg:w-7/12 text-center lg:text-left flex flex-col items-center lg:items-start">
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
+      {/* 1. HERO SECTION (EDITORIAL LUXURY LOOK & FEEL) */}
+      <section id="hero" className="relative pt-10 sm:pt-14 lg:pt-20 pb-16 sm:pb-20 lg:pb-24 bg-[#FAF7F2] text-[#1E1B18] overflow-hidden border-b border-[#EAE3D7]">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+            
+            {/* Left Column: Heading & CTA */}
+            <div className="lg:col-span-7 flex flex-col items-start text-left">
+              <motion.span
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-rose-200 text-xs sm:text-sm font-semibold mb-6 tracking-wide uppercase backdrop-blur-md shadow-sm"
+                className="text-[11px] sm:text-xs font-semibold tracking-[0.28em] uppercase text-[#8A7E73] mb-4 sm:mb-5 block"
               >
-                <Sparkles className="w-4 h-4 text-rose-300" />
-                <span>Chiara Morocutti Academy</span>
-              </motion.div>
+                Chiara Morocutti Academy
+              </motion.span>
 
               <motion.h1
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.1 }}
-                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white leading-[1.15] tracking-tight max-w-2xl"
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-3xl sm:text-4xl md:text-[2.65rem] lg:text-[2.9rem] xl:text-[3.25rem] font-serif text-[#18181B] leading-[1.18] tracking-tight"
               >
-                Diventa la dermopigmentista che{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-200 via-amber-100 to-rose-300 italic font-normal">
-                  tutti si contendono.
-                </span>
+                <span className="block font-normal">Impara il microblading,</span>
+                <span className="block italic font-normal text-[#221C1B]">Costruisci il tuo futuro.</span>
               </motion.h1>
 
+              {/* Minimalist divider line like in Chiara's mockup */}
+              <div className="w-12 sm:w-14 h-[2px] bg-[#18181B] my-5" />
+
               <motion.p
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.2 }}
-                className="mt-6 text-base sm:text-lg lg:text-xl text-rose-100/85 leading-relaxed max-w-2xl font-light"
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="text-sm sm:text-base text-[#5A5147] leading-relaxed max-w-md font-light"
               >
-                Il percorso che unisce <strong className="text-white font-semibold">tecnica del microblading</strong> e <strong className="text-white font-semibold">mentalità imprenditoriale</strong> per costruire un'agenda piena, con margini alti e meno ore in cabina.
+                Dalla tecnica alla ricerca dei primi clienti: un percorso completo per <strong className="font-semibold text-[#18181B]">trasformare</strong> una passione in una <strong className="font-semibold text-[#18181B]">professione</strong>.
               </motion.p>
 
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.3 }}
-                className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto justify-center lg:justify-start"
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="mt-7 sm:mt-8 flex flex-wrap items-center gap-3.5 w-full sm:w-auto"
               >
-                <a 
-                  href="#corso" 
-                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-rose-200 via-amber-100 to-rose-200 text-primary-950 text-center rounded-full font-bold hover:shadow-[0_0_25px_rgba(228,181,189,0.5)] transition-all active:scale-[0.99] flex items-center justify-center gap-2 group"
+                <a
+                  href="#corso"
+                  className="w-full sm:w-auto px-7 py-3.5 bg-[#18181B] text-white text-center text-xs font-bold uppercase tracking-[0.16em] rounded-xs hover:bg-[#2C2724] active:scale-[0.99] transition shadow-xs"
                 >
-                  <span>Scegli il tuo percorso</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform text-primary-950" />
+                  Scopri il Corso
                 </a>
-                <a 
-                  href="#vantaggi" 
-                  className="w-full sm:w-auto px-8 py-4 bg-white/10 text-white text-center border border-white/20 rounded-full font-medium hover:bg-white/20 transition backdrop-blur-md"
+                <a
+                  href="#video-academy"
+                  className="w-full sm:w-auto px-6 py-3.5 bg-transparent border border-[#18181B] text-[#18181B] text-center text-xs font-bold uppercase tracking-[0.16em] rounded-xs hover:bg-black/5 active:scale-[0.99] transition inline-flex items-center justify-center gap-2 group"
                 >
-                  Scopri i 2 Pilastri
+                  <Play className="w-3 h-3 text-[#18181B] group-hover:scale-110 transition-transform" />
+                  <span>Guarda il Video</span>
                 </a>
               </motion.div>
             </div>
 
+            {/* Right Column: Chiara Photo & Script Handwriting */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.7, delay: 0.3 }}
-              className="lg:w-5/12 w-full max-w-md lg:max-w-none mx-auto"
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="lg:col-span-5 relative w-full max-w-sm sm:max-w-md lg:max-w-none mx-auto"
             >
               <div className="relative">
-                <div className="absolute inset-0 bg-primary-500/30 rounded-3xl transform -rotate-3 blur-xl"></div>
-                <LandingVslPlayer />
+                {/* Photo of Chiara on Stool with Jeans & Blazer */}
+                <div className="overflow-hidden rounded-3xl shadow-xl border border-[#E8E1D5] bg-[#E8E4DD]">
+                  <img
+                    src="/images/chiara/chiara-sgabello-jeans-giacca.jpg"
+                    alt="Chiara Morocutti - Fondatrice Academy Microblading"
+                    className="w-full h-auto object-cover object-top select-none"
+                    loading="eager"
+                  />
+                </div>
+
+                {/* Handwriting Script Calligraphy on Top Right */}
+                <div className="absolute top-4 right-4 sm:top-6 sm:right-6 lg:top-8 lg:right-7 font-script text-2xl sm:text-3xl lg:text-[2.4rem] text-[#A69385] leading-[1.12] select-none rotate-[-4deg] pointer-events-none drop-shadow-xs text-right">
+                  <span>Tecnica</span><br />
+                  <span className="mr-1 sm:mr-2">Strategia</span><br />
+                  <span className="relative inline-block">
+                    Risultati
+                    <span className="block w-full h-[1.5px] bg-[#A69385]/80 mt-0.5 rounded-full" />
+                  </span>
+                </div>
               </div>
             </motion.div>
+
           </div>
         </div>
+      </section>
 
+      {/* 2. VIDEO PRESENTAZIONE ACADEMY (CENTER STAGE CINEMA SHOWCASE) */}
+      <section id="video-academy" className="py-20 sm:py-28 lg:py-32 bg-[#FAF7F2] text-[#1E1B18] relative overflow-hidden border-b border-[#EAE3D7]">
+        {/* Subtle Luxury Ambient Background Orbs */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-gradient-to-tr from-[#E5D2CF]/30 via-[#F5ECE5]/40 to-[#D8B6B2]/20 rounded-full blur-[140px] pointer-events-none -z-10" />
+
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl relative z-10">
+          
+          {/* Section Grand Header (Centered) */}
+          <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16 lg:mb-20">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 border border-[#E3DBD0] text-[#7A6F65] text-[11px] sm:text-xs font-semibold tracking-[0.22em] uppercase shadow-xs mb-5">
+              <Sparkles className="w-3.5 h-3.5 text-[#B08D57]" />
+              <span>Video di Presentazione Ufficiale</span>
+            </div>
+
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-[#18181B] leading-[1.15] tracking-tight mb-5">
+              Ti presento la mia Academy.
+            </h2>
+
+            <p className="text-base sm:text-lg text-[#5A5147] font-light leading-relaxed max-w-2xl mx-auto">
+              Premi play per ascoltare Chiara: scopri in pochi minuti la visione del <strong className="font-semibold text-[#18181B]">Metodo Morocutti</strong>, la precisione del tratto a pelo naturale e la strategia per posizionarti subito nella fascia alta del mercato.
+            </p>
+          </div>
+
+          {/* 3-Column Luxury Theater Stage (Desktop: 2 side pillar columns framing the centered monumental 9:16 player) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center max-w-6xl mx-auto">
+            
+            {/* Left Column: 2 Authority Feature Cards (desktop left flank) */}
+            <div className="hidden lg:flex lg:col-span-3 flex-col gap-6 justify-center">
+              
+              {/* Feature 1 */}
+              <div className="bg-white/85 backdrop-blur-sm p-6 rounded-2xl border border-[#E4DDD2] shadow-sm hover:shadow-md transition-shadow">
+                <span className="inline-block text-[10px] font-bold tracking-[0.2em] uppercase text-[#96897E] mb-2">
+                  Tecnica Esclusiva
+                </span>
+                <h3 className="text-base font-serif font-bold text-[#18181B] mb-2 leading-snug">
+                  Tratto a Pelo Iper-Realistico
+                </h3>
+                <p className="text-xs text-[#665D54] leading-relaxed font-light">
+                  Nessun effetto finto o blocco rigido. Impari a seguire la direzione reale del pelo per sopracciglia armoniosamente perfette.
+                </p>
+              </div>
+
+              {/* Feature 2 */}
+              <div className="bg-white/85 backdrop-blur-sm p-6 rounded-2xl border border-[#E4DDD2] shadow-sm hover:shadow-md transition-shadow">
+                <span className="inline-block text-[10px] font-bold tracking-[0.2em] uppercase text-[#96897E] mb-2">
+                  Pratica Guidata 4K
+                </span>
+                <h3 className="text-base font-serif font-bold text-[#18181B] mb-2 leading-snug">
+                  Dalla Sintetica alla Modella
+                </h3>
+                <p className="text-xs text-[#665D54] leading-relaxed font-light">
+                  Inquadrature macro ad altissima definizione. Vedi ogni millimetro di pressione e inclinazione della lama prima di iniziare.
+                </p>
+              </div>
+
+            </div>
+
+            {/* Center Stage: The Monumental 9:16 Video Player with Device Frame */}
+            <div className="lg:col-span-6 flex flex-col items-center">
+              <div className="w-full max-w-[360px] sm:max-w-[400px] md:max-w-[430px] lg:max-w-[450px] relative">
+                
+                {/* Backlight Aura with blush/champagne glow */}
+                <div className="absolute -inset-4 bg-gradient-to-tr from-[#E5D2CF]/50 via-amber-200/25 to-[#D8B6B2]/40 rounded-[3rem] blur-2xl -z-10 animate-pulse" />
+
+                {/* Smartphone / Luxury Display Chassis */}
+                <div className="bg-[#18181B] p-3 sm:p-3.5 rounded-[2.75rem] shadow-[0_30px_90px_-20px_rgba(24,24,27,0.45)] border border-[#2E2A27]">
+                  
+                  {/* Speaker notch / dynamic pill */}
+                  <div className="w-20 h-1 bg-white/20 rounded-full mx-auto mb-2.5" />
+
+                  {/* 9:16 Player Container */}
+                  <div className="rounded-[2rem] overflow-hidden bg-black ring-1 ring-white/10">
+                    <LandingVslPlayer
+                      aspectRatioClass="aspect-[9/16]"
+                      poster="/images/chiara/vsl-poster-native.jpg"
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Bottom indicator line */}
+                  <div className="w-28 h-1 bg-white/20 rounded-full mx-auto mt-2.5" />
+                </div>
+
+                {/* Under-video Subtitle Pill */}
+                <div className="mt-4 flex items-center justify-center gap-2 text-[11px] font-semibold text-[#7A6F65] tracking-wider uppercase">
+                  <Sparkles className="w-3.5 h-3.5 text-[#B08D57]" />
+                  <span>Video Ufficiale • Chiara Morocutti</span>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Right Column: 2 Authority Feature Cards (desktop right flank) */}
+            <div className="hidden lg:flex lg:col-span-3 flex-col gap-6 justify-center">
+              
+              {/* Feature 3 */}
+              <div className="bg-white/85 backdrop-blur-sm p-6 rounded-2xl border border-[#E4DDD2] shadow-sm hover:shadow-md transition-shadow">
+                <span className="inline-block text-[10px] font-bold tracking-[0.2em] uppercase text-[#96897E] mb-2">
+                  Business & Posizionamento
+                </span>
+                <h3 className="text-base font-serif font-bold text-[#18181B] mb-2 leading-snug">
+                  Da 350€ a 500€ a Seduta
+                </h3>
+                <p className="text-xs text-[#665D54] leading-relaxed font-light">
+                  Ti insegno come comunicare il tuo valore sui social e riempire la tua agenda con clienti disposte a investire sulla qualità.
+                </p>
+              </div>
+
+              {/* Feature 4 */}
+              <div className="bg-white/85 backdrop-blur-sm p-6 rounded-2xl border border-[#E4DDD2] shadow-sm hover:shadow-md transition-shadow">
+                <span className="inline-block text-[10px] font-bold tracking-[0.2em] uppercase text-[#96897E] mb-2">
+                  Tutoraggio Dedicato
+                </span>
+                <h3 className="text-base font-serif font-bold text-[#18181B] mb-2 leading-snug">
+                  Revisione Personale con Chiara
+                </h3>
+                <p className="text-xs text-[#665D54] leading-relaxed font-light">
+                  Non sarai mai lasciata sola. Chiara corregge i tuoi esercizi fino al raggiungimento dello standard per l'attestato finale.
+                </p>
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* Mobile / Tablet: 4 Features Grid (visible only on screens < lg) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:hidden mt-10 max-w-xl mx-auto">
+            <div className="bg-white/85 p-5 rounded-2xl border border-[#E4DDD2] shadow-xs">
+              <span className="inline-block text-[10px] font-bold tracking-[0.2em] uppercase text-[#96897E] mb-1">Tecnica Esclusiva</span>
+              <h3 className="text-sm font-serif font-bold text-[#18181B] mb-1">Tratto a Pelo Iper-Realistico</h3>
+              <p className="text-xs text-[#665D54] font-light">Risultati naturali e armoniosi che durano nel tempo senza virare.</p>
+            </div>
+            <div className="bg-white/85 p-5 rounded-2xl border border-[#E4DDD2] shadow-xs">
+              <span className="inline-block text-[10px] font-bold tracking-[0.2em] uppercase text-[#96897E] mb-1">Pratica Guidata 4K</span>
+              <h3 className="text-sm font-serif font-bold text-[#18181B] mb-1">Dalla Sintetica alla Modella</h3>
+              <p className="text-xs text-[#665D54] font-light">Inquadrature macro per apprendere ogni dettaglio di inclinazione e profondità.</p>
+            </div>
+            <div className="bg-white/85 p-5 rounded-2xl border border-[#E4DDD2] shadow-xs">
+              <span className="inline-block text-[10px] font-bold tracking-[0.2em] uppercase text-[#96897E] mb-1">Business & Prezzo</span>
+              <h3 className="text-sm font-serif font-bold text-[#18181B] mb-1">Da 350€ a 500€ a Seduta</h3>
+              <p className="text-xs text-[#665D54] font-light">Come posizionarti come punto di riferimento nella tua città.</p>
+            </div>
+            <div className="bg-white/85 p-5 rounded-2xl border border-[#E4DDD2] shadow-xs">
+              <span className="inline-block text-[10px] font-bold tracking-[0.2em] uppercase text-[#96897E] mb-1">Tutoraggio Dedicato</span>
+              <h3 className="text-sm font-serif font-bold text-[#18181B] mb-1">Revisione Personale con Chiara</h3>
+              <p className="text-xs text-[#665D54] font-light">Correzione passo dopo passo dei tuoi tratti fino all'attestato ufficiale.</p>
+            </div>
+          </div>
+
+          {/* Bottom Action CTA & Guarantee */}
+          <div className="mt-14 sm:mt-18 text-center flex flex-col items-center">
+            <a
+              href="#prezzi"
+              className="px-8 sm:px-10 py-4 bg-[#18181B] text-white text-xs sm:text-sm font-bold uppercase tracking-[0.18em] rounded-sm hover:bg-[#2C2724] active:scale-[0.99] transition shadow-lg inline-flex items-center gap-3 group"
+            >
+              <span>Scegli il tuo Percorso di Formazione</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
+            </a>
+
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-xs text-[#7A6F65] font-light">
+              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#18181B]" /> Accesso Immediato alle Lezioni</span>
+              <span className="text-[#D3C7B9] hidden sm:inline">•</span>
+              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#18181B]" /> Assistenza Diretta Chiara Morocutti</span>
+              <span className="text-[#D3C7B9] hidden sm:inline">•</span>
+              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#18181B]" /> Certificato Ufficiale Rilasciato</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 3. CHI SONO SECTION */}
+      <section id="chisono" className="py-16 sm:py-24 bg-[#FAF7F2] text-[#1E1B18] border-b border-[#EAE3D7]">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+            
+            {/* Left Column: Portrait with iPad */}
+            <div className="lg:col-span-5">
+              <div className="overflow-hidden rounded-2xl shadow-xl border border-[#E4DDD2] bg-white">
+                <img
+                  src="/images/chiara/chiara-camicia-ipad-frontale.jpg"
+                  alt="Chiara Morocutti - Fondatrice e Master"
+                  className="w-full h-auto object-cover object-top select-none"
+                  loading="lazy"
+                />
+              </div>
+            </div>
+
+            {/* Right Column: Bio copy & handwriting note */}
+            <div className="lg:col-span-7 flex flex-col items-start">
+              <span className="text-[11px] sm:text-xs font-semibold tracking-[0.25em] uppercase text-[#8A7E73] mb-3 block">
+                Chi Sono
+              </span>
+
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-[#1E1B18] leading-tight mb-6">
+                Ciao, sono Chiara Morocutti.
+              </h2>
+
+              <p className="text-base sm:text-lg text-[#524B43] leading-relaxed font-light mb-5">
+                Sono una dermopigmentista e <strong className="font-semibold text-[#1E1B18]">founder della Chiara Morocutti Academy</strong>. Da anni mi occupo di microblading e di formazione, con l'obiettivo di trasmettere non solo la tecnica, ma anche tutto ciò che serve per costruire un vero business.
+              </p>
+
+              <p className="text-base sm:text-lg text-[#524B43] leading-relaxed font-light mb-8">
+                Ho formato <strong className="font-semibold text-[#1E1B18]">oltre 1500 clienti</strong> e oggi voglio aiutarti a fare lo stesso.
+              </p>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-6">
+                <a
+                  href="#corso"
+                  className="px-8 py-3.5 border border-[#1E1B18] text-[#1E1B18] hover:bg-[#1E1B18] hover:text-white text-xs font-bold uppercase tracking-[0.16em] rounded-sm transition self-start"
+                >
+                  Scopri di Più
+                </a>
+
+                {/* Handwriting cursive signature quote */}
+                <div className="font-script text-2xl sm:text-3xl lg:text-[2.2rem] text-[#9E8B7D] leading-snug sm:text-right select-none rotate-[-2deg]">
+                  <span>La bellezza</span><br />
+                  <span className="italic">è un atto</span><br />
+                  <span>di consapevolezza.</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
       </section>
 
       <MarqueeBanner />
-
-      {/* ORGANIC S-CURVE WAVE DIVIDER (TRANSITION FROM DARK HERO/MARQUEE TO WHITE SECTION) */}
-      <div className="relative w-full overflow-hidden leading-none bg-[#1e0d11] -mt-0.5">
-        <svg 
-          className="relative block w-full h-14 sm:h-20 md:h-28 lg:h-36" 
-          viewBox="0 0 1440 180" 
-          preserveAspectRatio="none"
-          fill="none" 
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <linearGradient id="waveAccentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#D48E9B" stopOpacity="0.8" />
-              <stop offset="35%" stopColor="#F0D4D8" stopOpacity="1" />
-              <stop offset="65%" stopColor="#E5C378" stopOpacity="0.95" />
-              <stop offset="100%" stopColor="#C26A7A" stopOpacity="0.75" />
-            </linearGradient>
-          </defs>
-
-          {/* Layered Accent Stroke (Floating 3D Ribbon line following the wave) */}
-          <path 
-            d="M-50,65 C280,160 480,20 860,100 C1120,152 1320,55 1490,40" 
-            stroke="url(#waveAccentGrad)" 
-            strokeWidth="9" 
-            strokeLinecap="round"
-            opacity="0.95"
-          />
-
-          {/* Pure white cut-out wave that transitions seamlessly into the next white section */}
-          <path 
-            d="M0,70 C320,155 520,30 900,100 C1160,145 1340,60 1440,45 L1440,180 L0,180 Z" 
-            fill="#FFFFFF"
-          />
-        </svg>
-      </div>
 
       {/* 2. IL PUNTO DI PARTENZA (EDITORIAL LUXURY BENTO GRID) */}
       <section className="py-24 bg-gradient-to-b from-white via-primary-50/30 to-white border-y border-primary-100/60 relative overflow-hidden">
@@ -298,11 +503,11 @@ export const LandingPage: React.FC = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.2 }}
               whileHover={{ y: -3 }}
-              className="lg:col-span-12 rounded-3xl p-7 sm:p-10 lg:p-12 relative overflow-hidden bg-gradient-to-br from-[#1c0c11] via-[#280f17] to-[#120508] text-white shadow-2xl border border-[#E5C378]/35"
+              className="lg:col-span-12 rounded-3xl p-7 sm:p-10 lg:p-12 relative overflow-hidden bg-gradient-to-br from-[#1E1B18] via-[#18181B] to-[#12100F] text-white shadow-2xl border border-[#3A322C]"
             >
               {/* Ambient Background Glows */}
               <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#E5C378]/10 rounded-full blur-3xl pointer-events-none"></div>
-              <div className="absolute bottom-0 left-10 w-80 h-80 bg-primary-600/20 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute bottom-0 left-10 w-80 h-80 bg-[#E5D2CF]/10 rounded-full blur-3xl pointer-events-none"></div>
 
               <div className="relative z-10">
                 {/* Top Badge & Positioning */}
@@ -413,12 +618,12 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* 3. QUELLO CHE TI COSTA RESTARE COSÌ (COSTO DELL'INAZIONE) */}
-      <section className="pt-20 pb-28 sm:pb-36 bg-[#1a0a0e] text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#1a0a0e] via-transparent to-[#1a0a0e] opacity-90" />
+      <section className="pt-20 pb-28 sm:pb-36 bg-[#18181B] text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#18181B] via-transparent to-[#18181B] opacity-90" />
 
         <div className="container mx-auto px-6 relative z-10 max-w-5xl">
           <div className="text-center mb-16">
-            <span className="text-xs font-bold tracking-widest uppercase text-rose-300 bg-white/10 px-3.5 py-1.5 rounded-full border border-white/10 backdrop-blur-sm">
+            <span className="text-xs font-bold tracking-widest uppercase text-[#E5D2CF] bg-white/10 px-3.5 py-1.5 rounded-full border border-white/10 backdrop-blur-sm">
               Quello che ti costa restare così
             </span>
             <h2 className="text-3xl md:text-4xl font-serif font-bold mt-4 leading-snug">
@@ -427,26 +632,26 @@ export const LandingPage: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm hover:border-primary-300/40 transition-colors">
-              <span className="text-3xl font-serif font-bold text-rose-300">01</span>
+            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm hover:border-[#E5D2CF]/40 transition-colors">
+              <span className="text-3xl font-serif font-bold text-[#E5D2CF]">01</span>
               <h3 className="text-xl font-bold text-white mt-3 mb-3">Tempo</h3>
-              <p className="text-rose-100/75 text-sm leading-relaxed">
+              <p className="text-gray-300 text-sm leading-relaxed">
                 Ore in cabina su trattamenti a bassa marginalità, invece di un servizio che vale molto di più a parità di tempo investito.
               </p>
             </div>
 
-            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm hover:border-primary-300/40 transition-colors">
-              <span className="text-3xl font-serif font-bold text-rose-300">02</span>
+            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm hover:border-[#E5D2CF]/40 transition-colors">
+              <span className="text-3xl font-serif font-bold text-[#E5D2CF]">02</span>
               <h3 className="text-xl font-bold text-white mt-3 mb-3">Guadagno limitato</h3>
-              <p className="text-rose-100/75 text-sm leading-relaxed">
+              <p className="text-gray-300 text-sm leading-relaxed">
                 Il tuo fatturato mensile resta bloccato e legato unicamente al numero di ore che riesci fisicamente a lavorare ogni giorno.
               </p>
             </div>
 
-            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm hover:border-primary-300/40 transition-colors">
-              <span className="text-3xl font-serif font-bold text-rose-300">03</span>
+            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm hover:border-[#E5D2CF]/40 transition-colors">
+              <span className="text-3xl font-serif font-bold text-[#E5D2CF]">03</span>
               <h3 className="text-xl font-bold text-white mt-3 mb-3">Occasione persa</h3>
-              <p className="text-rose-100/75 text-sm leading-relaxed">
+              <p className="text-gray-300 text-sm leading-relaxed">
                 Il microblading è tra i servizi più richiesti e pagati del settore beauty, con una domanda in costante crescita ogni anno.
               </p>
             </div>
@@ -464,14 +669,14 @@ export const LandingPage: React.FC = () => {
           >
             <path 
               d="M-50,55 C280,125 500,20 880,80 C1140,125 1320,50 1490,35" 
-              stroke="#D48E9B" 
+              stroke="#E5D2CF" 
               strokeWidth="7" 
               strokeLinecap="round"
-              opacity="0.9"
+              opacity="0.85"
             />
             <path 
               d="M0,60 C320,120 520,30 900,80 C1160,118 1340,55 1440,40 L1440,140 L0,140 Z" 
-              fill="#FFFFFF"
+              fill="#FAF7F2"
             />
           </svg>
         </div>
@@ -780,24 +985,24 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* 2. PLUS */}
-            <div className="bg-white rounded-3xl p-8 border-2 border-primary-300 shadow-md flex flex-col justify-between relative">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-600 text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wider shadow whitespace-nowrap">
+            <div className="bg-white rounded-3xl p-8 border-2 border-[#18181B] shadow-lg flex flex-col justify-between relative">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#18181B] text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wider shadow whitespace-nowrap border border-[#E5D2CF]/40">
                 Più Richiesto
               </div>
               <div>
-                <span className="text-xs font-bold tracking-widest uppercase text-primary-700 bg-primary-50 px-3 py-1 rounded-full">
+                <span className="text-xs font-bold tracking-widest uppercase text-[#18181B] bg-[#F4EFEA] px-3 py-1 rounded-full border border-[#E8E1D5]">
                   Plus
                 </span>
                 <h3 className="text-2xl font-serif font-bold text-gray-900 mt-4">Percorso Plus</h3>
                 <p className="text-gray-600 text-sm mt-2 font-light">
                   Per chi vuole formarsi con un accompagnamento costante ogni settimana.
                 </p>
-                <div className="my-6 bg-primary-50/60 p-3.5 rounded-xl border border-primary-100 text-xs text-primary-900 italic">
+                <div className="my-6 bg-[#FAF7F2] p-3.5 rounded-xl border border-[#EAE2D8] text-xs text-[#221C1B] italic">
                   “Non sei mai sola davanti a un dubbio. Il passo in più per chi vuole sentirsi seguita ogni settimana.”
                 </div>
 
                 <div className="mb-6">
-                  <span className="text-xl sm:text-2xl font-serif font-bold text-primary-950">Accesso con Affiancamento</span>
+                  <span className="text-xl sm:text-2xl font-serif font-bold text-[#18181B]">Accesso con Affiancamento</span>
                   <span className="text-xs text-gray-500 block mt-1">Posti limitati mensili — dettagli in call</span>
                 </div>
 
@@ -825,7 +1030,7 @@ export const LandingPage: React.FC = () => {
                 href="https://wa.me/393428077768?text=Ciao%20Chiara,%20vorrei%20candidarmi%20e%20prenotare%20una%20call%20per%20il%20Percorso%20Plus"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-3.5 px-6 rounded-xl bg-primary-700 text-white font-semibold text-center hover:bg-primary-800 transition shadow-md block"
+                className="w-full py-3.5 px-6 rounded-xl bg-[#18181B] text-white font-semibold text-center hover:bg-[#332927] transition shadow-md block uppercase tracking-wider text-xs"
               >
                 Candidati per il Percorso Plus
               </a>

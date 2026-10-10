@@ -97,21 +97,21 @@ export const LoginPage: React.FC = () => {
       
       {/* Right Column: Luxury Image & Quote (46% on iPad/tablet, 50% on desktop) */}
       {showLoginVisual && (
-      <div className="hidden md:block md:w-[46%] lg:w-1/2 relative bg-primary-950 overflow-hidden min-h-[calc(100vh-4rem)]">
+      <div className="hidden md:block md:w-[46%] lg:w-1/2 relative bg-[#1E1B18] overflow-hidden min-h-[calc(100vh-4rem)]">
         <img 
-          src="/login-beauty.webp" 
-          alt="Microblading Masterclass" 
+          src="/images/chiara/chiara-mezzobusto-sgabello-giacca.jpg" 
+          alt="Chiara Morocutti - Masterclass Microblading" 
           decoding="async"
           fetchPriority="low"
-          className="absolute inset-0 w-full h-full object-cover object-[center_35%]"
+          className="absolute inset-0 w-full h-full object-cover object-[center_top]"
         />
-        {/* Luxury Vignette Gradient Overlay (darker at top for card, clear at center/bottom for treatment) */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/10 to-black/20"></div>
+        {/* Luxury Vignette Gradient Overlay: dark at bottom for quote readability, clear on Chiara's face */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10"></div>
 
-        {/* Floating Quote Card (Positioned at TOP so the treatment below is 100% visible) */}
-        <div className="absolute top-6 left-6 right-6 lg:top-8 lg:left-10 lg:right-10 z-10">
-          <div className="rounded-2xl border border-white/20 bg-black/45 p-4 sm:p-5 lg:p-6 backdrop-blur-md shadow-2xl">
-            <div className="flex items-center gap-1 text-amber-400 mb-2">
+        {/* Floating Quote Card (Positioned at BOTTOM to keep Chiara's face completely visible) */}
+        <div className="absolute bottom-6 left-6 right-6 lg:bottom-10 lg:left-10 lg:right-10 z-10">
+          <div className="rounded-2xl border border-white/20 bg-black/60 p-5 lg:p-6 backdrop-blur-md shadow-2xl">
+            <div className="flex items-center gap-1 text-amber-400 mb-2.5">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="w-3.5 h-3.5 fill-current" />
               ))}
@@ -122,12 +122,12 @@ export const LoginPage: React.FC = () => {
               "Il microblading non è solo una tecnica: è l'abilità di creare naturalezza assoluta e costruire un business che ti dà libertà e autorevolezza."
             </p>
 
-            <div className="mt-3 pt-2.5 border-t border-white/15 flex items-center justify-between">
+            <div className="mt-3.5 pt-3 border-t border-white/15 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-300" />
-                <span className="text-xs font-semibold text-primary-200">Chiara Morocutti</span>
+                <span className="text-xs font-semibold text-rose-200">Chiara Morocutti</span>
               </div>
-              <span className="text-[11px] text-gray-300">Masterclass Ufficiale</span>
+              <span className="text-[11px] text-gray-300 font-medium">Masterclass Ufficiale</span>
             </div>
           </div>
         </div>

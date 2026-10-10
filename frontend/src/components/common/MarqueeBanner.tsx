@@ -16,13 +16,13 @@ export const MarqueeBanner: React.FC = () => {
   ];
 
   const renderWord = (item: { text: string; type: string }, idx: number) => {
-    let styleClass = "text-white";
+    let styleClass = "text-[#FAF7F2]";
     if (item.type === "stroke") {
       styleClass = "text-stroke-white font-extrabold";
     } else if (item.type === "gold") {
-      styleClass = "text-[#E5C378] font-black drop-shadow-[0_0_15px_rgba(229,195,120,0.4)]";
+      styleClass = "text-[#D9C4A1] font-black";
     } else if (item.type === "rose") {
-      styleClass = "text-[#E4B5BD] font-black drop-shadow-[0_0_15px_rgba(228,181,189,0.4)]";
+      styleClass = "text-[#E5D2CF] font-black";
     }
 
     return (
@@ -30,7 +30,7 @@ export const MarqueeBanner: React.FC = () => {
         <span className={`tracking-tight font-black ${styleClass}`}>
           {item.text}
         </span>
-        <span className="text-[#E5C378]/70 text-2xl sm:text-3xl font-normal select-none">
+        <span className="text-[#D9C4A1]/60 text-2xl sm:text-3xl font-normal select-none">
           ✦
         </span>
       </span>
@@ -38,10 +38,10 @@ export const MarqueeBanner: React.FC = () => {
   };
 
   return (
-    <div className="w-full bg-[#1e0d11] py-4 sm:py-5 overflow-hidden border-y border-[#381b21] relative z-20 shadow-2xl select-none">
+    <div className="w-full bg-[#18181B] py-4 sm:py-5 overflow-hidden border-y border-[#2E2825] relative z-20 shadow-xl select-none">
       {/* Sfumature laterali */}
-      <div className="absolute top-0 bottom-0 left-0 w-16 sm:w-32 bg-gradient-to-r from-[#1e0d11] to-transparent z-10 pointer-events-none" />
-      <div className="absolute top-0 bottom-0 right-0 w-16 sm:w-32 bg-gradient-to-l from-[#1e0d11] to-transparent z-10 pointer-events-none" />
+      <div className="absolute top-0 bottom-0 left-0 w-16 sm:w-32 bg-gradient-to-r from-[#18181B] to-transparent z-10 pointer-events-none" />
+      <div className="absolute top-0 bottom-0 right-0 w-16 sm:w-32 bg-gradient-to-l from-[#18181B] to-transparent z-10 pointer-events-none" />
 
       {/* Traccia animata continua */}
       <div className="animate-marquee flex items-center gap-6 sm:gap-8 text-2xl sm:text-4xl md:text-5xl uppercase">

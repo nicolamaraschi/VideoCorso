@@ -62,17 +62,17 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
   };
 
   return (
-    <nav className="relative z-50 bg-white shadow-sm border-b border-gray-200 w-full">
+    <nav className="relative z-50 bg-[#FAF7F2] border-b border-[#E8E1D5] w-full transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {!isAuthenticated ? (
-          /* Public Header (Landing Page) */
-          <div className="flex justify-between items-center h-16">
-            {/* Left: Hamburger button + Logo */}
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          /* Public Header (Editorial Luxury Academy) */
+          <div className="flex justify-between items-center h-20">
+            {/* Left: Hamburger button + Typographic Brand Logo */}
+            <div className="flex items-center gap-3 min-w-0">
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden flex-shrink-0 min-h-10 min-w-10 p-2 rounded-lg hover:bg-gray-100 text-gray-700 flex items-center justify-center -ml-1 transition-colors"
+                className="lg:hidden flex-shrink-0 min-h-10 min-w-10 p-2 rounded-lg hover:bg-black/5 text-[#1E1B18] flex items-center justify-center -ml-1 transition-colors"
                 aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
                 aria-expanded={mobileMenuOpen}
                 aria-controls="public-navigation-menu"
@@ -80,54 +80,44 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
                 {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
               
-              <Link to="/" className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                <img 
-                  src={logoUrl} 
-                  alt="Chiara Morocutti" 
-                  width={40}
-                  height={40}
-                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover flex-shrink-0 shadow-sm"
-                />
-                <div className="flex flex-col min-w-0">
-                  <span className="text-sm sm:text-base lg:text-lg font-bold text-primary-600 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
-                    Chiara Morocutti Academy
+              <Link to="/" className="flex flex-col items-start leading-none group py-1">
+                <span className="text-base sm:text-lg lg:text-xl font-serif font-bold tracking-[0.16em] text-[#1E1B18] uppercase">
+                  Chiara Morocutti
+                </span>
+                <div className="flex items-center gap-1.5 w-full mt-1">
+                  <span className="h-[1px] bg-[#8A7E73]/50 flex-1"></span>
+                  <span className="text-[9px] sm:text-[10px] tracking-[0.25em] font-serif uppercase text-[#8A7E73] font-medium">
+                    Academy
                   </span>
-                  <span className="text-[9px] sm:text-xs text-gray-500 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
-                    Formazione d'Eccellenza
-                  </span>
+                  <span className="h-[1px] bg-[#8A7E73]/50 flex-1"></span>
                 </div>
               </Link>
             </div>
 
-            {/* Center: Navigation Links (Public Desktop ONLY >= lg) */}
-            <div className="hidden lg:flex items-center space-x-6 xl:space-x-8">
-              <ScrollLink to="/#corso" className="text-sm xl:text-base font-medium text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Il Corso</ScrollLink>
-              <ScrollLink to="/#vantaggi" className="text-sm xl:text-base font-medium text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Vantaggi</ScrollLink>
-              <ScrollLink to="/#testimonianze" className="text-sm xl:text-base font-medium text-gray-700 hover:text-primary-600 transition" onClick={() => {}}>Testimonianze</ScrollLink>
+            {/* Center: Navigation Links (IL CORSO, PROGRAMMA, CHI SONO, PERCORSI, FAQ) */}
+            <div className="hidden lg:flex items-center space-x-7 xl:space-x-9">
+              <ScrollLink to="/#corso" className="text-xs tracking-[0.14em] uppercase font-semibold text-[#4A443E] hover:text-[#1E1B18] transition" onClick={() => {}}>Il Corso</ScrollLink>
+              <ScrollLink to="/#programma" className="text-xs tracking-[0.14em] uppercase font-semibold text-[#4A443E] hover:text-[#1E1B18] transition" onClick={() => {}}>Programma</ScrollLink>
+              <ScrollLink to="/#chisono" className="text-xs tracking-[0.14em] uppercase font-semibold text-[#4A443E] hover:text-[#1E1B18] transition" onClick={() => {}}>Chi Sono</ScrollLink>
+              <ScrollLink to="/#catalogo" className="text-xs tracking-[0.14em] uppercase font-semibold text-[#4A443E] hover:text-[#1E1B18] transition" onClick={() => {}}>Percorsi</ScrollLink>
+              <ScrollLink to="/#faq" className="text-xs tracking-[0.14em] uppercase font-semibold text-[#4A443E] hover:text-[#1E1B18] transition" onClick={() => {}}>FAQ</ScrollLink>
             </div>
 
             {/* Right: Actions */}
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              <div className="hidden lg:flex items-center gap-3">
-                <Link to="/login"><Button variant="ghost">Login</Button></Link>
-                <a
-                  href="https://wa.me/393428077768?text=Ciao%20Chiara,%20vorrei%20informazioni%20sui%20tuoi%20corsi%20di%20Microblading"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button variant="primary">Prenota una Call</Button>
-                </a>
-              </div>
-              <a
-                href="https://wa.me/393428077768?text=Ciao%20Chiara,%20vorrei%20informazioni%20sui%20tuoi%20corsi%20di%20Microblading"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="lg:hidden shrink-0"
+            <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+              <Link 
+                to="/login" 
+                className="hidden sm:inline-block text-xs uppercase tracking-wider font-semibold text-[#6E645B] hover:text-[#1E1B18] transition px-2 py-1"
               >
-                <Button variant="primary" size="sm">
-                  Prenota Call
-                </Button>
-              </a>
+                Login
+              </Link>
+              <ScrollLink
+                to="/#corso"
+                className="px-5 sm:px-6 py-2.5 sm:py-3 bg-[#1E1B18] text-white text-[11px] sm:text-xs font-bold uppercase tracking-[0.15em] rounded-sm hover:bg-[#332C27] active:scale-[0.99] transition shadow-xs"
+                onClick={() => {}}
+              >
+                Scopri l'Academy
+              </ScrollLink>
             </div>
           </div>
         ) : (
@@ -197,11 +187,13 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
             id="public-navigation-menu"
             className="absolute inset-x-0 top-full z-50 lg:hidden border-t border-gray-200 bg-white shadow-xl animate-in slide-in-from-top-2 duration-200"
           >
-            <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
-              <div className="grid gap-1 sm:grid-cols-3 sm:gap-2">
-                <ScrollLink to="/#corso" className="block px-3 py-2.5 rounded-xl text-base font-semibold text-gray-800 hover:bg-primary-50 hover:text-primary-700 transition sm:text-sm sm:text-center" onClick={() => setMobileMenuOpen(false)}>Il Corso</ScrollLink>
-                <ScrollLink to="/#vantaggi" className="block px-3 py-2.5 rounded-xl text-base font-semibold text-gray-800 hover:bg-primary-50 hover:text-primary-700 transition sm:text-sm sm:text-center" onClick={() => setMobileMenuOpen(false)}>Vantaggi</ScrollLink>
-                <ScrollLink to="/#testimonianze" className="block px-3 py-2.5 rounded-xl text-base font-semibold text-gray-800 hover:bg-primary-50 hover:text-primary-700 transition sm:text-sm sm:text-center" onClick={() => setMobileMenuOpen(false)}>Testimonianze</ScrollLink>
+            <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 bg-[#FAF7F2]">
+              <div className="flex flex-col space-y-1">
+                <ScrollLink to="/#corso" className="block px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-[#4A443E] hover:text-[#1E1B18] hover:bg-black/5 rounded transition" onClick={() => setMobileMenuOpen(false)}>Il Corso</ScrollLink>
+                <ScrollLink to="/#programma" className="block px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-[#4A443E] hover:text-[#1E1B18] hover:bg-black/5 rounded transition" onClick={() => setMobileMenuOpen(false)}>Programma</ScrollLink>
+                <ScrollLink to="/#chisono" className="block px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-[#4A443E] hover:text-[#1E1B18] hover:bg-black/5 rounded transition" onClick={() => setMobileMenuOpen(false)}>Chi Sono</ScrollLink>
+                <ScrollLink to="/#catalogo" className="block px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-[#4A443E] hover:text-[#1E1B18] hover:bg-black/5 rounded transition" onClick={() => setMobileMenuOpen(false)}>Percorsi</ScrollLink>
+                <ScrollLink to="/#faq" className="block px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-[#4A443E] hover:text-[#1E1B18] hover:bg-black/5 rounded transition" onClick={() => setMobileMenuOpen(false)}>FAQ</ScrollLink>
               </div>
 
               <div className="border-t border-gray-100 pt-3 mt-3 grid gap-2 sm:grid-cols-2 sm:gap-3">

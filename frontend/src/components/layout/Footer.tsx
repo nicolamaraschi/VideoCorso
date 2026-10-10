@@ -6,35 +6,35 @@ export const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-primary-950 text-white border-t border-primary-900 mt-auto">
+    <footer className="bg-[#18181B] text-[#FAF7F2] border-t border-[#2E2825] mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 mb-8 md:mb-12">
           
           {/* Brand & Description */}
           <div className="col-span-1 lg:col-span-1">
             <Link to="/" className="flex items-center gap-3 mb-4 md:mb-6">
-              <div className="h-10 w-10 bg-primary-600 rounded-lg flex items-center justify-center font-bold text-xl shadow-lg">
+              <div className="h-10 w-10 bg-[#2E2825] border border-[#E5D2CF]/30 rounded-lg flex items-center justify-center font-bold text-xl shadow-md text-[#FAF7F2]">
                 CM
               </div>
-              <span className="font-serif text-2xl tracking-tight">Chiara Morocutti Academy</span>
+              <span className="font-serif text-2xl tracking-tight text-white">Chiara Morocutti Academy</span>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed mb-4 md:mb-6">
               L'accademia di formazione d'eccellenza per le professioniste del Permanent Make Up e dell'estetica avanzata.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-gray-400 hover:text-primary-400 transition-colors duration-300">
+              <a href="#" className="text-gray-400 hover:text-[#E5D2CF] transition-colors duration-300">
                 <span className="sr-only">Facebook</span>
                 <Facebook className="h-5 w-5" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-primary-400 transition-colors duration-300">
+              <a href="#" className="text-gray-400 hover:text-[#E5D2CF] transition-colors duration-300">
                 <span className="sr-only">Instagram</span>
                 <Instagram className="h-5 w-5" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-primary-400 transition-colors duration-300">
+              <a href="#" className="text-gray-400 hover:text-[#E5D2CF] transition-colors duration-300">
                 <span className="sr-only">Twitter</span>
                 <Twitter className="h-5 w-5" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-primary-400 transition-colors duration-300">
+              <a href="#" className="text-gray-400 hover:text-[#E5D2CF] transition-colors duration-300">
                 <span className="sr-only">LinkedIn</span>
                 <Linkedin className="h-5 w-5" />
               </a>

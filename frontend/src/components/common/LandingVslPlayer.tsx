@@ -4,6 +4,8 @@ import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Settings, Check, Wif
 
 interface LandingVslPlayerProps {
   className?: string;
+  poster?: string;
+  aspectRatioClass?: string;
 }
 
 type QualityOption = 'auto' | '1080p' | '720p' | '480p' | '360p' | '240p';
@@ -38,7 +40,11 @@ const isSlowNetwork = () => {
   return effectiveType.includes('2g') || effectiveType === '3g' || Boolean(connection?.saveData);
 };
 
-export const LandingVslPlayer: React.FC<LandingVslPlayerProps> = ({ className = '' }) => {
+export const LandingVslPlayer: React.FC<LandingVslPlayerProps> = ({ 
+  className = '',
+  poster = POSTER_JPG,
+  aspectRatioClass = 'aspect-[9/16]'
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -345,13 +351,13 @@ export const LandingVslPlayer: React.FC<LandingVslPlayerProps> = ({ className = 
   };
 
   return (
-    <div ref={containerRef} onMouseMove={handleMouseMove} onMouseLeave={() => isPlaying && !showQualityMenu && setShowControls(false)} className={`relative overflow-hidden rounded-3xl shadow-2xl border-2 border-white/20 aspect-[9/16] sm:aspect-[4/5] bg-gradient-to-b from-primary-950/90 to-black select-none group ${className}`}>
+    <div ref={containerRef} onMouseMove={handleMouseMove} onMouseLeave={() => isPlaying && !showQualityMenu && setShowControls(false)} className={`relative overflow-hidden rounded-3xl shadow-2xl border-2 border-white/20 ${aspectRatioClass} bg-gradient-to-b from-[#18181B] to-black select-none group ${className}`}>
       <video
         ref={videoRef}
         className="w-full h-full object-cover cursor-pointer"
         playsInline
         preload="none"
-        poster={POSTER_JPG}
+        poster={poster}
         aria-label="Presentazione del corso di Chiara Morocutti"
         onClick={togglePlay}
         onDoubleClick={toggleFullscreen}
@@ -365,37 +371,47 @@ export const LandingVslPlayer: React.FC<LandingVslPlayerProps> = ({ className = 
         onError={handleVideoError}
       >Il tuo browser non supporta il formato video.</video>
 
-      {isBuffering && <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none z-20 backdrop-blur-xs"><div className="w-12 h-12 rounded-full border-3 border-rose-300/30 border-t-rose-300 animate-spin" /></div>}
+      {isBuffering && <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none z-20 backdrop-blur-xs"><div className="w-12 h-12 rounded-full border-3 border-[#E5D2CF]/30 border-t-[#E5D2CF] animate-spin" /></div>}
 
       {!isPlaying && !playbackError && (
         <button type="button" onClick={togglePlay} className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 hover:bg-black/30 transition-colors cursor-pointer z-20" aria-label="Riproduci la presentazione di Chiara">
-          <div className="relative group/btn transform hover:scale-110 active:scale-95 transition-transform duration-300"><div className="absolute -inset-3 bg-gradient-to-r from-rose-400/40 via-amber-300/40 to-rose-400/40 rounded-full blur-lg animate-pulse" /><div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-[#38101A] via-primary-900 to-rose-900 border-2 border-rose-200/60 shadow-2xl flex items-center justify-center text-white backdrop-blur-md"><Play className="w-9 h-9 sm:w-11 sm:h-11 translate-x-1 fill-white text-white drop-shadow-md" /></div></div>
-          {!hasStarted && <div className="mt-5 px-4 py-1.5 rounded-full bg-black/60 border border-white/20 backdrop-blur-md text-xs sm:text-sm font-medium text-rose-100 flex items-center gap-2 shadow-lg animate-fade-in"><Sparkles className="w-3.5 h-3.5 text-amber-300" /><span>Guarda la presentazione di Chiara</span></div>}
+          <div className="relative group/btn transform hover:scale-105 active:scale-95 transition-transform duration-300">
+            <div className="absolute -inset-4 bg-gradient-to-r from-[#E5D2CF]/40 via-amber-200/30 to-[#D8B6B2]/40 rounded-full blur-xl animate-pulse" />
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-[#18181B] via-[#262220] to-[#38332E] border-2 border-[#E5D2CF]/90 shadow-[0_15px_35px_rgba(0,0,0,0.6)] flex items-center justify-center text-white backdrop-blur-md">
+              <Play className="w-9 h-9 sm:w-11 sm:h-11 translate-x-1 fill-white text-white drop-shadow-md" />
+            </div>
+          </div>
+          {!hasStarted && (
+            <div className="mt-5 px-5 py-2 rounded-full bg-black/70 border border-white/20 backdrop-blur-md text-xs sm:text-sm font-medium text-[#FAF7F2] flex items-center gap-2 shadow-xl animate-fade-in">
+              <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+              <span>Ascolta il messaggio di Chiara</span>
+            </div>
+          )}
         </button>
       )}
 
-      {playbackError && <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-black/75 px-6 text-center text-white"><p className="max-w-xs text-sm leading-relaxed">{playbackError}</p><button type="button" onClick={togglePlay} className="inline-flex items-center gap-2 rounded-full bg-rose-700 px-4 py-2 text-sm font-semibold hover:bg-rose-600"><RefreshCw className="h-4 w-4" />Riprova</button></div>}
+      {playbackError && <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-black/80 px-6 text-center text-white"><p className="max-w-xs text-sm leading-relaxed">{playbackError}</p><button type="button" onClick={togglePlay} className="inline-flex items-center gap-2 rounded-full bg-[#18181B] border border-white/20 px-4 py-2 text-sm font-semibold hover:bg-black"><RefreshCw className="h-4 w-4" />Riprova</button></div>}
 
       {isSlowConnection && <div className="absolute top-4 left-4 z-30 px-2.5 py-1 rounded-full bg-black/60 border border-amber-300/40 backdrop-blur-md text-[11px] font-semibold text-amber-200 flex items-center gap-1.5"><Wifi className="w-3 h-3 text-amber-300" /><span>Qualità ottimizzata</span></div>}
 
       <div className={`absolute inset-x-0 bottom-0 z-30 pt-16 pb-4 px-4 bg-gradient-to-t from-black/95 via-black/60 to-transparent transition-opacity duration-300 ${showControls || !isPlaying ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-        <div role="slider" tabIndex={0} aria-label="Avanzamento del video" aria-valuemin={0} aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(currentTime)} aria-valuetext={`${formatTime(currentTime)} di ${formatTime(duration)}`} onClick={handleSeek} onKeyDown={handleSeekKeyDown} className="relative w-full h-2 bg-white/20 hover:h-3 rounded-full cursor-pointer mb-3.5 group/progress transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-rose-300">
+        <div role="slider" tabIndex={0} aria-label="Avanzamento del video" aria-valuemin={0} aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(currentTime)} aria-valuetext={`${formatTime(currentTime)} di ${formatTime(duration)}`} onClick={handleSeek} onKeyDown={handleSeekKeyDown} className="relative w-full h-2 bg-white/20 hover:h-3 rounded-full cursor-pointer mb-3.5 group/progress transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#E5D2CF]">
           <div className="absolute left-0 top-0 bottom-0 bg-white/30 rounded-full pointer-events-none" style={{ width: `${bufferedPercent}%` }} />
-          <div className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-rose-300 via-amber-200 to-rose-400 rounded-full pointer-events-none shadow-sm" style={{ width: `${progressPercent * 100}%` }} />
+          <div className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-[#E5D2CF] via-amber-100 to-[#D8B6B2] rounded-full pointer-events-none shadow-sm" style={{ width: `${progressPercent * 100}%` }} />
           <div className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-md scale-0 group-hover/progress:scale-100 transition-transform pointer-events-none" style={{ left: `calc(${progressPercent * 100}% - 7px)` }} />
         </div>
         <div className="flex items-center justify-between text-white text-xs">
           <div className="flex items-center gap-3">
-            <button type="button" onClick={togglePlay} className="p-1.5 hover:text-rose-300 transition-colors cursor-pointer" aria-label={isPlaying ? 'Pausa' : 'Riproduci'}>{isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}</button>
-            <div className="flex items-center gap-1.5 group/vol"><button type="button" onClick={toggleMute} className="p-1 hover:text-rose-300 transition-colors cursor-pointer" aria-label={isMuted ? 'Riattiva audio' : 'Disattiva audio'}>{isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}</button><input type="range" min="0" max="1" step="0.05" value={isMuted ? 0 : volume} onChange={handleVolumeChange} aria-label="Volume" className="w-14 h-1 accent-rose-300 bg-white/20 rounded-lg appearance-none cursor-pointer hidden sm:block opacity-75 hover:opacity-100" /></div>
+            <button type="button" onClick={togglePlay} className="p-1.5 hover:text-[#E5D2CF] transition-colors cursor-pointer" aria-label={isPlaying ? 'Pausa' : 'Riproduci'}>{isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}</button>
+            <div className="flex items-center gap-1.5 group/vol"><button type="button" onClick={toggleMute} className="p-1 hover:text-[#E5D2CF] transition-colors cursor-pointer" aria-label={isMuted ? 'Riattiva audio' : 'Disattiva audio'}>{isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}</button><input type="range" min="0" max="1" step="0.05" value={isMuted ? 0 : volume} onChange={handleVolumeChange} aria-label="Volume" className="w-14 h-1 accent-[#E5D2CF] bg-white/20 rounded-lg appearance-none cursor-pointer hidden sm:block opacity-75 hover:opacity-100" /></div>
             <span className="text-[11px] text-gray-300 font-mono tracking-tight">{formatTime(currentTime)} / {formatTime(duration)}</span>
           </div>
           <div className="flex items-center gap-2 relative">
             <div className="relative">
-              <button type="button" onClick={() => setShowQualityMenu((show) => !show)} className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer" title="Impostazioni qualità" aria-haspopup="menu" aria-expanded={showQualityMenu}><Settings className="w-3.5 h-3.5 text-rose-300" /><span>{currentQualityLabel}</span></button>
-              {showQualityMenu && <div role="menu" className="absolute bottom-full right-0 mb-2 w-36 py-1.5 bg-neutral-900/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl text-xs z-50 animate-fade-in"><div className="px-3 py-1 text-[10px] uppercase font-bold text-gray-400 border-b border-white/10">Risoluzione</div>{qualityOptions.map((quality) => <button type="button" role="menuitemradio" aria-checked={selectedQuality === quality} key={quality} onClick={() => handleQualityChange(quality)} className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-white/10 transition-colors cursor-pointer ${selectedQuality === quality ? 'text-rose-300 font-semibold' : 'text-gray-200'}`}><span>{quality === 'auto' ? 'Auto (Adattivo)' : quality === '1080p' ? '1080p (Full HD)' : quality === '720p' ? '720p (HD)' : quality === '480p' ? '480p (Media)' : quality === '360p' ? '360p (Leggera)' : '240p (Risparmio dati)'}</span>{selectedQuality === quality && <Check className="w-3.5 h-3.5 text-rose-300" />}</button>)}</div>}
+              <button type="button" onClick={() => setShowQualityMenu((show) => !show)} className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer" title="Impostazioni qualità" aria-haspopup="menu" aria-expanded={showQualityMenu}><Settings className="w-3.5 h-3.5 text-[#E5D2CF]" /><span>{currentQualityLabel}</span></button>
+              {showQualityMenu && <div role="menu" className="absolute bottom-full right-0 mb-2 w-36 py-1.5 bg-[#18181B]/95 backdrop-blur-md border border-white/20 rounded-xl shadow-2xl text-xs z-50 animate-fade-in"><div className="px-3 py-1 text-[10px] uppercase font-bold text-gray-400 border-b border-white/10">Risoluzione</div>{qualityOptions.map((quality) => <button type="button" role="menuitemradio" aria-checked={selectedQuality === quality} key={quality} onClick={() => handleQualityChange(quality)} className={`w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-white/10 transition-colors cursor-pointer ${selectedQuality === quality ? 'text-[#E5D2CF] font-semibold' : 'text-gray-200'}`}><span>{quality === 'auto' ? 'Auto (Adattivo)' : quality === '1080p' ? '1080p (Full HD)' : quality === '720p' ? '720p (HD)' : quality === '480p' ? '480p (Media)' : quality === '360p' ? '360p (Leggera)' : '240p (Risparmio dati)'}</span>{selectedQuality === quality && <Check className="w-3.5 h-3.5 text-[#E5D2CF]" />}</button>)}</div>}
             </div>
-            <button type="button" onClick={toggleFullscreen} className="p-1.5 hover:text-rose-300 transition-colors cursor-pointer" aria-label={isFullscreen ? 'Esci da schermo intero' : 'Schermo intero'}>{isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}</button>
+            <button type="button" onClick={toggleFullscreen} className="p-1.5 hover:text-[#E5D2CF] transition-colors cursor-pointer" aria-label={isFullscreen ? 'Esci da schermo intero' : 'Schermo intero'}>{isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}</button>
           </div>
         </div>
       </div>
