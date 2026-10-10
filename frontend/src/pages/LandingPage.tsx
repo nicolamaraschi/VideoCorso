@@ -1,26 +1,230 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, 
   ArrowRight, 
   ShieldCheck, 
   Check, 
-  Award,
-  Clock,
-  AlertTriangle,
-  TrendingUp,
-  XCircle,
-  CheckCircle2,
-  Play
+  Award, 
+  Clock, 
+  AlertTriangle, 
+  TrendingUp, 
+  XCircle, 
+  CheckCircle2, 
+  Play,
+  ChevronDown,
+  ChevronUp,
+  Video
 } from 'lucide-react';
 import { GoogleReviewsCarousel } from '../components/common/GoogleReviewsCarousel';
 import { MarqueeBanner } from "../components/common/MarqueeBanner";
 import { LandingVslPlayer } from "../components/common/LandingVslPlayer";
 
 
+interface CourseModuleItem {
+  id: number;
+  number: string;
+  category: 'teoria' | 'pratica' | 'business';
+  categoryLabel: string;
+  title: string;
+  lessonsCount: number;
+  description: string;
+  highlight: string;
+  lessons: string[];
+}
+
+const COURSE_MODULES: CourseModuleItem[] = [
+  {
+    id: 1,
+    number: "01",
+    category: "teoria",
+    categoryLabel: "Fase 1 • Basi & Mindset",
+    title: "Presentazione & Mentalità di Successo",
+    lessonsCount: 3,
+    description: "Benvenuto nell'Academy: la visione del Metodo Morocutti, come impostare lo studio per ottenere risultati concreti e come superare la paura iniziale di sbagliare.",
+    highlight: "Fondamenta del Metodo",
+    lessons: [
+      "Chi sono e perché dovresti ascoltarmi",
+      "Mentalità vincente e gestione delle insicurezze",
+      "Mappa operativa: come studiare con profitto ogni modulo"
+    ]
+  },
+  {
+    id: 2,
+    number: "02",
+    category: "teoria",
+    categoryLabel: "Fase 1 • Scienza del Pigmento",
+    title: "Teoria, Igiene & Scienza del Pigmento",
+    lessonsCount: 21,
+    description: "Il modulo teorico più completo sul mercato: anatomia della pelle, corretta profondità di incisione, pigmentologia avanzata, chimica delle miscele per evitare viraggi e correzione vecchi tatuaggi.",
+    highlight: "21 Lezioni Fondamentali",
+    lessons: [
+      "Evoluzione del microblading e basi scientifiche",
+      "Norme igienico-sanitarie e allestimento cabina sterile",
+      "Anatomia della pelle e corretta profondità di incisione",
+      "Processo di guarigione fisiologica e cura domiciliare",
+      "Perché scegliere i pigmenti Phibrows e come riconoscerli",
+      "Pigmenti minerali vs organici: differenze e stabilità nel tempo",
+      "Regolazione della corretta pressione della lama sul derma",
+      "Miscela dei pigmenti primari e prevenzione dei viraggi grigio/rosso",
+      "Adattamento della tecnica ai diversi fototipi cutanei",
+      "Neutralizzazione di vecchi PMU virati e tecniche di cover-up",
+      "Gestione delle cicatrici e pelli difficili o porose",
+      "Ritocco mensile obbligatorio e mantenimento annuale"
+    ]
+  },
+  {
+    id: 3,
+    number: "03",
+    category: "teoria",
+    categoryLabel: "Fase 2 • Geometria & Progettazione",
+    title: "Forma & Anatomia del Sopracciglio",
+    lessonsCount: 7,
+    description: "La scienza dell'armonia: impara a progettare forme impeccabili calcolate sulla morfologia unica di ciascun volto, correggendo asimmetrie muscolari e ossee con il compasso aureo Phi.",
+    highlight: "Rapporto Aureo & Compasso Phi",
+    lessons: [
+      "L'importanza delle sopracciglia nell'espressività dello sguardo",
+      "Sistemare senza stravolgere: la regola d'oro di Chiara",
+      "Rapporto aureo e morfologia facciale",
+      "Gestione e correzione delle asimmetrie naturali del viso",
+      "Disegno geometrico tecnico su carta con righello millimetrico",
+      "Disegno iper-realistico su carta per allenare la vista",
+      "Progettazione precisa con compasso aureo Phi"
+    ]
+  },
+  {
+    id: 4,
+    number: "04",
+    category: "pratica",
+    categoryLabel: "Fase 2 • Disegno su Modella",
+    title: "Progettazione della Forma su Modella dal Vivo",
+    lessonsCount: 3,
+    description: "Dalla carta al viso reale: scopri tutti gli strumenti del mestiere, la corretta affilatura della matita dermografica a lama di bisturi e l'esecuzione passo-passo della forma su modella reale.",
+    highlight: "Tecnica della Matita Affilata",
+    lessons: [
+      "Strumenti professionali per il disegno preparatorio",
+      "Come affilare la matita a fetta di salame per tratti invisibili",
+      "Esecuzione completa della forma dal vivo su modella reale"
+    ]
+  },
+  {
+    id: 5,
+    number: "05",
+    category: "pratica",
+    categoryLabel: "Fase 3 • Tecnica del Pelo",
+    title: "Schemi del Pelo Naturale & Studio delle Spine",
+    lessonsCount: 6,
+    description: "Come riprodurre la reale crescita pilifera: studio anatomico delle teste, transizioni fluide, peli superiori e inferiori e padronanza completa degli schemi Spine 3 e Spine 6.",
+    highlight: "Spine 3 & Spine 6",
+    lessons: [
+      "Come riconoscere e seguire il flusso del pelo naturale",
+      "Disegno della testa: ventaglio, peli dritti e peli incrociati",
+      "Transizione centrale: il punto critico di ogni arcata",
+      "Angolazione dei peli superiori e inferiori",
+      "Confronto pratico ed esecuzione Spine 3 vs Spine 6"
+    ]
+  },
+  {
+    id: 6,
+    number: "06",
+    category: "pratica",
+    categoryLabel: "Fase 3 • Pratica su Lattice",
+    title: "Pratica Guidata su Pelle Sintetica (Latex)",
+    lessonsCount: 7,
+    description: "Decine di ore di pratica registrate con macro riprese 4K in primo piano: impugnatura corretta del manipolo, inclinazione a 90 gradi, profondità e realizzazione di arcate complete su silicone.",
+    highlight: "Riprese Macro 4K Ravvicinate",
+    lessons: [
+      "Impugnatura del tool e corretta postura delle mani",
+      "Primi tratti su lattice: controllo della curva e della fluidità",
+      "Regolazione della profondità e velocità di incisione",
+      "Esecuzione dell'arcata completa Spine 6 su pelle sintetica",
+      "Esecuzione dell'arcata completa Spine 3 su pelle sintetica",
+      "Autocorrezione degli errori di spaziatura e profondità"
+    ]
+  },
+  {
+    id: 7,
+    number: "07",
+    category: "pratica",
+    categoryLabel: "Fase 4 • Trattamento Completo Live",
+    title: "Il Trattamento Completo su Modella dal Vivo",
+    lessonsCount: 4,
+    description: "Un intero trattamento reale eseguito in cabina da Chiara senza filtri né tagli: dalla preparazione del campo operatorio al primo passaggio di lama, fino alla maschera di pigmento e al risultato finale.",
+    highlight: "Trattamento Reale in Cabina",
+    lessons: [
+      "Allestimento sterile del carrello e strumenti monouso",
+      "Primo passaggio di lama: incisione e battitura del pelo reale",
+      "Maschera di posa del pigmento e pulizia antisettica",
+      "Secondo passaggio di perfezionamento e scatto fotografico finale"
+    ]
+  },
+  {
+    id: 8,
+    number: "08",
+    category: "business",
+    categoryLabel: "Fase 5 • Fisco, Studio & Normative",
+    title: "Normative, Fisco, Cabina & Tutela Legale",
+    lessonsCount: 4,
+    description: "Tutto ciò che serve per avviare l'attività senza rischiare sanzioni: scelta del codice ATECO, modulistica di consenso informato, accordi contrattuali con i centri estetici e opzioni affitto cabina.",
+    highlight: "Inquadramento & Consenso",
+    lessons: [
+      "Quale Codice ATECO scegliere e inquadramento fiscale ideale",
+      "Consenso informato, privacy e cartella cliente a norma di legge",
+      "Affitto cabina vs percentuale: come calcolare cosa conviene",
+      "Strategia per proporsi ai centri estetici e iniziare senza costi fissi"
+    ]
+  },
+  {
+    id: 9,
+    number: "09",
+    category: "business",
+    categoryLabel: "Fase 6 • Consulenza & Listino Alto",
+    title: "La Consulenza di Vendita ad Alto Valore",
+    lessonsCount: 8,
+    description: "Smetti di regalare consulenze solo informative: impara il protocollo per convertire le richieste in trattamenti confermati da 350€ a 500€, con ascolto reale di una chiamata di vendita registrata.",
+    highlight: "Listino da 350€ a 500€",
+    lessons: [
+      "Perché vendere e fare dermopigmentazione sono due mestieri diversi",
+      "Il protocollo della consulenza di vendita in 5 passaggi",
+      "Come impostare il listino prezzi e non fare mai sconti",
+      "Gestione delle obiezioni più comuni (prezzo, paura, indecisione)",
+      "Ascolto e dissezione di una vera chiamata di vendita registrata"
+    ]
+  },
+  {
+    id: 10,
+    number: "10",
+    category: "business",
+    categoryLabel: "Fase 6 • Acquisizione & 15k/Mese",
+    title: "Acquisizione Clienti & Social Marketing per PMU",
+    lessonsCount: 9,
+    description: "Il metodo commerciale esatto con cui Chiara ha costruito un business da 15.000€ al mese: posizionamento su Instagram, creazione di contenuti che attraggono clienti solventi e fidelizzazione a vita.",
+    highlight: "Business da 15.000€ / Mese",
+    lessons: [
+      "Le 3 strategie per riempire l'agenda fin dalle prime settimane",
+      "Set-up del profilo Instagram da operatrice di fascia alta",
+      "I 3 formati di contenuto: attrazione, educazione e vendita",
+      "Come fare storie quotidiane senza sembrare venditrici insistenti",
+      "Cosa sono i contenuti personali e perché creano fiducia immediata",
+      "Come gestire le richieste in direct e portarle in chiamata",
+      "Il sistema per fidelizzare ogni cliente al ritocco annuale a vita"
+    ]
+  }
+];
+
 export const LandingPage: React.FC = () => {
   const location = useLocation();
+  const [expandedModule, setExpandedModule] = useState<number | null>(null);
+  const [moduleFilter, setModuleFilter] = useState<'all' | 'teoria' | 'pratica' | 'business'>('all');
+
+  const toggleModule = (id: number) => {
+    setExpandedModule(prev => prev === id ? null : id);
+  };
+
+  const filteredModules = moduleFilter === 'all' 
+    ? COURSE_MODULES 
+    : COURSE_MODULES.filter(m => m.category === moduleFilter);
 
   useEffect(() => {
     if (location.hash) {
@@ -911,9 +1115,208 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 8. CATALOGO CORSI & I 3 PACCHETTI / IL CORSO */}
-      <section id="corso" className="py-24 bg-primary-50/50 relative">
+      {/* 8. IL PROGRAMMA COMPLETO DELL'ACADEMY (PANORAMICA DEI 10 MODULI E 72 LEZIONI) */}
+      <section id="programma" className="py-20 sm:py-28 lg:py-32 bg-[#FAF7F2] text-[#1E1B18] relative overflow-hidden border-b border-[#EAE3D7]">
+        {/* Subtle Luxury Ambient Glow */}
+        <div className="absolute top-1/4 -right-24 w-96 h-96 bg-[#E5D2CF]/20 rounded-full blur-3xl pointer-events-none -z-10" />
+        <div className="absolute bottom-1/4 -left-24 w-96 h-96 bg-amber-100/25 rounded-full blur-3xl pointer-events-none -z-10" />
+
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl relative z-10">
+          
+          {/* Section Header */}
+          <div className="text-center max-w-3xl mx-auto mb-14 sm:mb-18">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 border border-[#E3DBD0] text-[#7A6F65] text-[11px] sm:text-xs font-semibold tracking-[0.22em] uppercase shadow-xs mb-5">
+              <Sparkles className="w-3.5 h-3.5 text-[#B08D57]" />
+              <span>Programma Didattico Ufficiale</span>
+            </div>
+
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-[#18181B] leading-[1.18] tracking-tight mb-5">
+              10 Moduli, 72 Video Lezioni.<br />
+              <span className="italic font-normal text-[#2C2724]">Dalla prima linea su carta alla tua prima cliente da 500€.</span>
+            </h2>
+
+            <p className="text-base sm:text-lg text-[#5A5147] font-light leading-relaxed max-w-2xl mx-auto">
+              Un percorso progressivo, strutturato e collaudato su oltre <strong className="font-semibold text-[#18181B]">1.500 studentesse</strong>. Nessun segreto custodito: ti mostro ogni millimetro di tecnica, normative, fisco e le strategie di vendita per riempire la tua agenda.
+            </p>
+
+            {/* Stats Summary Strip */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-10">
+              <div className="bg-white/80 backdrop-blur-xs p-4 rounded-2xl border border-[#E4DDD2] shadow-xs text-center">
+                <span className="block text-2xl sm:text-3xl font-serif font-bold text-[#18181B]">72</span>
+                <span className="text-[11px] font-medium uppercase tracking-wider text-[#7A6F65]">Video Lezioni 4K</span>
+              </div>
+              <div className="bg-white/80 backdrop-blur-xs p-4 rounded-2xl border border-[#E4DDD2] shadow-xs text-center">
+                <span className="block text-2xl sm:text-3xl font-serif font-bold text-[#18181B]">10</span>
+                <span className="text-[11px] font-medium uppercase tracking-wider text-[#7A6F65]">Moduli Completi</span>
+              </div>
+              <div className="bg-white/80 backdrop-blur-xs p-4 rounded-2xl border border-[#E4DDD2] shadow-xs text-center">
+                <span className="block text-2xl sm:text-3xl font-serif font-bold text-[#18181B]">100%</span>
+                <span className="text-[11px] font-medium uppercase tracking-wider text-[#7A6F65]">Pratico su Modella</span>
+              </div>
+              <div className="bg-white/80 backdrop-blur-xs p-4 rounded-2xl border border-[#E4DDD2] shadow-xs text-center">
+                <span className="block text-2xl sm:text-3xl font-serif font-bold text-[#18181B]">A Vita</span>
+                <span className="text-[11px] font-medium uppercase tracking-wider text-[#7A6F65]">Accesso & Aggiornamenti</span>
+              </div>
+            </div>
+
+            {/* Category Filter Pills */}
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setModuleFilter('all')}
+                className={`px-4 py-2 rounded-full text-xs font-semibold tracking-wider uppercase transition ${
+                  moduleFilter === 'all'
+                    ? 'bg-[#18181B] text-white shadow-xs'
+                    : 'bg-white/70 text-[#6B6156] hover:bg-white border border-[#E3DBD0]'
+                }`}
+              >
+                Tutti i 10 Moduli (72 Lezioni)
+              </button>
+              <button
+                type="button"
+                onClick={() => setModuleFilter('teoria')}
+                className={`px-4 py-2 rounded-full text-xs font-semibold tracking-wider uppercase transition ${
+                  moduleFilter === 'teoria'
+                    ? 'bg-[#18181B] text-white shadow-xs'
+                    : 'bg-white/70 text-[#6B6156] hover:bg-white border border-[#E3DBD0]'
+                }`}
+              >
+                Teoria, Igiene & Forma (Mod. 1-3)
+              </button>
+              <button
+                type="button"
+                onClick={() => setModuleFilter('pratica')}
+                className={`px-4 py-2 rounded-full text-xs font-semibold tracking-wider uppercase transition ${
+                  moduleFilter === 'pratica'
+                    ? 'bg-[#18181B] text-white shadow-xs'
+                    : 'bg-white/70 text-[#6B6156] hover:bg-white border border-[#E3DBD0]'
+                }`}
+              >
+                Pratica, Spine & Modella Live (Mod. 4-7)
+              </button>
+              <button
+                type="button"
+                onClick={() => setModuleFilter('business')}
+                className={`px-4 py-2 rounded-full text-xs font-semibold tracking-wider uppercase transition ${
+                  moduleFilter === 'business'
+                    ? 'bg-[#18181B] text-white shadow-xs'
+                    : 'bg-white/70 text-[#6B6156] hover:bg-white border border-[#E3DBD0]'
+                }`}
+              >
+                Fisco, Vendita & Clienti da 500€ (Mod. 8-10)
+              </button>
+            </div>
+          </div>
+
+          {/* Module Cards Grid / Accordion */}
+          <div className="space-y-4 max-w-4xl mx-auto">
+            {filteredModules.map((module) => {
+              const isOpen = expandedModule === module.id;
+              return (
+                <div
+                  key={module.id}
+                  className="bg-white/90 backdrop-blur-xs rounded-2xl border border-[#E4DDD2] overflow-hidden transition-all shadow-xs hover:border-[#D6CCC0]"
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleModule(module.id)}
+                    className="w-full text-left p-5 sm:p-6 flex items-start sm:items-center justify-between gap-4 cursor-pointer focus:outline-none"
+                    aria-expanded={isOpen}
+                  >
+                    <div className="flex items-start sm:items-center gap-4 sm:gap-5 min-w-0">
+                      <div className="w-12 h-12 rounded-xl bg-[#FAF7F2] border border-[#E4DDD2] flex flex-col items-center justify-center shrink-0">
+                        <span className="text-[10px] font-bold text-[#8A7E73] uppercase tracking-wider">Mod</span>
+                        <span className="text-base font-serif font-bold text-[#18181B] leading-none">{module.number}</span>
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <span className="text-[10px] font-bold tracking-[0.16em] uppercase text-[#8A7E73]">
+                            {module.categoryLabel}
+                          </span>
+                          <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FAF7F2] text-[#6B6156] border border-[#E4DDD2]">
+                            {module.highlight}
+                          </span>
+                        </div>
+                        <h3 className="text-base sm:text-lg font-serif font-bold text-[#18181B] truncate">
+                          {module.title}
+                        </h3>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0 self-center">
+                      <span className="hidden sm:inline-block text-xs font-semibold text-[#7A6F65] bg-[#F4EFEA] px-2.5 py-1 rounded-full">
+                        {module.lessonsCount} {module.lessonsCount === 1 ? 'lezione' : 'lezioni'}
+                      </span>
+                      <div className="w-8 h-8 rounded-full bg-[#FAF7F2] border border-[#E4DDD2] flex items-center justify-center text-[#18181B]">
+                        {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </div>
+                    </div>
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-5 sm:px-6 pb-6 pt-2 border-t border-[#F0EAE1]">
+                          <p className="text-xs sm:text-sm text-[#5A5147] font-light leading-relaxed mb-4">
+                            {module.description}
+                          </p>
+
+                          <div className="bg-[#FAF7F2] rounded-xl p-4 border border-[#E4DDD2]">
+                            <span className="block text-[11px] font-bold uppercase tracking-wider text-[#8A7E73] mb-2.5">
+                              Lezioni incluse in questo modulo:
+                            </span>
+                            <ul className="space-y-2">
+                              {module.lessons.map((lesson, lIdx) => (
+                                <li key={lIdx} className="flex items-start gap-2.5 text-xs sm:text-sm text-[#332C27]">
+                                  <Video className="w-3.5 h-3.5 text-[#B08D57] shrink-0 mt-0.5" />
+                                  <span>{lesson}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Bottom Action CTA & Guarantee */}
+          <div className="mt-14 sm:mt-18 text-center flex flex-col items-center">
+            <a
+              href="#percorsi"
+              className="px-8 sm:px-10 py-4 bg-[#18181B] text-white text-xs sm:text-sm font-bold uppercase tracking-[0.18em] rounded-sm hover:bg-[#2C2724] active:scale-[0.99] transition shadow-lg inline-flex items-center gap-3 group"
+            >
+              <span>Scegli il tuo Percorso di Formazione</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
+            </a>
+
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-xs text-[#7A6F65] font-light">
+              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#18181B]" /> Tutti i 10 Moduli Inclusi</span>
+              <span className="text-[#D3C7B9] hidden sm:inline">•</span>
+              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#18181B]" /> Tutoraggio Diretto con Chiara</span>
+              <span className="text-[#D3C7B9] hidden sm:inline">•</span>
+              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#18181B]" /> Attestato Ufficiale di Masterclass</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 9. MODALITÀ DI ACCESSO / I PERCORSI / PREZZI */}
+      <section id="percorsi" className="py-24 bg-[#F4EFEA]/80 relative border-t border-[#E8E1D5]">
         <span id="catalogo" className="absolute -top-20" aria-hidden="true" />
+        <span id="prezzi" className="absolute -top-20" aria-hidden="true" />
+        <span id="corso" className="absolute -top-20" aria-hidden="true" />
         <div className="container mx-auto px-6 max-w-6xl">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <span className="text-xs font-bold tracking-widest uppercase text-primary-600 bg-primary-50 px-3.5 py-1.5 rounded-full border border-primary-100">

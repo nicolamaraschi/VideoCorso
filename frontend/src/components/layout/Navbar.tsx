@@ -96,10 +96,10 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
 
             {/* Center: Navigation Links (IL CORSO, PROGRAMMA, CHI SONO, PERCORSI, FAQ) */}
             <div className="hidden lg:flex items-center space-x-7 xl:space-x-9">
-              <ScrollLink to="/#corso" className="text-xs tracking-[0.14em] uppercase font-semibold text-[#4A443E] hover:text-[#1E1B18] transition" onClick={() => {}}>Il Corso</ScrollLink>
+              <ScrollLink to="/#video-academy" className="text-xs tracking-[0.14em] uppercase font-semibold text-[#4A443E] hover:text-[#1E1B18] transition" onClick={() => {}}>Il Corso</ScrollLink>
               <ScrollLink to="/#programma" className="text-xs tracking-[0.14em] uppercase font-semibold text-[#4A443E] hover:text-[#1E1B18] transition" onClick={() => {}}>Programma</ScrollLink>
               <ScrollLink to="/#chisono" className="text-xs tracking-[0.14em] uppercase font-semibold text-[#4A443E] hover:text-[#1E1B18] transition" onClick={() => {}}>Chi Sono</ScrollLink>
-              <ScrollLink to="/#catalogo" className="text-xs tracking-[0.14em] uppercase font-semibold text-[#4A443E] hover:text-[#1E1B18] transition" onClick={() => {}}>Percorsi</ScrollLink>
+              <ScrollLink to="/#percorsi" className="text-xs tracking-[0.14em] uppercase font-semibold text-[#4A443E] hover:text-[#1E1B18] transition" onClick={() => {}}>Percorsi</ScrollLink>
               <ScrollLink to="/#faq" className="text-xs tracking-[0.14em] uppercase font-semibold text-[#4A443E] hover:text-[#1E1B18] transition" onClick={() => {}}>FAQ</ScrollLink>
             </div>
 
@@ -112,7 +112,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
                 Login
               </Link>
               <ScrollLink
-                to="/#corso"
+                to="/#percorsi"
                 className="px-5 sm:px-6 py-2.5 sm:py-3 bg-[#1E1B18] text-white text-[11px] sm:text-xs font-bold uppercase tracking-[0.15em] rounded-sm hover:bg-[#332C27] active:scale-[0.99] transition shadow-xs"
                 onClick={() => {}}
               >
@@ -189,10 +189,10 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
           >
             <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 bg-[#FAF7F2]">
               <div className="flex flex-col space-y-1">
-                <ScrollLink to="/#corso" className="block px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-[#4A443E] hover:text-[#1E1B18] hover:bg-black/5 rounded transition" onClick={() => setMobileMenuOpen(false)}>Il Corso</ScrollLink>
+                <ScrollLink to="/#video-academy" className="block px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-[#4A443E] hover:text-[#1E1B18] hover:bg-black/5 rounded transition" onClick={() => setMobileMenuOpen(false)}>Il Corso</ScrollLink>
                 <ScrollLink to="/#programma" className="block px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-[#4A443E] hover:text-[#1E1B18] hover:bg-black/5 rounded transition" onClick={() => setMobileMenuOpen(false)}>Programma</ScrollLink>
                 <ScrollLink to="/#chisono" className="block px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-[#4A443E] hover:text-[#1E1B18] hover:bg-black/5 rounded transition" onClick={() => setMobileMenuOpen(false)}>Chi Sono</ScrollLink>
-                <ScrollLink to="/#catalogo" className="block px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-[#4A443E] hover:text-[#1E1B18] hover:bg-black/5 rounded transition" onClick={() => setMobileMenuOpen(false)}>Percorsi</ScrollLink>
+                <ScrollLink to="/#percorsi" className="block px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-[#4A443E] hover:text-[#1E1B18] hover:bg-black/5 rounded transition" onClick={() => setMobileMenuOpen(false)}>Percorsi</ScrollLink>
                 <ScrollLink to="/#faq" className="block px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-[#4A443E] hover:text-[#1E1B18] hover:bg-black/5 rounded transition" onClick={() => setMobileMenuOpen(false)}>FAQ</ScrollLink>
               </div>
 
