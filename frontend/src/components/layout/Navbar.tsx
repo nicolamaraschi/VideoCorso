@@ -64,27 +64,16 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {!isAuthenticated ? (
           /* Public Header (Editorial Luxury Academy) */
-          <div className="flex justify-between items-center h-20">
-            {/* Left: Hamburger button + Typographic Brand Logo */}
-            <div className="flex items-center gap-3 min-w-0">
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden flex-shrink-0 min-h-10 min-w-10 p-2 rounded-lg hover:bg-black/5 text-[#1E1B18] flex items-center justify-center -ml-1 transition-colors"
-                aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
-                aria-expanded={mobileMenuOpen}
-                aria-controls="public-navigation-menu"
-              >
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
-              
+          <div className="flex justify-between items-center h-16 sm:h-20">
+            {/* Left: Typographic Brand Logo (flush left, perfectly aligned, no crowding) */}
+            <div className="flex items-center min-w-0">
               <Link to="/" className="flex flex-col items-start leading-none group py-1">
-                <span className="text-base sm:text-lg lg:text-xl font-serif font-bold tracking-[0.16em] text-[#1E1B18] uppercase">
+                <span className="text-[15px] sm:text-lg lg:text-xl font-serif font-bold tracking-[0.14em] sm:tracking-[0.16em] text-[#1E1B18] uppercase whitespace-nowrap">
                   Chiara Morocutti
                 </span>
-                <div className="flex items-center gap-1.5 w-full mt-1">
+                <div className="flex items-center gap-1.5 w-full mt-0.5 sm:mt-1">
                   <span className="h-[1px] bg-[#8A7E73]/50 flex-1"></span>
-                  <span className="text-[9px] sm:text-[10px] tracking-[0.25em] font-serif uppercase text-[#8A7E73] font-medium">
+                  <span className="text-[8.5px] sm:text-[10px] tracking-[0.22em] sm:tracking-[0.25em] font-serif uppercase text-[#8A7E73] font-medium whitespace-nowrap">
                     Academy
                   </span>
                   <span className="h-[1px] bg-[#8A7E73]/50 flex-1"></span>
@@ -92,7 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
               </Link>
             </div>
 
-            {/* Center: Navigation Links (IL CORSO, PROGRAMMA, CHI SONO, PERCORSI, FAQ) */}
+            {/* Center: Navigation Links (Public Desktop ONLY >= lg) */}
             <div className="hidden lg:flex items-center space-x-7 xl:space-x-9">
               <ScrollLink to="/#video-academy" className="text-xs tracking-[0.14em] uppercase font-semibold text-[#4A443E] hover:text-[#1E1B18] transition" onClick={() => {}}>Il Corso</ScrollLink>
               <ScrollLink to="/#programma" className="text-xs tracking-[0.14em] uppercase font-semibold text-[#4A443E] hover:text-[#1E1B18] transition" onClick={() => {}}>Programma</ScrollLink>
@@ -101,7 +90,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
               <ScrollLink to="/#faq" className="text-xs tracking-[0.14em] uppercase font-semibold text-[#4A443E] hover:text-[#1E1B18] transition" onClick={() => {}}>FAQ</ScrollLink>
             </div>
 
-            {/* Right: Actions */}
+            {/* Right: Actions on Desktop, Hamburger button on Mobile (< lg) */}
             <div className="flex items-center gap-3 sm:gap-4 shrink-0">
               <Link 
                 to="/login" 
@@ -111,11 +100,23 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
               </Link>
               <ScrollLink
                 to="/#percorsi"
-                className="px-5 sm:px-6 py-2.5 sm:py-3 bg-[#1E1B18] text-white text-[11px] sm:text-xs font-bold uppercase tracking-[0.15em] rounded-sm hover:bg-[#332C27] active:scale-[0.99] transition shadow-xs"
+                className="hidden sm:inline-flex px-5 sm:px-6 py-2.5 sm:py-3 bg-[#1E1B18] text-white text-[11px] sm:text-xs font-bold uppercase tracking-[0.15em] rounded-sm hover:bg-[#332C27] active:scale-[0.99] transition shadow-xs"
                 onClick={() => {}}
               >
                 Scopri l'Academy
               </ScrollLink>
+
+              {/* Mobile/Tablet Hamburger button on the RIGHT (< lg) */}
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="lg:hidden flex-shrink-0 min-h-10 min-w-10 p-2 rounded-lg hover:bg-black/5 text-[#1E1B18] flex items-center justify-center transition-colors -mr-1"
+                aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
+                aria-expanded={mobileMenuOpen}
+                aria-controls="public-navigation-menu"
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
             </div>
           </div>
         ) : (
@@ -137,12 +138,12 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
                 to={isAdminViewingStudentArea ? '/dashboard' : isAdmin ? '/admin' : '/dashboard'} 
                 className="flex flex-col items-start leading-none group py-1 shrink-0"
               >
-                <span className="text-base sm:text-lg lg:text-xl font-serif font-bold tracking-[0.16em] text-[#1E1B18] uppercase">
+                <span className="text-[15px] sm:text-lg lg:text-xl font-serif font-bold tracking-[0.14em] sm:tracking-[0.16em] text-[#1E1B18] uppercase whitespace-nowrap">
                   Chiara Morocutti
                 </span>
-                <div className="flex items-center gap-1.5 w-full mt-1">
+                <div className="flex items-center gap-1.5 w-full mt-0.5 sm:mt-1">
                   <span className="h-[1px] bg-[#8A7E73]/50 flex-1"></span>
-                  <span className="text-[9px] sm:text-[10px] tracking-[0.25em] font-serif uppercase text-[#8A7E73] font-medium">
+                  <span className="text-[8.5px] sm:text-[10px] tracking-[0.22em] sm:tracking-[0.25em] font-serif uppercase text-[#8A7E73] font-medium whitespace-nowrap">
                     Academy
                   </span>
                   <span className="h-[1px] bg-[#8A7E73]/50 flex-1"></span>
@@ -150,7 +151,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
               </Link>
 
               {/* Area indicator badge */}
-              <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase bg-[#F4EFEA] text-[#6E645B] border border-[#E8E1D5] ml-1">
+              <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase bg-[#F4EFEA] text-[#6E645B] border border-[#E8E1D5] ml-1 whitespace-nowrap">
                 {isAdminViewingStudentArea ? 'Area Corsista' : isAdmin ? 'Pannello Admin' : 'Area Corsista'}
               </span>
             </div>

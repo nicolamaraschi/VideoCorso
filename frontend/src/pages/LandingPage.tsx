@@ -321,12 +321,12 @@ export const LandingPage: React.FC = () => {
                 </div>
 
                 {/* Handwriting Script Calligraphy on Top Right */}
-                <div className="absolute top-4 right-4 sm:top-6 sm:right-6 lg:top-8 lg:right-7 font-script text-2xl sm:text-3xl lg:text-[2.4rem] text-[#A69385] leading-[1.12] select-none rotate-[-4deg] pointer-events-none drop-shadow-xs text-right">
+                <div className="absolute top-4 right-4 sm:top-6 sm:right-6 lg:top-8 lg:right-7 font-script text-2xl sm:text-3xl lg:text-[2.4rem] text-[#1E3A8A] font-bold leading-[1.12] select-none rotate-[-4deg] pointer-events-none drop-shadow-xs text-right">
                   <span>Tecnica</span><br />
                   <span className="mr-1 sm:mr-2">Strategia</span><br />
                   <span className="relative inline-block">
                     Risultati
-                    <span className="block w-full h-[1.5px] bg-[#A69385]/80 mt-0.5 rounded-full" />
+                    <span className="block w-full h-[1.5px] bg-[#1E3A8A] mt-0.5 rounded-full" />
                   </span>
                 </div>
               </div>
@@ -1606,11 +1606,14 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* 11. FAQ */}
-      <section className="py-20 bg-gray-50 border-t border-gray-100">
+      <section id="faq" className="py-20 sm:py-28 bg-[#FAF7F2] border-t border-[#EAE3D7] scroll-mt-20">
         <div className="container mx-auto px-6 max-w-4xl">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-gray-900">Domande Frequenti</h2>
-            <p className="mt-4 text-lg text-gray-600 font-light">Tutto quello che devi sapere prima di iniziare.</p>
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-[#8A7E73] block mb-2">
+              Risposte Rapide
+            </span>
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1E1B18]">Domande Frequenti</h2>
+            <p className="mt-4 text-base sm:text-lg text-[#6E645B] font-light">Tutto quello che devi sapere prima di iniziare.</p>
           </div>
 
           <div className="space-y-4">
