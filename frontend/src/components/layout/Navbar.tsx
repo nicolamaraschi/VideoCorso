@@ -4,8 +4,6 @@ import { Menu, X, Shield } from 'lucide-react';
 import { useAuthContext } from '../auth/useAuthContext'; 
 import { Button } from '../common/Button';
 
-// Versione locale WebP dimensionata per l'uso reale nella navbar (40 px).
-const logoUrl = "/chiara-morocutti-logo.webp";
 
 interface NavbarProps {
   mobileMenuOpen?: boolean;
@@ -121,54 +119,68 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
             </div>
           </div>
         ) : (
-          /* Authenticated Header (Centered Brand, no duplicate user badge) */
-          <div className="relative flex items-center justify-between h-16">
-            {/* Left: Hamburger button for mobile/tablet (< xl) */}
-            <div className="flex items-center min-w-[40px] z-10">
+          /* Authenticated Header (Left-aligned Typographic Brand, consistent with public header) */
+          <div className="flex items-center justify-between h-16 sm:h-18">
+            {/* Left: Hamburger button for mobile/tablet (< xl) + Typographic Brand Logo */}
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="xl:hidden flex-shrink-0 min-h-10 min-w-10 p-2 rounded-lg hover:bg-gray-100 text-gray-700 flex items-center justify-center -ml-1 transition-colors"
+                className="xl:hidden flex-shrink-0 min-h-10 min-w-10 p-2 rounded-lg hover:bg-black/5 text-[#1E1B18] flex items-center justify-center -ml-1 transition-colors"
                 aria-label={mobileMenuOpen ? 'Chiudi menu' : 'Apri menu'}
                 aria-expanded={mobileMenuOpen}
               >
                 {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
-            </div>
 
-            {/* Center: Perfectly Centered Chiara Morocutti Academy Brand */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-12">
               <Link 
-                to={isAdminViewingStudentArea ? '/dashboard' : isAdmin ? '/admin' : '/dashboard'}
-                className="flex items-center gap-2.5 sm:gap-3 pointer-events-auto min-w-0 max-w-full"
+                to={isAdminViewingStudentArea ? '/dashboard' : isAdmin ? '/admin' : '/dashboard'} 
+                className="flex flex-col items-start leading-none group py-1 shrink-0"
               >
-                <img 
-                  src={logoUrl} 
-                  alt="Chiara Morocutti" 
-                  width={40}
-                  height={40}
-                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover flex-shrink-0 shadow-sm"
-                />
-                
-                <div className="flex flex-col min-w-0 text-center sm:text-left">
-                  <span className="text-sm sm:text-base lg:text-lg font-bold text-primary-600 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
-                    Chiara Morocutti Academy
+                <span className="text-base sm:text-lg lg:text-xl font-serif font-bold tracking-[0.16em] text-[#1E1B18] uppercase">
+                  Chiara Morocutti
+                </span>
+                <div className="flex items-center gap-1.5 w-full mt-1">
+                  <span className="h-[1px] bg-[#8A7E73]/50 flex-1"></span>
+                  <span className="text-[9px] sm:text-[10px] tracking-[0.25em] font-serif uppercase text-[#8A7E73] font-medium">
+                    Academy
                   </span>
-                  <span className="text-[9px] sm:text-xs text-gray-500 leading-tight block truncate" style={{ fontFamily: 'Abhaya Libre, serif' }}>
-                    {isAdminViewingStudentArea ? 'Area Corsista' : isAdmin ? 'Pannello Amministrazione' : "Formazione d'Eccellenza"}
-                  </span>
+                  <span className="h-[1px] bg-[#8A7E73]/50 flex-1"></span>
                 </div>
               </Link>
+
+              {/* Area indicator badge */}
+              <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase bg-[#F4EFEA] text-[#6E645B] border border-[#E8E1D5] ml-1">
+                {isAdminViewingStudentArea ? 'Area Corsista' : isAdmin ? 'Pannello Admin' : 'Area Corsista'}
+              </span>
             </div>
 
-            {/* Right: Subtle Admin indicator (if admin) or empty spacer for symmetry */}
-            <div className="flex items-center min-w-[40px] justify-end z-10">
-              {isAdmin && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-50 border border-primary-200 text-primary-800 text-xs font-bold uppercase tracking-wider">
-                  <Shield className="w-3.5 h-3.5 text-primary-600" />
-                  <span className="hidden sm:inline">Admin</span>
+            {/* Right: Actions / Quick Links */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {isAdminViewingStudentArea && (
+                <Link
+                  to="/admin"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#18181B] text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#2C2724] transition shadow-xs"
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Torna ad Admin</span>
+                </Link>
+              )}
+
+              {isAdmin && !isAdminViewingStudentArea && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#18181B] text-white text-[11px] font-bold uppercase tracking-wider shadow-xs">
+                  <Shield className="w-3.5 h-3.5 text-[#E5D2CF]" />
+                  <span>Admin</span>
                 </span>
               )}
+
+              <Link
+                to="/"
+                className="hidden sm:inline-flex items-center px-3 py-1.5 rounded-sm border border-[#DCD3C7] text-[#5A5147] hover:text-[#18181B] hover:bg-white text-xs font-semibold uppercase tracking-wider transition"
+                title="Vai al sito pubblico"
+              >
+                Sito
+              </Link>
             </div>
           </div>
         )}
