@@ -36,7 +36,8 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students, onUpdateSt
 
   const handleEditClick = (student: StudentListItem) => {
     setEditingStudent(student);
-    setGlobalAccess(student.global_access);
+    // Fleggato di default a true come richiesto dal cliente ("Se vuoi già fleggare di default questo per me va bene, tanto i pagamenti li controllo prima io")
+    setGlobalAccess(true);
     setNewEndDate(student.subscription_end_date ? student.subscription_end_date.split('T')[0] : '');
   };
 

@@ -1692,20 +1692,24 @@ def create_manual_student(body):
     if not is_valid_email(email.lower()):
         return create_response(400, {'error': 'Inserisci un indirizzo email valido'})
 
+    global_access_val = normalize_bool(body.get('global_access', True))
     user_id, _, temp_password = ensure_cognito_student(email, full_name, force_reset_password_on_existing=True)
     item = {
         'user_id': user_id,
         'email': email,
         'full_name': full_name,
         'subscription_status': 'active',
-        'global_access': False,
+        'global_access': global_access_val,
         'created_at': now_iso(),
         'updated_at': now_iso(),
     }
     existing = get_user_item(user_id)
     if existing:
         item['created_at'] = existing.get('created_at', item['created_at'])
-        item['global_access'] = normalize_bool(existing.get('global_access', False))
+        if 'global_access' in body:
+            item['global_access'] = global_access_val
+        else:
+            item['global_access'] = normalize_bool(existing.get('global_access', global_access_val))
     TABLES['USERS'].put_item(Item=item)
     record_audit_log('create_student', 'student', user_id, {'email': email, 'global_access': item['global_access']})
     return create_response(201, {'success': True, 'data': item})

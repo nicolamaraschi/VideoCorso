@@ -99,7 +99,7 @@ export const LoginPage: React.FC = () => {
       {showLoginVisual && (
       <div className="hidden md:block md:w-[46%] lg:w-1/2 relative bg-[#1E1B18] overflow-hidden min-h-[calc(100vh-4rem)]">
         <img 
-          src="/images/chiara/chiara-mezzobusto-sgabello-giacca.jpg" 
+          src="/images/chiara/chiara-orizzontale-sorriso.jpg" 
           alt="Chiara Morocutti - Masterclass Microblading" 
           decoding="async"
           fetchPriority="low"

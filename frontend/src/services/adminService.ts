@@ -151,7 +151,7 @@ export const adminService = {
     return apiClient.get<StudentDetail>(`/admin/student/${studentId}`);
   },
 
-  async createStudent(data: { email: string; full_name: string }): Promise<ApiResponse<User>> {
+  async createStudent(data: { email: string; full_name: string; global_access?: boolean }): Promise<ApiResponse<User>> {
     return apiClient.post<ApiResponse<User>>('/admin/student/create', data);
   },
 

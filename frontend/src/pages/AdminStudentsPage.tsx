@@ -28,7 +28,7 @@ export const AdminStudentsPage: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newStudentForm, setNewStudentForm] = useState({ email: '', full_name: '' });
+  const [newStudentForm, setNewStudentForm] = useState({ email: '', full_name: '', global_access: true });
   const [isSaving, setIsSaving] = useState(false);
 
   // Debounce the search box so we don't fire an API request on every
@@ -127,7 +127,7 @@ export const AdminStudentsPage: React.FC = () => {
       await adminService.createStudent(newStudentForm);
       showSuccess('Studente creato', `L’account di ${newStudentForm.email} è stato creato e l’invito è stato inviato.`);
       setShowCreateModal(false);
-      setNewStudentForm({ email: '', full_name: '' });
+      setNewStudentForm({ email: '', full_name: '', global_access: true });
       await reload(); // Ricarica la lista
     } catch (err) {
       showError('Studente non creato', getErrorMessage(err, 'L’account studente non è stato creato.'));
@@ -186,7 +186,7 @@ export const AdminStudentsPage: React.FC = () => {
         <Button 
           variant="primary" 
           onClick={() => {
-            setNewStudentForm({ email: '', full_name: '' });
+            setNewStudentForm({ email: '', full_name: '', global_access: true });
             setShowCreateModal(true);
           }}
         >
@@ -275,6 +275,22 @@ export const AdminStudentsPage: React.FC = () => {
             />
             <p className="text-xs text-gray-500 mt-1">
               A welcome email with a temporary password will be sent to this address.
+            </p>
+          </div>
+          <div className="rounded-lg border border-gray-200 p-3.5 bg-gray-50/80">
+            <label className="flex items-center gap-2.5 text-sm font-medium text-gray-900 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={newStudentForm.global_access}
+                onChange={(e) =>
+                  setNewStudentForm({ ...newStudentForm, global_access: e.target.checked })
+                }
+                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              Accesso globale a tutti i corsi
+            </label>
+            <p className="mt-1 text-xs text-gray-500 pl-6">
+              Lo studente potrà accedere subito a tutte le video-lezioni (attivo di default).
             </p>
           </div>
           <Button
