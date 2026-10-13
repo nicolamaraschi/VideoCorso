@@ -450,12 +450,17 @@ class TestAdminOperationGuards:
         response = _admin.create_coupon({"code": "SAVE10", "discount_type": "percent", "discount_value": 10})
         assert response["statusCode"] == 409
 
-    def test_paid_student_cannot_be_deleted_and_lose_course_access(self, monkeypatch):
+    def test_paid_student_can_be_deleted_directly_and_access_revoked(self, monkeypatch):
+        purchases = _AdminMemoryTable(make_purchase("paid", True))
+        monkeypatch.setitem(_admin.TABLES, "PURCHASES", purchases)
+        users = _AdminMemoryTable({"user_id": "student-1", "email": "student@example.test"})
+        monkeypatch.setitem(_admin.TABLES, "USERS", users)
         monkeypatch.setattr(_admin, "resolve_student_record", lambda _student_id: {"user_id": "student-1", "email": "student@example.test"})
         monkeypatch.setattr(_admin, "get_user_purchases", lambda _user_id: [make_purchase("paid", True)])
+        monkeypatch.setattr(_admin, "get_user_progress_items", lambda _user_id: [])
+        monkeypatch.setattr(_admin, "record_audit_log", lambda *_args, **_kwargs: None)
         response = _admin.delete_student("student-1")
-        assert response["statusCode"] == 409
-        assert "accessi attivi" in json.loads(response["body"])["error"]
+        assert response["statusCode"] == 200
 
     @pytest.mark.parametrize("creator,payload", [
         (_admin.create_manual_student, {"email": "not-an-email", "full_name": "Student"}),

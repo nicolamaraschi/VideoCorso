@@ -1765,17 +1765,53 @@ def delete_student(student_id):
     if not user_item:
         return create_response(404, {'error': 'Student not found'})
 
-    # A paid/enrolled student must never lose access because an administrator
-    # clicked a destructive cleanup action. Revoke or archive the relevant
-    # purchase explicitly first, so the operation remains auditable.
-    active_purchases = [
-        purchase for purchase in get_user_purchases(user_item.get('user_id', student_id))
-        if purchase_grants_access(purchase)
-    ]
-    if active_purchases:
-        return create_response(409, {
-            'error': 'Impossibile eliminare una studentessa con accessi attivi. Revoca prima gli accessi dagli ordini interessati.'
-        })
+    resolved_user_id = user_item.get('user_id', student_id)
+
+    # Automatically revoke any active purchases so they no longer grant access
+    try:
+        active_purchases = [
+            purchase for purchase in get_user_purchases(resolved_user_id)
+            if purchase_grants_access(purchase)
+        ]
+        for purchase in active_purchases:
+            try:
+                normalized = sync_purchase_access(purchase, mode='revoke')
+                fields = {
+                    'manual_access_override': normalized.get('manual_access_override', False),
+                    'access_revoked': True,
+                    'access_revoked_at': now_iso(),
+                    'access_revocation_reason': 'Student deleted',
+                    'access_unlocked': False,
+                }
+                try:
+                    update_purchase_with_version(purchase['purchase_id'], normalized.get('version', 0), fields)
+                except Exception:
+                    TABLES['PURCHASES'].update_item(
+                        Key={'purchase_id': purchase['purchase_id']},
+                        UpdateExpression='SET access_revoked = :ar, access_revoked_at = :ara, access_revocation_reason = :arr, access_unlocked = :au',
+                        ExpressionAttributeValues={
+                            ':ar': True,
+                            ':ara': now_iso(),
+                            ':arr': 'Student deleted',
+                            ':au': False,
+                        }
+                    )
+                record_audit_log('revoke_access', 'purchase', purchase['purchase_id'], {'reason': 'Student deleted'})
+            except Exception as exc:
+                print(f"Error revoking purchase {purchase.get('purchase_id')}: {exc}")
+    except Exception as exc:
+        print(f"Error checking active purchases for student {resolved_user_id}: {exc}")
+
+    # Clean up user's progress records
+    try:
+        progress_items = get_user_progress_items(resolved_user_id)
+        if progress_items and 'PROGRESS' in TABLES and hasattr(TABLES['PROGRESS'], 'batch_writer'):
+            with TABLES['PROGRESS'].batch_writer() as batch:
+                for p_item in progress_items:
+                    if p_item.get('progress_id'):
+                        batch.delete_item(Key={'progress_id': p_item['progress_id']})
+    except Exception as exc:
+        print(f"Error deleting progress for user {resolved_user_id}: {exc}")
 
     email = user_item.get('email')
     if email:
@@ -1785,11 +1821,31 @@ def delete_student(student_id):
                 Username=email
             )
         except ClientError as e:
-            if e.response['Error']['Code'] != 'UserNotFoundException':
+            if e.response['Error']['Code'] == 'UserNotFoundException':
+                try:
+                    cognito_client.admin_delete_user(
+                        UserPoolId=COGNITO_USER_POOL_ID,
+                        Username=resolved_user_id
+                    )
+                except ClientError:
+                    pass
+            else:
                 print(f"Error deleting user from Cognito: {e}")
+        except Exception as e:
+            print(f"Error deleting user from Cognito: {e}")
 
-    TABLES['USERS'].delete_item(Key={'user_id': user_item.get('user_id', student_id)})
-    record_audit_log('delete_student', 'student', user_item.get('user_id', student_id), {'email': email or ''})
+    try:
+        TABLES['USERS'].delete_item(Key={'user_id': resolved_user_id})
+    except Exception as exc:
+        print(f"Error deleting user from USERS table: {exc}")
+
+    if student_id != resolved_user_id:
+        try:
+            TABLES['USERS'].delete_item(Key={'user_id': student_id})
+        except Exception:
+            pass
+
+    record_audit_log('delete_student', 'student', resolved_user_id, {'email': email or ''})
     return create_response(200, {'success': True, 'message': 'Student deleted successfully'})
 
 
