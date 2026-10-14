@@ -602,10 +602,10 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                       <div
                         onClick={(e) => {
                           e.stopPropagation();
-                          setZoomImage({ url: chapter.image_url!, title: formatChapterTitle(chapter.order_number, chapter.title) });
+                          toggleChapter(chapter.chapter_id);
                         }}
-                        className="group relative cursor-pointer flex-shrink-0"
-                        title="Clicca per ingrandire la copertina in HD"
+                        className="relative cursor-pointer flex-shrink-0"
+                        title={isExpanded ? 'Comprimi modulo' : 'Espandi modulo e visualizza le lezioni'}
                       >
                         <img
                           src={chapter.image_url}
@@ -613,11 +613,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                           loading="lazy"
                           width={400}
                           height={225}
-                          className="aspect-video w-48 sm:w-64 md:w-80 lg:w-[360px] rounded-xl border border-gray-200 object-cover bg-black shadow-sm group-hover:scale-[1.01] transition-transform"
+                          className="aspect-video w-48 sm:w-64 md:w-80 lg:w-[360px] rounded-xl border border-gray-200 object-cover bg-black shadow-sm hover:opacity-95 transition-opacity"
                         />
-                        <span className="absolute bottom-1.5 right-1.5 rounded-md bg-black/75 px-2 py-0.5 text-[10px] font-semibold text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-xs flex items-center gap-1 shadow-sm">
-                          🔍 Zoom HD
-                        </span>
                       </div>
                     ) : null}
                     <div className="min-w-0 flex-1">

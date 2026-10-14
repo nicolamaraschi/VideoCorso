@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, CheckCircle, Sparkles, Layers, ZoomIn, X } from 'lucide-react';
+import { ChevronDown, CheckCircle, Sparkles, Layers } from 'lucide-react';
 import type { Chapter, Lesson, Progress } from '../../types';
 import { LessonCard } from './LessonCard';
 
@@ -18,9 +18,6 @@ export const ChapterList: React.FC<ChapterListProps> = ({
   currentLessonId,
   isPreview = false,
 }) => {
-  // HD Zoom Modal state
-  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
-
   // By default, expand the first chapter (or all chapters if only 1)
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(() => {
     if (chapters.length > 0) {
@@ -130,33 +127,16 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 min-w-0 flex-1">
                   {/* Chapter Cover Thumbnail (Large, prominent, cinematic 16:9, crystal clear) */}
                   <div
-                    onClick={(e) => {
-                      if (chapter.image_url) {
-                        e.stopPropagation();
-                        setPreviewImage({
-                          url: chapter.image_url,
-                          title: `Modulo ${chapter.order_number}: ${chapter.title}`,
-                        });
-                      }
-                    }}
-                    className={`w-full sm:w-64 md:w-80 lg:w-[360px] xl:w-[400px] aspect-video rounded-xl sm:rounded-2xl overflow-hidden bg-black border border-primary-200/90 shrink-0 shadow-sm relative group/chapterthumb ${
-                      chapter.image_url ? 'cursor-zoom-in' : ''
-                    }`}
-                    title={chapter.image_url ? 'Clicca per ingrandire la copertina in HD' : undefined}
+                    className="w-full sm:w-64 md:w-80 lg:w-[360px] xl:w-[400px] aspect-video rounded-xl sm:rounded-2xl overflow-hidden bg-black border border-primary-200/90 shrink-0 shadow-sm relative group/chapterthumb cursor-pointer"
+                    title={isExpanded ? 'Comprimi modulo' : 'Espandi modulo e visualizza le lezioni'}
                   >
                     {chapter.image_url ? (
-                      <>
-                        <img
-                          src={chapter.image_url}
-                          alt={`Copertina ${chapter.title}`}
-                          loading="lazy"
-                          className="w-full h-full object-cover img-sharp group-hover/chapterthumb:scale-102 transition-transform duration-500"
-                        />
-                        <div className="absolute bottom-2 right-2 bg-black/75 hover:bg-black/90 text-white px-2.5 py-1 rounded-lg text-xs font-semibold backdrop-blur-xs flex items-center gap-1.5 opacity-90 sm:opacity-0 group-hover/chapterthumb:opacity-100 transition-opacity shadow-md pointer-events-none">
-                          <ZoomIn className="w-3.5 h-3.5" />
-                          <span className="text-[11px] tracking-wide">Ingrandisci HD</span>
-                        </div>
-                      </>
+                      <img
+                        src={chapter.image_url}
+                        alt={`Copertina ${chapter.title}`}
+                        loading="lazy"
+                        className="w-full h-full object-cover img-sharp group-hover/chapterthumb:scale-102 transition-transform duration-500"
+                      />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary-900 to-primary-950 text-white p-2 text-center">
                         <Sparkles className="w-6 h-6 text-primary-300 mb-1" />
@@ -252,48 +232,6 @@ export const ChapterList: React.FC<ChapterListProps> = ({
           );
         })}
       </div>
-
-      {/* Full HD Zoom Modal */}
-      {previewImage && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-        >
-          {/* The cover preview dims only the workspace: the white navigation bar stays visible. */}
-          <div
-            className="absolute inset-0 bg-black/90 backdrop-blur-md"
-            style={{ clipPath: 'inset(4rem 0 0)' }}
-            onClick={() => setPreviewImage(null)}
-          />
-          <div
-            className="relative z-10 max-w-5xl w-full flex flex-col items-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="w-full flex items-center justify-between text-white mb-3 px-1">
-              <span className="text-sm sm:text-base font-semibold truncate pr-4 text-gray-200">
-                {previewImage.title} • Copertina Ufficiale HD
-              </span>
-              <button
-                type="button"
-                onClick={() => setPreviewImage(null)}
-                className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors flex items-center justify-center shrink-0 cursor-pointer"
-                aria-label="Chiudi anteprima"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="w-full rounded-2xl overflow-hidden border border-white/20 shadow-2xl bg-black">
-              <img
-                src={previewImage.url}
-                alt={previewImage.title}
-                className="w-full h-auto max-h-[82vh] object-contain mx-auto img-sharp"
-              />
-            </div>
-            <p className="text-xs text-gray-400 mt-2 text-center">
-              Clicca ovunque fuori dall'immagine o sulla X per chiudere
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
