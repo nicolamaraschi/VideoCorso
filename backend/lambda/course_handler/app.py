@@ -39,6 +39,8 @@ def create_response(status_code: int, body: Any):
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET,OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+            'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+            'Pragma': 'no-cache',
         },
         'body': json.dumps(body, cls=DecimalEncoder),
     }

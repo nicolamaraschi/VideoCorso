@@ -22,17 +22,27 @@ export const courseService = {
   },
 
   async getCourseStructure(courseId?: string): Promise<CourseStructure> {
-    const query = courseId ? `?course_id=${encodeURIComponent(courseId)}` : '';
-    return apiClient.get<CourseStructure>(`/course/structure${query}`);
+    const params = new URLSearchParams();
+    if (courseId) params.set('course_id', courseId);
+    params.set('_t', Date.now().toString());
+    return apiClient.get<CourseStructure>(`/course/structure?${params.toString()}`, {
+      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+    });
   },
 
   async getCourseDetails(courseId: string): Promise<CourseStructure> {
-    return apiClient.get<CourseStructure>(`/courses/${courseId}`);
+    return apiClient.get<CourseStructure>(`/courses/${courseId}?_t=${Date.now()}`, {
+      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+    });
   },
 
   async getVideoUrl(lessonId: string, quality?: string): Promise<GetVideoUrlResponse> {
-    const query = quality ? `?quality=${encodeURIComponent(quality)}` : '';
-    return apiClient.get<GetVideoUrlResponse>(`/course/video/${lessonId}${query}`);
+    const params = new URLSearchParams();
+    if (quality) params.set('quality', quality);
+    params.set('_t', Date.now().toString());
+    return apiClient.get<GetVideoUrlResponse>(`/course/video/${lessonId}?${params.toString()}`, {
+      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+    });
   },
 
   async getUserProgress(): Promise<CourseProgress> {
