@@ -362,21 +362,21 @@ export const AdminCoursePage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6 sm:space-y-8">
       {saving && (
-        <div className="fixed top-4 right-4 bg-white rounded-lg shadow-lg p-4 z-50">
-          <Loading size="sm" text="Saving..." />
+        <div className="fixed top-4 right-4 bg-white rounded-lg shadow-lg p-3 sm:p-4 z-50">
+          <Loading size="sm" text="Salvataggio..." />
         </div>
       )}
 
-      <div className="border-b border-gray-200 pb-5">
-        <h1 className="text-3xl font-bold text-gray-900">Gestione Corsi</h1>
-        <p className="text-gray-500 mt-2">Crea, modifica e gestisci i corsi del tuo catalogo</p>
+      <div className="border-b border-gray-200 pb-4 sm:pb-5">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Gestione Corsi</h1>
+        <p className="text-sm text-gray-500 mt-1 sm:mt-2">Crea, modifica e gestisci i corsi del tuo catalogo</p>
       </div>
 
-      <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <section className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 sm:p-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 md:gap-6">
         <div className="w-full md:w-1/2">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Seleziona un corso da modificare</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Seleziona un corso da modificare</label>
           <select
             value={selectedCourseId}
             onChange={(event) => {
@@ -384,7 +384,7 @@ export const AdminCoursePage: React.FC = () => {
               setIsCreating(false);
               setActiveSection('settings');
             }}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-primary-500 font-medium"
+            className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-primary-500 font-medium text-sm sm:text-base"
           >
             {courses.map((course) => (
               <option key={course.course_id} value={course.course_id}>
@@ -394,8 +394,8 @@ export const AdminCoursePage: React.FC = () => {
           </select>
         </div>
 
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          <span className="text-gray-400 font-medium hidden md:block">oppure</span>
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <span className="text-gray-400 font-medium hidden md:block text-sm">oppure</span>
           <Button
             variant="primary"
             onClick={() => {
@@ -406,7 +406,7 @@ export const AdminCoursePage: React.FC = () => {
                 public_slug: '',
               });
             }}
-            className="w-full md:w-auto shadow-sm py-2.5"
+            className="w-full md:w-auto shadow-xs py-2.5 text-sm"
           >
             + Crea nuovo corso
           </Button>

@@ -36,7 +36,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
       } ${isLocked ? 'opacity-65 cursor-not-allowed' : 'cursor-pointer'}`}
     >
       {/* Thumbnail Container with Integrated Play/Status Badge */}
-      <div className="w-32 sm:w-56 md:w-64 lg:w-72 aspect-video rounded-xl sm:rounded-2xl overflow-hidden bg-primary-950 border border-primary-200/80 flex-shrink-0 relative shadow-sm group/thumb">
+      <div className="w-28 xs:w-32 sm:w-56 md:w-64 lg:w-72 aspect-video rounded-xl sm:rounded-2xl overflow-hidden bg-primary-950 border border-primary-200/80 flex-shrink-0 relative shadow-xs group/thumb">
         {lesson.thumbnail_url ? (
           <img
             src={lesson.thumbnail_url}
@@ -47,9 +47,9 @@ export const LessonCard: React.FC<LessonCardProps> = ({
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-900 to-primary-950 text-primary-300">
             {isDispensa ? (
-              <FileText className="w-8 h-8 opacity-75 text-amber-300" />
+              <FileText className="w-7 h-7 sm:w-8 sm:h-8 opacity-75 text-amber-300" />
             ) : (
-              <Play className="w-8 h-8 opacity-60" />
+              <Play className="w-7 h-7 sm:w-8 sm:h-8 opacity-60" />
             )}
           </div>
         )}
@@ -57,11 +57,11 @@ export const LessonCard: React.FC<LessonCardProps> = ({
         {/* Hover Play / Read Icon Overlay */}
         {!isLocked && (
           <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center text-primary-900 shadow-lg transform scale-90 group-hover/thumb:scale-100 transition-transform duration-300">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center text-primary-900 shadow-lg transform scale-90 group-hover/thumb:scale-100 transition-transform duration-300">
               {isDispensa ? (
-                <FileText className="w-5 h-5 text-primary-900" />
+                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary-900" />
               ) : (
-                <Play className="w-5 h-5 fill-current ml-0.5" />
+                <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />
               )}
             </div>
           </div>
@@ -69,11 +69,11 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 
         {/* Video Duration / Dispensa Badge (Bottom-Right overlay) */}
         {lesson.duration_seconds > 0 ? (
-          <div className="absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 px-2 py-0.5 rounded-md bg-black/85 backdrop-blur-md text-white text-[10px] sm:text-xs font-mono font-semibold shadow-xs">
+          <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-md bg-black/85 backdrop-blur-md text-white text-[9px] sm:text-xs font-mono font-semibold shadow-xs">
             {formatDuration(lesson.duration_seconds)}
           </div>
         ) : (
-          <div className="absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 px-2 py-0.5 rounded-md bg-amber-950/85 backdrop-blur-md text-amber-200 text-[10px] sm:text-xs font-semibold shadow-xs flex items-center gap-1 border border-amber-400/30">
+          <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-md bg-amber-950/85 backdrop-blur-md text-amber-200 text-[9px] sm:text-xs font-semibold shadow-xs flex items-center gap-1 border border-amber-400/30">
             <FileText className="w-2.5 h-2.5 text-amber-300" />
             <span>Dispensa</span>
           </div>
@@ -81,24 +81,24 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 
         {/* Status Overlay Badge (Top-Left overlay) */}
         {isLocked ? (
-          <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 p-1.5 rounded-lg bg-black/80 backdrop-blur-md text-white shadow-md">
-            <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <div className="absolute top-1 left-1 sm:top-2 sm:left-2 p-1 sm:p-1.5 rounded-md sm:rounded-lg bg-black/80 backdrop-blur-md text-white shadow-md">
+            <Lock className="w-3 h-3 sm:w-4 sm:h-4" />
           </div>
         ) : isCompleted ? (
-          <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-2 py-0.5 rounded-lg bg-emerald-600 text-white text-[10px] sm:text-xs font-bold flex items-center gap-1 shadow-md">
-            <CheckCircle className="w-3.5 h-3.5" />
+          <div className="absolute top-1 left-1 sm:top-2 sm:left-2 px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-md sm:rounded-lg bg-emerald-600 text-white text-[9px] sm:text-xs font-bold flex items-center gap-1 shadow-md">
+            <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             <span className="hidden sm:inline">Completata</span>
           </div>
         ) : isActive ? (
-          <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-2 py-0.5 rounded-lg bg-primary-700 text-white text-[10px] sm:text-xs font-bold flex items-center gap-1 shadow-md">
-            <Play className="w-3 h-3 fill-current" />
+          <div className="absolute top-1 left-1 sm:top-2 sm:left-2 px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-md sm:rounded-lg bg-primary-700 text-white text-[9px] sm:text-xs font-bold flex items-center gap-1 shadow-md">
+            <Play className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current" />
             <span className="hidden sm:inline">In corso</span>
           </div>
         ) : null}
 
         {/* Bottom watched progress bar inside thumbnail */}
         {!isLocked && !isCompleted && watchedPercentage > 0 && (
-          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/50">
+          <div className="absolute bottom-0 left-0 right-0 h-1 sm:h-1.5 bg-black/50">
             <div
               className="h-full bg-primary-500 shadow-xs"
               style={{ width: `${watchedPercentage}%` }}
@@ -110,26 +110,26 @@ export const LessonCard: React.FC<LessonCardProps> = ({
       {/* Lesson Content Column */}
       <div className="min-w-0 flex-1 flex flex-col justify-center">
         {/* Top Metadata: Lesson number + Preview Tag + Attachments */}
-        <div className="flex flex-wrap items-center gap-2 mb-1 sm:mb-1.5">
-          <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-primary-800 bg-primary-100/90 px-2.5 py-0.5 rounded-md border border-primary-200/60">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1 sm:mb-1.5">
+          <span className="text-[11px] sm:text-sm font-bold uppercase tracking-wider text-primary-800 bg-primary-100/90 px-2 sm:px-2.5 py-0.5 rounded-md border border-primary-200/60">
             Lezione {lesson.order_number}
           </span>
           {lesson.is_free_preview && (
-            <span className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
-              Anteprima Gratuita
+            <span className="text-[10px] sm:text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 sm:px-2 py-0.5 rounded-md">
+              Anteprima
             </span>
           )}
           {lesson.attachments && lesson.attachments.length > 0 && (
-            <span className="text-xs font-medium text-primary-800 bg-primary-50 border border-primary-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-              <Paperclip className="w-3 h-3 text-primary-600" />
-              <span>{lesson.attachments.length} {lesson.attachments.length === 1 ? 'risorsa scaricabile' : 'risorse scaricabili'}</span>
+            <span className="text-[10px] sm:text-xs font-medium text-primary-800 bg-primary-50 border border-primary-200 px-1.5 sm:px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+              <Paperclip className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary-600" />
+              <span>{lesson.attachments.length} {lesson.attachments.length === 1 ? 'risorsa' : 'risorse'}</span>
             </span>
           )}
         </div>
 
         {/* Lesson Title */}
         <h4
-          className={`text-base sm:text-lg md:text-xl font-bold leading-snug break-normal line-clamp-2 ${
+          className={`text-sm sm:text-lg md:text-xl font-bold leading-snug break-normal line-clamp-2 ${
             isActive ? 'text-primary-950' : 'text-gray-900 group-hover:text-primary-900'
           } transition-colors`}
         >
@@ -138,22 +138,31 @@ export const LessonCard: React.FC<LessonCardProps> = ({
 
         {/* Description */}
         {lesson.description && (
-          <p className="text-xs sm:text-sm text-gray-600 mt-1 sm:mt-1.5 line-clamp-2 leading-relaxed">
+          <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1.5 line-clamp-1 sm:line-clamp-2 leading-relaxed">
             {lesson.description}
           </p>
         )}
 
-        {/* Mobile completion badge / resume indicator */}
-        <div className="flex sm:hidden items-center gap-2 mt-2">
+        {/* Mobile completion badge / CTA indicator */}
+        <div className="flex sm:hidden items-center gap-2 mt-1.5">
           {isCompleted ? (
-            <span className="text-xs text-emerald-700 font-semibold flex items-center gap-1">
-              <CheckCircle className="w-3.5 h-3.5" /> Completata
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
+              <CheckCircle className="w-3 h-3 text-emerald-600" /> Completata
             </span>
           ) : watchedPercentage > 0 ? (
-            <span className="text-xs text-primary-700 font-semibold">
-              In corso ({Math.round(watchedPercentage)}%)
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary-50 text-primary-800 border border-primary-200 text-[10px] font-semibold">
+              <Play className="w-2.5 h-2.5 fill-current" /> Riprendi ({Math.round(watchedPercentage)}%)
             </span>
-          ) : null}
+          ) : isLocked ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 text-[10px] font-medium">
+              <Lock className="w-2.5 h-2.5" /> Bloccata
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary-900 text-white text-[10px] font-semibold">
+              {isDispensa ? <FileText className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5 fill-current" />}
+              <span>{isDispensa ? 'Leggi' : 'Guarda'}</span>
+            </span>
+          )}
         </div>
       </div>
 

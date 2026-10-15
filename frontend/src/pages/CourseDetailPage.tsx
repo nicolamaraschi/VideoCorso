@@ -164,6 +164,7 @@ export const CourseDetailPage: React.FC = () => {
           chapters={courseStructure.chapters}
           progress={courseProgress?.lesson_progress || {}}
           onLessonClick={handleLessonClick}
+          currentLessonId={courseProgress?.last_watched_lesson?.lesson_id}
           isPreview={!course.has_access}
         />
       </section>

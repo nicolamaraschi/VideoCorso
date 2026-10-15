@@ -791,36 +791,12 @@ export const VideoPlayerPage: React.FC = () => {
         {/* BOTTOM NAVIGATION CONTROLS: Previous & Next Lesson Cards */}
         {/* ========================================================================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-2">
-          
-          {/* Previous Lesson Button */}
-          {previousLesson ? (
-            <button
-              type="button"
-              onClick={() => navigate(`/courses/${courseId}/lessons/${previousLesson.lesson_id}`)}
-              className="flex items-center gap-3.5 p-4 rounded-2xl bg-white border border-primary-100/80 hover:border-primary-300 hover:bg-primary-50/40 shadow-sm text-left transition-all duration-200 group"
-            >
-              <div className="w-10 h-10 rounded-xl bg-primary-50 border border-primary-200/80 flex items-center justify-center flex-shrink-0 group-hover:bg-primary-100 transition-colors">
-                <ArrowLeft className="w-5 h-5 text-primary-800 group-hover:-translate-x-0.5 transition-transform" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block mb-0.5">
-                  Lezione Precedente (o swipe →)
-                </span>
-                <span className="text-sm font-semibold text-primary-950 block truncate group-hover:text-primary-800">
-                  {previousLesson.title}
-                </span>
-              </div>
-            </button>
-          ) : (
-            <div className="hidden sm:block" />
-          )}
-
-          {/* Next Lesson Button */}
+          {/* Next Lesson Button (Ordered first on mobile for optimal UX) */}
           {nextLesson ? (
             <button
               type="button"
               onClick={() => navigate(`/courses/${courseId}/lessons/${nextLesson.lesson_id}`)}
-              className="flex items-center justify-between gap-3.5 p-4 rounded-2xl bg-primary-900 hover:bg-primary-950 text-white shadow-md text-right transition-all duration-200 group sm:col-start-2"
+              className="order-1 sm:order-2 sm:col-start-2 flex items-center justify-between gap-3.5 p-4 rounded-2xl bg-primary-900 hover:bg-primary-950 text-white shadow-md text-right transition-all duration-200 group"
             >
               <div className="min-w-0 flex-1 text-left sm:text-right">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-primary-200 block mb-0.5">
@@ -838,11 +814,34 @@ export const VideoPlayerPage: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate(courseBackUrl)}
-              className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-emerald-800 hover:bg-emerald-900 text-white shadow-md text-center font-bold transition-all sm:col-start-2"
+              className="order-1 sm:order-2 sm:col-start-2 flex items-center justify-center gap-3 p-4 rounded-2xl bg-emerald-800 hover:bg-emerald-900 text-white shadow-md text-center font-bold transition-all"
             >
               <CheckCircle className="w-5 h-5 text-emerald-200" />
               <span>Hai completato tutte le lezioni! Torna al corso</span>
             </button>
+          )}
+
+          {/* Previous Lesson Button */}
+          {previousLesson ? (
+            <button
+              type="button"
+              onClick={() => navigate(`/courses/${courseId}/lessons/${previousLesson.lesson_id}`)}
+              className="order-2 sm:order-1 flex items-center gap-3.5 p-4 rounded-2xl bg-white border border-primary-100/80 hover:border-primary-300 hover:bg-primary-50/40 shadow-xs text-left transition-all duration-200 group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-primary-50 border border-primary-200/80 flex items-center justify-center flex-shrink-0 group-hover:bg-primary-100 transition-colors">
+                <ArrowLeft className="w-5 h-5 text-primary-800 group-hover:-translate-x-0.5 transition-transform" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block mb-0.5">
+                  Lezione Precedente (o swipe →)
+                </span>
+                <span className="text-sm font-semibold text-primary-950 block truncate group-hover:text-primary-800">
+                  {previousLesson.title}
+                </span>
+              </div>
+            </button>
+          ) : (
+            <div className="hidden sm:block order-2 sm:order-1" />
           )}
         </div>
 
