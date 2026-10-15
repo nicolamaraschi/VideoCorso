@@ -322,45 +322,45 @@ Si richiede pertanto a Stripe e all'istituto emittente della carta il rigetto in
           : 'La cliente non può ancora accedere al corso.';
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-8">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="min-w-0">
-          <Link to="/admin/purchases" className="text-sm text-primary-600 hover:text-primary-700">
-            Torna agli acquisti
+          <Link to="/admin/purchases" className="text-xs sm:text-sm font-semibold text-primary-700 hover:text-primary-800">
+            ← Torna agli acquisti
           </Link>
-          <h1 className="mt-2 break-words text-3xl font-bold text-gray-900">{purchase.course_title || purchase.course_id}</h1>
-          <p className="break-all text-gray-600">{purchase.customer_email || purchase.user_email || 'Email non disponibile'}</p>
+          <h1 className="mt-1 break-words text-2xl sm:text-3xl font-bold text-gray-900">{purchase.course_title || purchase.course_id}</h1>
+          <p className="break-all text-xs sm:text-sm text-gray-600">{purchase.customer_email || purchase.user_email || 'Email non disponibile'}</p>
         </div>
 
-        <div className="w-full md:w-auto rounded-lg border border-gray-200 bg-white p-4 md:max-w-md">
-          <p className="text-sm font-semibold text-gray-900">Prima azione consigliata</p>
-          <p className="mt-1 text-sm text-gray-600">Aggiorna i dati da Stripe prima di modificare manualmente l’accesso.</p>
-          <Button className="mt-3 w-full md:w-auto" variant="secondary" loading={actionLoading === 'resync'} onClick={() => void runAction('resync')}>
+        <div className="w-full md:w-auto rounded-xl border border-gray-200 bg-white p-3.5 sm:p-4 md:max-w-md shadow-2xs">
+          <p className="text-xs sm:text-sm font-semibold text-gray-900">Prima azione consigliata</p>
+          <p className="mt-0.5 text-xs sm:text-sm text-gray-600">Aggiorna i dati da Stripe prima di modificare manualmente l’accesso.</p>
+          <Button className="mt-2.5 w-full md:w-auto text-xs sm:text-sm" variant="secondary" loading={actionLoading === 'resync'} onClick={() => void runAction('resync')}>
             Aggiorna dati da Stripe
           </Button>
         </div>
       </div>
 
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
-          <p className="text-sm text-gray-500">Stato ordine</p>
-          <span className={`inline-flex px-3 py-1 mt-2 rounded-full text-sm font-medium ${statusStyles[localStatus] || statusStyles.needs_review}`}>
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-2xs">
+          <p className="text-xs sm:text-sm text-gray-500 font-medium">Stato ordine</p>
+          <span className={`inline-flex px-2.5 py-0.5 mt-1.5 rounded-full text-xs font-semibold ${statusStyles[localStatus] || statusStyles.needs_review}`}>
             {localStatusLabels[localStatus] || localStatus}
           </span>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
-          <p className="text-sm text-gray-500">Stato Stripe</p>
-          <p className="text-xl font-semibold text-gray-900 mt-2">{readableStatus(purchase.stripe_status)}</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-2xs">
+          <p className="text-xs sm:text-sm text-gray-500 font-medium">Stato Stripe</p>
+          <p className="text-base sm:text-xl font-bold text-gray-900 mt-1">{readableStatus(purchase.stripe_status)}</p>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
-          <p className="text-sm text-gray-500">Importo</p>
-          <p className="text-xl font-semibold text-gray-900 mt-2">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-2xs">
+          <p className="text-xs sm:text-sm text-gray-500 font-medium">Importo</p>
+          <p className="text-base sm:text-xl font-bold text-gray-900 mt-1">
             {currency === 'EUR' ? formatCurrency(amount) : `${amount.toFixed(2)} ${currency}`}
           </p>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
-          <p className="text-sm text-gray-500">Accesso al corso</p>
-          <p className="text-xl font-semibold text-gray-900 mt-2">{statusSummary}</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-2xs">
+          <p className="text-xs sm:text-sm text-gray-500 font-medium">Accesso corso</p>
+          <p className="text-sm sm:text-base font-bold text-gray-900 mt-1">{statusSummary}</p>
         </div>
       </section>
 

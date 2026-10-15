@@ -121,7 +121,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
           </div>
         ) : (
           /* Authenticated Header (Left-aligned Typographic Brand, consistent with public header) */
-          <div className="flex items-center justify-between h-16 sm:h-18">
+          <div className="flex items-center justify-between h-16">
             {/* Left: Hamburger button for mobile/tablet (< xl) + Typographic Brand Logo */}
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <button

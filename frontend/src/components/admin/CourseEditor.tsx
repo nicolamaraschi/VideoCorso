@@ -1224,13 +1224,13 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       <Modal
         isOpen={showLessonModal}
         onClose={() => setShowLessonModal(false)}
-        title={editingLesson ? 'Edit Lesson' : 'Create Lesson'}
+        title={editingLesson ? 'Modifica Lezione' : 'Crea Nuova Lezione'}
         size="lg"
       >
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Title
+              Titolo della lezione
             </label>
             <input
               type="text"
@@ -1238,18 +1238,20 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               onChange={(e) =>
                 setLessonForm({ ...lessonForm, title: e.target.value })
               }
+              placeholder="Es. Introduzione al Trattamento"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description
+              Descrizione della lezione
             </label>
             <textarea
               value={lessonForm.description}
               onChange={(e) =>
                 setLessonForm({ ...lessonForm, description: e.target.value })
               }
+              placeholder="Breve spiegazione degli argomenti trattati in questa lezione..."
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
@@ -1485,7 +1487,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
             />
             <label htmlFor="freePreview" className="text-sm font-medium text-gray-700">
-              Free Preview Lesson
+              Anteprima gratuita (accessibile anche a chi non ha ancora acquistato il corso)
             </label>
           </div>
           <Button
@@ -1495,7 +1497,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             disabled={!lessonForm.title.trim() || (!editingLesson && !lessonForm.video_s3_key) || isSubmitting}
           >
             <Save className="w-4 h-4 mr-2" />
-            {isSubmitting ? 'Saving...' : (editingLesson ? 'Update Lesson' : 'Create Lesson')}
+            {isSubmitting ? 'Salvataggio...' : (editingLesson ? 'Salva Modifiche Lezione' : 'Crea Lezione')}
           </Button>
         </div>
       </Modal>

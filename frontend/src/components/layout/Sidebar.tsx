@@ -12,7 +12,6 @@ import {
   TicketPercent,
   LogOut,
   Terminal,
-  ExternalLink,
   Sparkles,
   HelpCircle,
 } from 'lucide-react';
@@ -123,24 +122,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false, mobileMenuOpe
         {/* Student-Exclusive Sections */}
         {!isAdmin && (
           <>
-            {/* Quick Link: Sito Ufficiale */}
-            <div className="pt-2">
-              <a
-                href="https://pmumorocutti.it/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl text-gray-700 hover:bg-primary-50/70 hover:text-primary-950 font-medium transition-all group"
-              >
-                <div className="flex items-center gap-3">
-                  <ExternalLink className="w-4 h-4 text-primary-800 group-hover:text-primary-900" />
-                  <span className="text-sm">Sito Ufficiale PMU</span>
-                </div>
-                <span className="text-[10px] uppercase font-bold text-primary-700 bg-primary-100/70 px-1.5 py-0.5 rounded">
-                  Web
-                </span>
-              </a>
-            </div>
-
             {/* Box: Assistenza Corsiste */}
             <div className="mt-4 p-4 rounded-2xl bg-gradient-to-br from-primary-50 via-[#FAF4F6] to-primary-100/50 border border-primary-200/80 shadow-xs space-y-2.5">
               <div className="flex items-center gap-2">

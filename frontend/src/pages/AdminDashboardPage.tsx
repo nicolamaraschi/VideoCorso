@@ -82,16 +82,16 @@ export const AdminDashboardPage: React.FC = () => {
   const hasOperationalMonitoring = Array.isArray(stats.attention_items);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-5 sm:space-y-8">
       <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-sm font-medium text-primary-700">Panoramica operativa</p>
-          <h1 className="mt-1 text-3xl font-bold text-gray-900">Come stanno andando i corsi</h1>
-          <p className="mt-2 text-gray-600">Controlla prima ciò che richiede un intervento, poi segui l’andamento di studenti e vendite.</p>
+          <p className="text-xs sm:text-sm font-medium text-primary-700">Panoramica operativa</p>
+          <h1 className="mt-1 text-2xl sm:text-3xl font-bold text-gray-900">Come stanno andando i corsi</h1>
+          <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-600">Controlla prima ciò che richiede un intervento, poi segui l’andamento di studenti e vendite.</p>
         </div>
-        <div className="self-start text-right">
-          {lastUpdated && <p className="mb-1 text-xs text-gray-500">Aggiornata alle {lastUpdated.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</p>}
-          <button type="button" onClick={() => void loadStats()} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Aggiorna dati</button>
+        <div className="flex items-center justify-between md:flex-col md:items-end gap-2 w-full md:w-auto">
+          {lastUpdated && <p className="text-xs text-gray-500">Aggiornata alle {lastUpdated.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</p>}
+          <button type="button" onClick={() => void loadStats()} className="rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-2xs">Aggiorna dati</button>
         </div>
       </header>
 

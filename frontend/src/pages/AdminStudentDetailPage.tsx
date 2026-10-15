@@ -99,13 +99,13 @@ export const AdminStudentDetailPage: React.FC = () => {
   };
 
   if (loading) {
-    return <Loading fullScreen text="Loading student detail..." />;
+    return <Loading fullScreen text="Caricamento dettagli corsista..." />;
   }
 
   if (error || !detail) {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <ErrorMessage variant="card" message={error || 'Student not found'} onRetry={loadDetail} />
+        <ErrorMessage variant="card" message={error || 'Corsista non trovata'} onRetry={loadDetail} />
       </div>
     );
   }
@@ -113,37 +113,37 @@ export const AdminStudentDetailPage: React.FC = () => {
   const { student, purchases, accessible_courses, progress_by_course } = detail;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-5 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <Link to="/admin/students" className="text-sm text-primary-600 hover:text-primary-700">
-            Torna agli studenti
+          <Link to="/admin/students" className="text-xs sm:text-sm font-semibold text-primary-700 hover:text-primary-800">
+            ← Torna agli studenti
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mt-2">{student.full_name}</h1>
-          <p className="text-gray-600">{student.email}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{student.full_name}</h1>
+          <p className="text-xs sm:text-sm text-gray-600 break-all">{student.email}</p>
         </div>
-        <Button onClick={handleSendNewPassword} loading={sendingPassword} variant="secondary">
+        <Button onClick={handleSendNewPassword} loading={sendingPassword} variant="secondary" className="w-full sm:w-auto">
           <Mail className="w-4 h-4 mr-2" />
           Invia nuova password
         </Button>
       </div>
 
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
-          <p className="text-sm text-gray-500">Accesso account</p>
-          <p className="text-xl font-semibold text-gray-900">{student.global_access ? 'Globale' : 'Per corso'}</p>
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-2xs">
+          <p className="text-xs sm:text-sm text-gray-500 font-medium">Accesso account</p>
+          <p className="text-lg sm:text-xl font-bold text-gray-900 mt-0.5">{student.global_access ? 'Globale' : 'Per corso'}</p>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
-          <p className="text-sm text-gray-500">Corsi sbloccati</p>
-          <p className="text-xl font-semibold text-gray-900">{student.accessible_courses_count}</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-2xs">
+          <p className="text-xs sm:text-sm text-gray-500 font-medium">Corsi sbloccati</p>
+          <p className="text-lg sm:text-xl font-bold text-gray-900 mt-0.5">{student.accessible_courses_count}</p>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
-          <p className="text-sm text-gray-500">Tempo di visione</p>
-          <p className="text-xl font-semibold text-gray-900">{formatWatchTime(student.total_watch_time)}</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-2xs">
+          <p className="text-xs sm:text-sm text-gray-500 font-medium">Tempo visione</p>
+          <p className="text-lg sm:text-xl font-bold text-gray-900 mt-0.5">{formatWatchTime(student.total_watch_time)}</p>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
-          <p className="text-sm text-gray-500">Avanzamento medio</p>
-          <p className="text-xl font-semibold text-gray-900">{student.completion_percentage}%</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-2xs">
+          <p className="text-xs sm:text-sm text-gray-500 font-medium">Avanzamento</p>
+          <p className="text-lg sm:text-xl font-bold text-gray-900 mt-0.5">{student.completion_percentage}%</p>
         </div>
       </section>
 
