@@ -28,6 +28,7 @@ import { VideoPlayer } from '../course/VideoPlayer';
 import { courseService } from '../../services/courseService';
 import { adminService } from '../../services/adminService';
 import { Loading } from '../common/Loading';
+import { formatDuration } from '../../utils/formatters';
 
 type LessonFormData = {
   title: string;
