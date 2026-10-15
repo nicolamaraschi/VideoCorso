@@ -16,6 +16,7 @@ import {
   Upload,
   Loader2,
   ExternalLink,
+  ZoomIn,
 } from 'lucide-react';
 import { Reorder } from 'framer-motion';
 import type { Chapter, Lesson, LessonAttachment, VideoQuality } from '../../types';
@@ -864,22 +865,22 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                           >
                             {/* MOBILE LESSON CARD (< sm) */}
                             <div className="flex flex-col gap-2.5 p-3 sm:hidden">
-                              <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-gray-100">
                                 <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                                  <span className="text-[11px] font-bold text-primary-900 bg-primary-100 px-2 py-0.5 rounded-md">
+                                  <span className="text-[11px] font-bold text-primary-900 bg-primary-100 px-2 py-0.5 rounded-md border border-primary-200/60">
                                     Lezione {lesson.order_number}
                                   </span>
                                   {lesson.is_free_preview && (
-                                    <span className="text-[10px] font-medium text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                    <span className="text-[10px] font-semibold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200">
                                       Anteprima
                                     </span>
                                   )}
                                   {lesson.duration_seconds > 0 ? (
-                                    <span className="text-[11px] text-gray-500 font-mono">
+                                    <span className="text-[11px] text-gray-500 font-mono font-medium">
                                       {formatDuration(lesson.duration_seconds)}
                                     </span>
                                   ) : (
-                                    <span className="text-[10px] text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded font-medium border border-amber-200/60">
+                                    <span className="text-[10px] text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded-md font-medium border border-amber-200/60">
                                       Dispensa
                                     </span>
                                   )}
@@ -891,8 +892,9 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                                     type="button"
                                     onClick={() => moveLesson(chapter.chapter_id, lesson.lesson_id, -1)}
                                     disabled={lesson.order_number <= 1}
-                                    className="p-1.5 text-gray-500 hover:text-primary-600 disabled:opacity-25 rounded-md hover:bg-gray-100"
+                                    className="p-1.5 text-gray-500 hover:text-primary-600 disabled:opacity-25 rounded-md hover:bg-gray-100 transition-colors"
                                     title="Sposta su"
+                                    aria-label="Sposta su"
                                   >
                                     <ArrowUp className="w-3.5 h-3.5" />
                                   </button>
@@ -900,16 +902,18 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                                     type="button"
                                     onClick={() => moveLesson(chapter.chapter_id, lesson.lesson_id, 1)}
                                     disabled={lesson.order_number >= (chapter.lessons?.length || 0)}
-                                    className="p-1.5 text-gray-500 hover:text-primary-600 disabled:opacity-25 rounded-md hover:bg-gray-100"
+                                    className="p-1.5 text-gray-500 hover:text-primary-600 disabled:opacity-25 rounded-md hover:bg-gray-100 transition-colors"
                                     title="Sposta giù"
+                                    aria-label="Sposta giù"
                                   >
                                     <ArrowDown className="w-3.5 h-3.5" />
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => handlePreviewLesson(lesson)}
-                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md"
+                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                                     title="Anteprima Video"
+                                    aria-label="Anteprima Video"
                                   >
                                     <Play className="w-3.5 h-3.5" />
                                   </button>
@@ -932,51 +936,57 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                                       });
                                       setShowLessonModal(true);
                                     }}
-                                    className="p-1.5 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-md"
+                                    className="p-1.5 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-md transition-colors"
                                     title="Modifica"
+                                    aria-label="Modifica"
                                   >
                                     <Edit className="w-3.5 h-3.5" />
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => setConfirmDelete({ type: 'lesson', lessonId: lesson.lesson_id })}
-                                    className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md"
+                                    className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
                                     title="Elimina"
+                                    aria-label="Elimina"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-3 pt-0.5">
                                 {lesson.thumbnail_url ? (
                                   <div
                                     onClick={() => setZoomImage({ url: lesson.thumbnail_url!, title: `Lezione ${lesson.order_number}: ${lesson.title}` })}
-                                    className="relative cursor-pointer shrink-0"
-                                    title="Clicca per ingrandire"
+                                    className="relative cursor-pointer shrink-0 group/thumb rounded-xl overflow-hidden shadow-xs hover:shadow-sm transition-shadow"
+                                    title="Clicca per ingrandire la copertina in HD"
                                   >
                                     <img
                                       src={lesson.thumbnail_url}
                                       alt={lesson.title}
                                       loading="lazy"
-                                      className="aspect-video w-24 rounded-lg border border-gray-200 object-cover bg-black shadow-xs"
+                                      className="aspect-video w-36 min-[380px]:w-40 min-[430px]:w-44 rounded-xl border border-primary-200/80 object-cover bg-black img-sharp group-hover/thumb:scale-[1.02] transition-transform duration-300"
                                     />
+                                    <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-white text-[9px] font-semibold flex items-center gap-0.5 pointer-events-none shadow-xs">
+                                      <ZoomIn className="w-2.5 h-2.5 text-primary-200" />
+                                      <span>HD</span>
+                                    </div>
                                   </div>
                                 ) : (
-                                  <div className="flex aspect-video w-24 shrink-0 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-[10px] text-gray-400">
-                                    No cover
+                                  <div className="flex aspect-video w-36 min-[380px]:w-40 min-[430px]:w-44 shrink-0 items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 text-[11px] font-medium text-gray-400">
+                                    Nessuna copertina
                                   </div>
                                 )}
-                                <div className="min-w-0 flex-1">
-                                  <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">
+                                <div className="min-w-0 flex-1 flex flex-col justify-center">
+                                  <p className="font-bold text-gray-950 text-sm leading-snug line-clamp-2">
                                     {lesson.title}
                                   </p>
                                   {lesson.description && (
-                                    <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{lesson.description}</p>
+                                    <p className="text-xs text-gray-500 line-clamp-2 mt-1 leading-relaxed">{lesson.description}</p>
                                   )}
                                   {lesson.attachments && lesson.attachments.length > 0 && (
-                                    <span className="inline-flex items-center gap-1 text-[10px] text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded mt-1 border border-primary-200/50">
-                                      <Paperclip className="w-2.5 h-2.5" />
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary-800 bg-primary-50 px-2 py-0.5 rounded-md mt-1.5 border border-primary-200/60 w-fit">
+                                      <Paperclip className="w-2.5 h-2.5 text-primary-600" />
                                       {lesson.attachments.length} {lesson.attachments.length === 1 ? 'allegato' : 'allegati'}
                                     </span>
                                   )}
