@@ -245,10 +245,10 @@ export const LandingPage: React.FC = () => {
       {/* 1. HERO SECTION (EDITORIAL LUXURY LOOK & FEEL) */}
       <section id="hero" className="relative pt-10 sm:pt-14 lg:pt-20 pb-16 sm:pb-20 lg:pb-24 bg-[#FAF7F2] text-[#1E1B18] overflow-hidden border-b border-[#EAE3D7]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-8 lg:gap-14 items-center">
             
             {/* Left Column: Heading & CTA */}
-            <div className="lg:col-span-7 flex flex-col items-start text-left">
+            <div className="md:col-span-7 flex flex-col items-start text-left">
               <motion.span
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -307,7 +307,7 @@ export const LandingPage: React.FC = () => {
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.7, delay: 0.2 }}
-              className="lg:col-span-5 relative w-full max-w-sm sm:max-w-md lg:max-w-none mx-auto"
+              className="md:col-span-5 relative w-full max-w-sm sm:max-w-md md:max-w-none mx-auto"
             >
               <div className="relative">
                 {/* Photo of Chiara on Stool with Jeans & Blazer */}
@@ -510,10 +510,10 @@ export const LandingPage: React.FC = () => {
       {/* 3. CHI SONO SECTION */}
       <section id="chisono" className="py-16 sm:py-24 bg-[#FAF7F2] text-[#1E1B18] border-b border-[#EAE3D7]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-14 items-center">
             
             {/* Left Column: Portrait with iPad */}
-            <div className="lg:col-span-5">
+            <div className="md:col-span-5">
               <div className="overflow-hidden rounded-2xl shadow-xl border border-[#E4DDD2] bg-white">
                 <img
                   src="/images/chiara/chiara-camicia-ipad-frontale.jpg"
@@ -525,7 +525,7 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* Right Column: Bio copy & handwriting note */}
-            <div className="lg:col-span-7 flex flex-col items-start">
+            <div className="md:col-span-7 flex flex-col items-start">
               <span className="text-[11px] sm:text-xs font-semibold tracking-[0.25em] uppercase text-[#8A7E73] mb-3 block">
                 Chi Sono
               </span>
@@ -605,7 +605,7 @@ export const LandingPage: React.FC = () => {
           </div>
 
           {/* Bento Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-stretch">
             {/* Card 1: Tempo vs Margine */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -613,7 +613,7 @@ export const LandingPage: React.FC = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.4 }}
               whileHover={{ y: -5 }}
-              className="lg:col-span-6 bg-gradient-to-br from-white via-white to-primary-50/40 p-7 sm:p-9 rounded-3xl border border-primary-100/90 shadow-soft hover:shadow-elegant transition-all flex flex-col justify-between relative overflow-hidden group"
+              className="col-span-1 md:col-span-1 lg:col-span-6 bg-gradient-to-br from-white via-white to-primary-50/40 p-6 sm:p-9 rounded-3xl border border-primary-100/90 shadow-soft hover:shadow-elegant transition-all flex flex-col justify-between relative overflow-hidden group"
             >
               <div className="absolute top-2 right-4 text-7xl sm:text-8xl font-serif font-bold text-primary-900/[0.04] select-none pointer-events-none group-hover:text-primary-900/[0.08] transition-colors">
                 01
@@ -638,7 +638,7 @@ export const LandingPage: React.FC = () => {
               </div>
 
               {/* Visual Contrast Pill */}
-              <div className="pt-4 border-t border-primary-100/80 bg-primary-50/40 -mx-7 sm:-mx-9 -mb-7 sm:-mb-9 p-5 sm:px-8 rounded-b-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="pt-4 border-t border-primary-100/80 bg-primary-50/40 -mx-6 sm:-mx-9 -mb-6 sm:-mb-9 p-5 sm:px-8 rounded-b-3xl flex flex-col xl:flex-row xl:items-center justify-between gap-3">
                 <div>
                   <span className="text-[11px] text-gray-500 uppercase tracking-wider block font-semibold">Trattamento Base Medio</span>
                   <div className="flex items-baseline gap-1.5">
@@ -646,7 +646,7 @@ export const LandingPage: React.FC = () => {
                     <span className="text-xs text-gray-500">/ 60-90 minuti</span>
                   </div>
                 </div>
-                <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-700 bg-white/90 px-3 py-1.5 rounded-xl border border-rose-200/60 shadow-xs self-start sm:self-center">
+                <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-700 bg-white/90 px-3 py-1.5 rounded-xl border border-rose-200/60 shadow-xs self-start xl:self-center">
                   <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
                   Marginalità oraria ridotta
                 </div>
@@ -660,7 +660,7 @@ export const LandingPage: React.FC = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: 0.1 }}
               whileHover={{ y: -5 }}
-              className="lg:col-span-6 bg-gradient-to-br from-white via-white to-amber-50/30 p-7 sm:p-9 rounded-3xl border border-amber-100/80 shadow-soft hover:shadow-elegant transition-all flex flex-col justify-between relative overflow-hidden group"
+              className="col-span-1 md:col-span-1 lg:col-span-6 bg-gradient-to-br from-white via-white to-amber-50/30 p-6 sm:p-9 rounded-3xl border border-amber-100/80 shadow-soft hover:shadow-elegant transition-all flex flex-col justify-between relative overflow-hidden group"
             >
               <div className="absolute top-2 right-4 text-7xl sm:text-8xl font-serif font-bold text-amber-900/[0.04] select-none pointer-events-none group-hover:text-amber-900/[0.08] transition-colors">
                 02
@@ -685,7 +685,7 @@ export const LandingPage: React.FC = () => {
               </div>
 
               {/* Visual Reality Stat */}
-              <div className="pt-4 border-t border-amber-100/80 bg-amber-50/40 -mx-7 sm:-mx-9 -mb-7 sm:-mb-9 p-5 sm:px-8 rounded-b-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="pt-4 border-t border-amber-100/80 bg-amber-50/40 -mx-6 sm:-mx-9 -mb-6 sm:-mb-9 p-5 sm:px-8 rounded-b-3xl flex flex-col xl:flex-row xl:items-center justify-between gap-3">
                 <div>
                   <span className="text-[11px] text-gray-500 uppercase tracking-wider block font-semibold">Abbandono Post-Corsi Brevi</span>
                   <div className="flex items-baseline gap-1.5">
@@ -693,21 +693,21 @@ export const LandingPage: React.FC = () => {
                     <span className="text-xs text-gray-500">non inizia a lavorare</span>
                   </div>
                 </div>
-                <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 bg-white/90 px-3 py-1.5 rounded-xl border border-amber-200/60 shadow-xs self-start sm:self-center">
+                <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 bg-white/90 px-3 py-1.5 rounded-xl border border-amber-200/60 shadow-xs self-start xl:self-center">
                   <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
                   Mancanza di protocollo scientifico
                 </div>
               </div>
             </motion.div>
 
-            {/* Card 3: FULL WIDTH 12 cols - Hero Luxury Bento Masterpiece */}
+            {/* Card 3: FULL WIDTH */}
             <motion.div
               initial={{ opacity: 0, y: 25 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.2 }}
               whileHover={{ y: -3 }}
-              className="lg:col-span-12 rounded-3xl p-7 sm:p-10 lg:p-12 relative overflow-hidden bg-gradient-to-br from-[#1E1B18] via-[#18181B] to-[#12100F] text-white shadow-2xl border border-[#3A322C]"
+              className="col-span-1 md:col-span-2 lg:col-span-12 rounded-3xl p-6 sm:p-10 lg:p-12 relative overflow-hidden bg-gradient-to-br from-[#1E1B18] via-[#18181B] to-[#12100F] text-white shadow-2xl border border-[#3A322C]"
             >
               {/* Ambient Background Glows */}
               <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#E5C378]/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -954,7 +954,7 @@ export const LandingPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 items-stretch">
             {/* Pilastro 1 - TECNICA */}
             <div className="bg-white p-8 sm:p-10 rounded-3xl border border-primary-100 shadow-md flex flex-col justify-between">
               <div>
@@ -1317,8 +1317,8 @@ export const LandingPage: React.FC = () => {
         <span id="catalogo" className="absolute -top-20" aria-hidden="true" />
         <span id="prezzi" className="absolute -top-20" aria-hidden="true" />
         <span id="corso" className="absolute -top-20" aria-hidden="true" />
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="container mx-auto px-4 sm:px-6 md:px-4 lg:px-8 max-w-7xl">
+          <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16">
             <span className="text-xs font-bold tracking-widest uppercase text-primary-600 bg-primary-50 px-3.5 py-1.5 rounded-full border border-primary-100">
               Modalità di Accesso al Percorso
             </span>
@@ -1331,48 +1331,48 @@ export const LandingPage: React.FC = () => {
             </p>
           </div>
 
-          {/* PRICING CARDS */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch mb-16">
+          {/* PRICING CARDS - 3 Affiancati su iPad (md:) e Desktop (lg:) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-3.5 lg:gap-8 items-stretch mb-16">
             
             {/* 1. BASE */}
-            <div className="bg-white rounded-3xl p-8 border border-gray-200 shadow-sm flex flex-col justify-between">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 md:p-4 lg:p-8 border border-gray-200 shadow-sm flex flex-col justify-between">
               <div>
-                <span className="text-xs font-bold tracking-widest uppercase text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                <span className="text-[10px] md:text-[9.5px] lg:text-xs font-bold tracking-widest uppercase text-gray-500 bg-gray-100 px-2.5 md:px-2 lg:px-3 py-1 rounded-full">
                   Base
                 </span>
-                <h3 className="text-2xl font-serif font-bold text-gray-900 mt-4">Percorso Base</h3>
-                <p className="text-gray-600 text-sm mt-2 font-light">
+                <h3 className="text-2xl md:text-lg lg:text-2xl font-serif font-bold text-gray-900 mt-3 md:mt-2.5 lg:mt-4">Percorso Base</h3>
+                <p className="text-gray-600 text-sm md:text-xs lg:text-sm mt-1.5 md:mt-1 lg:mt-2 font-light">
                   Per chi vuole formarsi in totale autonomia, ai propri ritmi.
                 </p>
-                <div className="my-6 bg-primary-50/60 p-3.5 rounded-xl border border-primary-100 text-xs text-primary-900 italic">
+                <div className="my-5 md:my-3 lg:my-6 bg-primary-50/60 p-3 md:p-2.5 lg:p-3.5 rounded-xl border border-primary-100 text-xs md:text-[11px] lg:text-xs text-primary-900 italic">
                   “Testa il metodo. Ideale per iniziare a studiare subito, senza vincoli di calendario.”
                 </div>
 
-                <div className="mb-6">
-                  <span className="text-xl sm:text-2xl font-serif font-bold text-gray-900">Accesso su Candidatura</span>
-                  <span className="text-xs text-gray-500 block mt-1">Dettagli e disponibilità in call conoscitiva</span>
+                <div className="mb-5 md:mb-3 lg:mb-6">
+                  <span className="text-xl sm:text-2xl md:text-base lg:text-2xl font-serif font-bold text-gray-900">Accesso su Candidatura</span>
+                  <span className="text-xs md:text-[10.5px] lg:text-xs text-gray-500 block mt-0.5 lg:mt-1">Dettagli e disponibilità in call</span>
                 </div>
 
-                <ul className="space-y-3 text-sm text-gray-700 mb-8">
-                  <li className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>Accesso completo a tutti i <strong>10 moduli video</strong> on demand</span>
+                <ul className="space-y-2.5 md:space-y-2 lg:space-y-3 text-sm md:text-xs lg:text-sm text-gray-700 mb-6 md:mb-5 lg:mb-8">
+                  <li className="flex items-start gap-2 lg:gap-2.5">
+                    <Check className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Accesso completo a tutti i <strong>10 moduli video</strong></span>
                   </li>
-                  <li className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>Teoria, forma e anatomia, schemi e lavoro su modella</span>
+                  <li className="flex items-start gap-2 lg:gap-2.5">
+                    <Check className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Teoria, anatomia, schemi e lavoro su modella</span>
                   </li>
-                  <li className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <li className="flex items-start gap-2 lg:gap-2.5">
+                    <Check className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 text-emerald-600 shrink-0 mt-0.5" />
                     <span>Normative, consulenza e acquisizione clienti</span>
                   </li>
-                  <li className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>Materiali scaricabili (schemi, checklist, consenso informato)</span>
+                  <li className="flex items-start gap-2 lg:gap-2.5">
+                    <Check className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Materiali scaricabili (schemi, checklist)</span>
                   </li>
-                  <li className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>Accesso illimitato e <strong>a vita</strong> ai contenuti</span>
+                  <li className="flex items-start gap-2 lg:gap-2.5">
+                    <Check className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Accesso illimitato e <strong>a vita</strong></span>
                   </li>
                 </ul>
               </div>
@@ -1381,50 +1381,50 @@ export const LandingPage: React.FC = () => {
                 href="https://link.delera.co/widget/bookings/videocall-studentesse-chiara"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-3.5 px-6 rounded-xl border border-gray-300 text-gray-900 font-semibold text-center hover:bg-gray-50 transition block"
+                className="w-full py-3 md:py-2.5 lg:py-3.5 px-3 md:px-2 lg:px-6 rounded-xl border border-gray-300 text-gray-900 font-semibold text-center hover:bg-gray-50 transition block text-xs md:text-[11px] lg:text-sm"
               >
-                Candidati per il Percorso Base
+                Candidati per il Base
               </a>
             </div>
 
             {/* 2. PLUS */}
-            <div className="bg-white rounded-3xl p-8 border-2 border-[#18181B] shadow-lg flex flex-col justify-between relative">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#18181B] text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wider shadow whitespace-nowrap border border-[#E5D2CF]/40">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 md:p-4 lg:p-8 border-2 border-[#18181B] shadow-lg flex flex-col justify-between relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#18181B] text-white text-[9.5px] sm:text-xs md:text-[9px] lg:text-xs font-bold px-3 sm:px-4 md:px-2.5 lg:px-4 py-0.5 sm:py-1 rounded-full uppercase tracking-wider shadow whitespace-nowrap border border-[#E5D2CF]/40">
                 Più Richiesto
               </div>
               <div>
-                <span className="text-xs font-bold tracking-widest uppercase text-[#18181B] bg-[#F4EFEA] px-3 py-1 rounded-full border border-[#E8E1D5]">
+                <span className="text-[10px] md:text-[9.5px] lg:text-xs font-bold tracking-widest uppercase text-[#18181B] bg-[#F4EFEA] px-2.5 md:px-2 lg:px-3 py-1 rounded-full border border-[#E8E1D5]">
                   Plus
                 </span>
-                <h3 className="text-2xl font-serif font-bold text-gray-900 mt-4">Percorso Plus</h3>
-                <p className="text-gray-600 text-sm mt-2 font-light">
-                  Per chi vuole formarsi con un accompagnamento costante ogni settimana.
+                <h3 className="text-2xl md:text-lg lg:text-2xl font-serif font-bold text-gray-900 mt-3 md:mt-2.5 lg:mt-4">Percorso Plus</h3>
+                <p className="text-gray-600 text-sm md:text-xs lg:text-sm mt-1.5 md:mt-1 lg:mt-2 font-light">
+                  Formazione con affiancamento costante settimanale.
                 </p>
-                <div className="my-6 bg-[#FAF7F2] p-3.5 rounded-xl border border-[#EAE2D8] text-xs text-[#221C1B] italic">
+                <div className="my-5 md:my-3 lg:my-6 bg-[#FAF7F2] p-3 md:p-2.5 lg:p-3.5 rounded-xl border border-[#EAE2D8] text-xs md:text-[11px] lg:text-xs text-[#221C1B] italic">
                   “Non sei mai sola davanti a un dubbio. Il passo in più per chi vuole sentirsi seguita ogni settimana.”
                 </div>
 
-                <div className="mb-6">
-                  <span className="text-xl sm:text-2xl font-serif font-bold text-[#18181B]">Accesso con Affiancamento</span>
-                  <span className="text-xs text-gray-500 block mt-1">Posti limitati mensili — dettagli in call</span>
+                <div className="mb-5 md:mb-3 lg:mb-6">
+                  <span className="text-xl sm:text-2xl md:text-base lg:text-2xl font-serif font-bold text-[#18181B]">Con Affiancamento</span>
+                  <span className="text-xs md:text-[10.5px] lg:text-xs text-gray-500 block mt-0.5 lg:mt-1">Posti limitati — dettagli in call</span>
                 </div>
 
-                <ul className="space-y-3 text-sm text-gray-700 mb-8">
-                  <li className="flex items-start gap-2.5 font-medium text-gray-900">
-                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>Tutto il contenuto della versione Base</span>
+                <ul className="space-y-2.5 md:space-y-2 lg:space-y-3 text-sm md:text-xs lg:text-sm text-gray-700 mb-6 md:mb-5 lg:mb-8">
+                  <li className="flex items-start gap-2 lg:gap-2.5 font-medium text-gray-900">
+                    <Check className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Tutto il contenuto del Base</span>
                   </li>
-                  <li className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span><strong>Sessione live di gruppo</strong> ogni settimana</span>
+                  <li className="flex items-start gap-2 lg:gap-2.5">
+                    <Check className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span><strong>Live di gruppo</strong> ogni settimana</span>
                   </li>
-                  <li className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>Q&A, revisione esercizi e <strong>correzione della forma</strong></span>
+                  <li className="flex items-start gap-2 lg:gap-2.5">
+                    <Check className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Q&A e <strong>correzione della forma</strong></span>
                   </li>
-                  <li className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>Feedback personalizzato sui lavori pratici caricati</span>
+                  <li className="flex items-start gap-2 lg:gap-2.5">
+                    <Check className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>Feedback personalizzato sui lavori</span>
                   </li>
                 </ul>
               </div>
@@ -1433,59 +1433,59 @@ export const LandingPage: React.FC = () => {
                 href="https://link.delera.co/widget/bookings/videocall-studentesse-chiara"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-3.5 px-6 rounded-xl bg-[#18181B] text-white font-semibold text-center hover:bg-[#332927] transition shadow-md block uppercase tracking-wider text-xs"
+                className="w-full py-3 md:py-2.5 lg:py-3.5 px-3 md:px-2 lg:px-6 rounded-xl bg-[#18181B] text-white font-semibold text-center hover:bg-[#332927] transition shadow-md block uppercase tracking-wider text-xs md:text-[10.5px] lg:text-xs"
               >
-                Candidati per il Percorso Plus
+                Candidati per il Plus
               </a>
             </div>
 
             {/* 3. FULL */}
-            <div className="bg-primary-950 text-white rounded-3xl p-8 shadow-2xl flex flex-col justify-between relative border-2 border-amber-400/50">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 text-gray-950 text-[10.5px] sm:text-xs font-extrabold px-3.5 sm:px-4 py-1 rounded-full uppercase tracking-wider shadow-md whitespace-nowrap border border-amber-200/60">
-                Esperienza Completa in Studio
+            <div className="bg-primary-950 text-white rounded-3xl p-6 sm:p-8 md:p-4 lg:p-8 shadow-2xl flex flex-col justify-between relative border-2 border-amber-400/50">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 text-gray-950 text-[9px] sm:text-xs md:text-[8.5px] lg:text-xs font-extrabold px-3 sm:px-4 md:px-2 lg:px-4 py-0.5 sm:py-1 rounded-full uppercase tracking-wider shadow-md whitespace-nowrap border border-amber-200/60">
+                In Studio con Chiara
               </div>
 
               <div>
-                <span className="text-xs font-bold tracking-widest uppercase text-amber-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">
+                <span className="text-[10px] md:text-[9.5px] lg:text-xs font-bold tracking-widest uppercase text-amber-300 bg-white/10 px-2.5 md:px-2 lg:px-3 py-1 rounded-full border border-white/10">
                   Full
                 </span>
-                <h3 className="text-2xl font-serif font-bold text-white mt-4">Percorso Full</h3>
-                <p className="text-primary-200/80 text-sm mt-2 font-light">
-                  Il percorso completo, con pratica reale in studio e certificazione.
+                <h3 className="text-2xl md:text-lg lg:text-2xl font-serif font-bold text-white mt-3 md:mt-2.5 lg:mt-4">Percorso Full</h3>
+                <p className="text-primary-200/80 text-sm md:text-xs lg:text-sm mt-1.5 md:mt-1 lg:mt-2 font-light">
+                  Pratica reale in studio e certificazione ufficiale.
                 </p>
-                <div className="my-6 bg-white/10 p-3.5 rounded-xl border border-white/10 text-xs text-amber-200 italic">
-                  “Il massimo livello di accompagnamento. L'unico percorso con pratica reale in studio e garanzia inclusa.”
+                <div className="my-5 md:my-3 lg:my-6 bg-white/10 p-3 md:p-2.5 lg:p-3.5 rounded-xl border border-white/10 text-xs md:text-[11px] lg:text-xs text-amber-200 italic">
+                  “Il massimo livello. L'unico percorso con pratica reale in studio e garanzia inclusa.”
                 </div>
 
-                <div className="mb-6">
-                  <span className="text-xl sm:text-2xl font-serif font-bold text-amber-300">Masterclass con Pratica Live</span>
-                  <span className="text-xs text-primary-200 block mt-1">Disponibilità esclusiva — selezione e posti in call</span>
+                <div className="mb-5 md:mb-3 lg:mb-6">
+                  <span className="text-xl sm:text-2xl md:text-base lg:text-2xl font-serif font-bold text-amber-300">Pratica Live in Studio</span>
+                  <span className="text-xs md:text-[10.5px] lg:text-xs text-primary-200 block mt-0.5 lg:mt-1">Selezione e posti in call</span>
                 </div>
 
-                <ul className="space-y-3 text-sm text-primary-100 mb-8">
-                  <li className="flex items-start gap-2.5 font-medium text-white">
-                    <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                    <span>Tutto il contenuto della versione Plus</span>
+                <ul className="space-y-2.5 md:space-y-2 lg:space-y-3 text-sm md:text-xs lg:text-sm text-primary-100 mb-6 md:mb-5 lg:mb-8">
+                  <li className="flex items-start gap-2 lg:gap-2.5 font-medium text-white">
+                    <Check className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span>Tutto il contenuto del Plus</span>
                   </li>
-                  <li className="flex items-start gap-2.5 text-amber-200 font-medium">
-                    <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                    <span><strong>3 giornate in studio con Chiara</strong> dedicate alla pratica</span>
+                  <li className="flex items-start gap-2 lg:gap-2.5 text-amber-200 font-medium">
+                    <Check className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span><strong>3 giornate in studio</strong> con Chiara</span>
                   </li>
-                  <li className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                    <span><strong>Chat di supporto diretta 1:1</strong> con Chiara per 6 mesi</span>
+                  <li className="flex items-start gap-2 lg:gap-2.5">
+                    <Check className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span><strong>Chat supporto 1:1</strong> per 6 mesi</span>
                   </li>
-                  <li className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                    <span>Call strategica dedicata con <strong>Sabrina Perrotta</strong>, esperta di marketing nel settore dermopigmentazione</span>
+                  <li className="flex items-start gap-2 lg:gap-2.5">
+                    <Check className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span>Call con Sabrina Perrotta (Marketing)</span>
                   </li>
-                  <li className="flex items-start gap-2.5">
-                    <Check className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                    <span><strong>Kit prodotti professionale incluso</strong> + Attestato finale</span>
+                  <li className="flex items-start gap-2 lg:gap-2.5">
+                    <Check className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span><strong>Kit professionale</strong> + Attestato</span>
                   </li>
-                  <li className="flex items-start gap-2.5 text-xs text-amber-300 font-semibold bg-white/10 p-2.5 rounded-lg border border-white/10">
-                    <ShieldCheck className="w-4 h-4 text-amber-300 shrink-0" />
-                    <span>Garanzia: giornata pratica extra se non ti senti pronta</span>
+                  <li className="flex items-start gap-2 lg:gap-2.5 text-xs md:text-[10.5px] lg:text-xs text-amber-300 font-semibold bg-white/10 p-2 md:p-1.5 lg:p-2.5 rounded-lg border border-white/10">
+                    <ShieldCheck className="w-3.5 h-3.5 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 text-amber-300 shrink-0" />
+                    <span>Garanzia: giornata pratica extra</span>
                   </li>
                 </ul>
               </div>
@@ -1494,9 +1494,9 @@ export const LandingPage: React.FC = () => {
                 href="https://link.delera.co/widget/bookings/videocall-studentesse-chiara"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 font-bold text-center hover:from-amber-300 hover:to-amber-400 transition shadow-lg block"
+                className="w-full py-3 md:py-2.5 lg:py-3.5 px-3 md:px-2 lg:px-6 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 font-bold text-center hover:from-amber-300 hover:to-amber-400 transition shadow-lg block text-xs md:text-[10.5px] lg:text-sm"
               >
-                Candidati per il Percorso Full
+                Candidati per il Full
               </a>
             </div>
 

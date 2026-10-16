@@ -311,13 +311,18 @@ def filter_lesson_for_access(lesson: dict[str, Any], has_access: bool, is_user_a
         if can_download and s3_key and video_bucket_name:
             try:
                 safe_filename = att_copy.get('file_name') or 'document'
+                presigned_params = {
+                    'Bucket': video_bucket_name,
+                    'Key': s3_key,
+                    'ResponseContentDisposition': f'inline; filename="{safe_filename}"',
+                }
+                file_type = att_copy.get('file_type') or ''
+                if safe_filename.lower().endswith('.pdf') or 'pdf' in file_type.lower():
+                    presigned_params['ResponseContentType'] = 'application/pdf'
+
                 download_url = s3_client.generate_presigned_url(
                     'get_object',
-                    Params={
-                        'Bucket': video_bucket_name,
-                        'Key': s3_key,
-                        'ResponseContentDisposition': f'inline; filename="{safe_filename}"',
-                    },
+                    Params=presigned_params,
                     ExpiresIn=7200,
                 )
                 att_copy['download_url'] = download_url

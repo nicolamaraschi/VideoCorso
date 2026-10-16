@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Shield } from 'lucide-react';
+import { Menu, X, Shield, Instagram } from 'lucide-react';
 import { useAuthContext } from '../auth/useAuthContext'; 
-import { Button } from '../common/Button';
+import { TikTokIcon } from '../common/SocialIcons';
 
 
 interface NavbarProps {
@@ -90,17 +90,43 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
               <ScrollLink to="/#faq" className="text-xs tracking-[0.14em] uppercase font-semibold text-[#4A443E] hover:text-[#1E1B18] transition" onClick={() => {}}>FAQ</ScrollLink>
             </div>
 
-            {/* Right: Actions on Desktop, Hamburger button on Mobile (< lg) */}
-            <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-              <Link 
-                to="/login" 
-                className="hidden sm:inline-block text-xs uppercase tracking-wider font-semibold text-[#6E645B] hover:text-[#1E1B18] transition px-2 py-1"
-              >
-                Login
-              </Link>
+            {/* Right: Actions on Desktop & Tablet, Hamburger button on Mobile (< lg) */}
+            <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
+              {/* Instagram & TikTok Quick Icons */}
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <a
+                  href="https://www.instagram.com/chiaramorocutti.microblading/?hl=en"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-[#1E1B18] hover:text-[#E1306C] transition-colors"
+                  aria-label="Instagram Chiara Morocutti"
+                  title="Instagram"
+                >
+                  <Instagram className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://www.tiktok.com/@chiara.microblading?_t=8fAQiP1JhCr&_r=1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-[#1E1B18] hover:text-black transition-colors"
+                  aria-label="TikTok Chiara Morocutti"
+                  title="TikTok"
+                >
+                  <TikTokIcon className="w-4 h-4" />
+                </a>
+              </div>
+
+              {location.pathname !== '/login' && (
+                <Link 
+                  to="/login" 
+                  className="hidden sm:inline-flex items-center px-3.5 sm:px-4 py-2 sm:py-2.5 border border-[#D8CFBF] text-[#1E1B18] hover:bg-white text-[11px] sm:text-xs font-bold uppercase tracking-[0.14em] rounded-sm transition shadow-2xs"
+                >
+                  Login
+                </Link>
+              )}
               <ScrollLink
                 to="/#percorsi"
-                className="hidden sm:inline-flex px-5 sm:px-6 py-2.5 sm:py-3 bg-[#1E1B18] text-white text-[11px] sm:text-xs font-bold uppercase tracking-[0.15em] rounded-sm hover:bg-[#332C27] active:scale-[0.99] transition shadow-xs"
+                className="hidden sm:inline-flex items-center px-4 sm:px-5 py-2 sm:py-2.5 bg-[#1E1B18] text-white text-[11px] sm:text-xs font-bold uppercase tracking-[0.14em] rounded-sm hover:bg-[#332C27] active:scale-[0.99] transition shadow-xs"
                 onClick={() => {}}
               >
                 Scopri l'Academy
@@ -187,37 +213,86 @@ export const Navbar: React.FC<NavbarProps> = ({ mobileMenuOpen: externalMobileMe
         )}
       </div>
 
-      {/* Menu a comparsa: non spinge la landing verso il basso su tablet. */}
+      {/* Menu a comparsa: non spinge la landing verso il basso su tablet ed è 100% simmetrico */}
       {mobileMenuOpen && !isAuthenticated && (
         <>
           <button
             type="button"
-            className="fixed inset-x-0 top-16 bottom-0 z-40 cursor-default lg:hidden"
+            className="fixed inset-x-0 top-16 sm:top-20 bottom-0 z-40 cursor-default lg:hidden bg-black/20 backdrop-blur-xs"
             aria-label="Chiudi menu"
             onClick={() => setMobileMenuOpen(false)}
           />
           <div
             id="public-navigation-menu"
-            className="absolute inset-x-0 top-full z-50 lg:hidden border-t border-gray-200 bg-white shadow-xl animate-in slide-in-from-top-2 duration-200"
+            className="absolute inset-x-0 top-full z-50 lg:hidden border-t border-[#E8E1D5] border-b bg-[#FAF7F2] shadow-2xl animate-in slide-in-from-top-2 duration-200"
           >
-            <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 bg-[#FAF7F2]">
-              <div className="flex flex-col space-y-1">
-                <ScrollLink to="/#video-academy" className="block px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-[#4A443E] hover:text-[#1E1B18] hover:bg-black/5 rounded transition" onClick={() => setMobileMenuOpen(false)}>Il Corso</ScrollLink>
-                <ScrollLink to="/#programma" className="block px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-[#4A443E] hover:text-[#1E1B18] hover:bg-black/5 rounded transition" onClick={() => setMobileMenuOpen(false)}>Programma</ScrollLink>
-                <ScrollLink to="/#chisono" className="block px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-[#4A443E] hover:text-[#1E1B18] hover:bg-black/5 rounded transition" onClick={() => setMobileMenuOpen(false)}>Chi Sono</ScrollLink>
-                <ScrollLink to="/#percorsi" className="block px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-[#4A443E] hover:text-[#1E1B18] hover:bg-black/5 rounded transition" onClick={() => setMobileMenuOpen(false)}>Percorsi</ScrollLink>
-                <ScrollLink to="/#faq" className="block px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-[#4A443E] hover:text-[#1E1B18] hover:bg-black/5 rounded transition" onClick={() => setMobileMenuOpen(false)}>FAQ</ScrollLink>
+            <div className="max-w-2xl mx-auto px-6 py-6 sm:py-8">
+              {/* Centered Navigation Links */}
+              <div className="flex flex-col items-center justify-center space-y-1.5 max-w-sm mx-auto">
+                <ScrollLink 
+                  to="/#video-academy" 
+                  className="w-full text-center py-2 px-4 text-xs sm:text-sm font-serif font-bold uppercase tracking-[0.2em] text-[#3A332C] hover:text-[#1E1B18] hover:bg-black/5 rounded-lg transition" 
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Il Corso
+                </ScrollLink>
+                <ScrollLink 
+                  to="/#programma" 
+                  className="w-full text-center py-2 px-4 text-xs sm:text-sm font-serif font-bold uppercase tracking-[0.2em] text-[#3A332C] hover:text-[#1E1B18] hover:bg-black/5 rounded-lg transition" 
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Programma
+                </ScrollLink>
+                <ScrollLink 
+                  to="/#chisono" 
+                  className="w-full text-center py-2 px-4 text-xs sm:text-sm font-serif font-bold uppercase tracking-[0.2em] text-[#3A332C] hover:text-[#1E1B18] hover:bg-black/5 rounded-lg transition" 
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Chi Sono
+                </ScrollLink>
+                <ScrollLink 
+                  to="/#percorsi" 
+                  className="w-full text-center py-2 px-4 text-xs sm:text-sm font-serif font-bold uppercase tracking-[0.2em] text-[#3A332C] hover:text-[#1E1B18] hover:bg-black/5 rounded-lg transition" 
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Percorsi
+                </ScrollLink>
+                <ScrollLink 
+                  to="/#faq" 
+                  className="w-full text-center py-2 px-4 text-xs sm:text-sm font-serif font-bold uppercase tracking-[0.2em] text-[#3A332C] hover:text-[#1E1B18] hover:bg-black/5 rounded-lg transition" 
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  FAQ
+                </ScrollLink>
               </div>
 
-              <div className="border-t border-gray-100 pt-3 mt-3 grid gap-2 sm:grid-cols-2 sm:gap-3">
-                <Link to="/login" className="block text-center py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 border border-gray-200" onClick={() => setMobileMenuOpen(false)}>Login Corsiste</Link>
+              {/* Symmetrical Action Buttons (Login Corsiste & Prenota una Call) */}
+              <div className="border-t border-[#E8E1D5] pt-5 mt-4 max-w-md mx-auto w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {location.pathname !== '/login' ? (
+                  <Link 
+                    to="/login" 
+                    className="flex items-center justify-center py-3 px-5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider text-[#1E1B18] bg-white border border-[#D8CFBF] hover:bg-[#F4EFEA] hover:border-[#1E1B18] transition shadow-xs text-center whitespace-nowrap" 
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Login Corsiste
+                  </Link>
+                ) : (
+                  <Link 
+                    to="/" 
+                    className="flex items-center justify-center py-3 px-5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider text-[#1E1B18] bg-white border border-[#D8CFBF] hover:bg-[#F4EFEA] hover:border-[#1E1B18] transition shadow-xs text-center whitespace-nowrap" 
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Torna al Sito
+                  </Link>
+                )}
                 <a
                   href="https://link.delera.co/widget/bookings/videocall-studentesse-chiara"
                   target="_blank"
                   rel="noopener noreferrer"
+                  className="flex items-center justify-center py-3 px-5 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider text-white bg-[#1E1B18] hover:bg-[#332C27] transition shadow-md text-center whitespace-nowrap"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <Button variant="primary" fullWidth size="md">Prenota una Call</Button>
+                  Prenota una Call
                 </a>
               </div>
             </div>

@@ -143,6 +143,17 @@ export const VideoPlayerPage: React.FC = () => {
     return pdf || lesson.attachments[0];
   }, [lesson?.attachments]);
 
+  // Check if browser supports embedded PDF in iframe (iOS/iPadOS and Android do not support it)
+  const supportsEmbeddedPdf = useMemo(() => {
+    if (typeof window === 'undefined') return true;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isIPadOS =
+      (navigator.platform === 'MacIntel' || navigator.platform === 'Macintosh') &&
+      navigator.maxTouchPoints > 1;
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    return !isIOS && !isIPadOS && !isAndroid;
+  }, []);
+
   // Trigger feedback banner on swipe
   const triggerSwipeFeedback = useCallback((direction: 'next' | 'prev', title: string) => {
     if (swipeToastTimerRef.current) clearTimeout(swipeToastTimerRef.current);
@@ -649,30 +660,63 @@ export const VideoPlayerPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Embedded PDF Viewer on Desktop & Large screens */}
+              {/* Embedded PDF Viewer on Desktop & Large screens, Native Mobile/iPad Card on Touch Devices */}
               {primaryAttachment?.download_url && (primaryAttachment.file_name.toLowerCase().endsWith('.pdf') || primaryAttachment.file_type?.includes('pdf')) && (
                 <div className="mt-8 border-t border-primary-100 pt-6">
-                  <div className="flex items-center justify-between mb-3 px-1">
-                    <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                      Anteprima Dispensa PDF
-                    </span>
-                    <a
-                      href={primaryAttachment.download_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs font-semibold text-primary-700 hover:text-primary-900 underline flex items-center gap-1"
-                    >
-                      <span>Visualizza a schermo intero</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </a>
-                  </div>
-                  <div className="w-full rounded-2xl overflow-hidden border border-primary-200/90 shadow-md bg-gray-900">
-                    <iframe
-                      src={`${primaryAttachment.download_url}#toolbar=1`}
-                      title={primaryAttachment.title || primaryAttachment.file_name}
-                      className="w-full h-[600px] sm:h-[750px] border-0"
-                    />
-                  </div>
+                  {supportsEmbeddedPdf ? (
+                    /* Desktop PC & Mac View: Embedded Iframe Reader */
+                    <div>
+                      <div className="flex items-center justify-between mb-3 px-1">
+                        <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                          Anteprima Dispensa PDF
+                        </span>
+                        <a
+                          href={primaryAttachment.download_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-semibold text-primary-700 hover:text-primary-900 underline flex items-center gap-1"
+                        >
+                          <span>Visualizza a schermo intero</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </a>
+                      </div>
+                      <div className="w-full rounded-2xl overflow-hidden border border-primary-200/90 shadow-md bg-gray-900">
+                        <iframe
+                          src={`${primaryAttachment.download_url}#toolbar=1`}
+                          title={primaryAttachment.title || primaryAttachment.file_name}
+                          className="w-full h-[600px] sm:h-[750px] border-0"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    /* iPad & Mobile View: Elegant Luxury Document Card (Prevents iOS/iPadOS broken iframe 📄🙁) */
+                    <div>
+                      <div className="rounded-2xl sm:rounded-3xl border border-primary-200/90 bg-gradient-to-br from-white via-primary-50/40 to-amber-50/30 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3.5 text-left">
+                          <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 border border-amber-200 shadow-2xs">
+                            <FileText className="w-6 h-6 text-amber-800" />
+                          </div>
+                          <div>
+                            <h4 className="text-sm sm:text-base font-bold text-primary-950">
+                              {primaryAttachment.title || primaryAttachment.file_name}
+                            </h4>
+                            <p className="text-xs text-gray-600 mt-0.5">
+                              Su iPad e smartphone i documenti PDF si consultano a schermo intero per consentire zoom nitido, ricerca e supporto Apple Pencil.
+                            </p>
+                          </div>
+                        </div>
+                        <a
+                          href={primaryAttachment.download_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full sm:w-auto px-5 py-3 rounded-xl bg-gradient-to-r from-primary-900 to-primary-950 hover:from-primary-800 hover:to-primary-900 text-white font-bold text-xs uppercase tracking-wider shadow-md flex items-center justify-center gap-2 shrink-0 transition-all active:scale-[0.99]"
+                        >
+                          <Eye className="w-4 h-4 text-amber-300" />
+                          <span>Leggi Dispensa a Schermo Intero</span>
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

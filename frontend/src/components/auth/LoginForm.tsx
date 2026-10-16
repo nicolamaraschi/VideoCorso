@@ -265,27 +265,33 @@ export const LoginForm: React.FC = () => {
           <p className="text-sm text-gray-600">Inserisci la tua email per ricevere un codice di reset.</p>
         </div>
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-[#6E645B] mb-2">
             Indirizzo Email
           </label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="tua@email.com"
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all outline-none"
+              className="w-full pl-10 pr-4 py-3 border border-[#E2D9CC] bg-[#FAF7F2]/50 rounded-xl focus:ring-2 focus:ring-[#1E1B18]/15 focus:border-[#1E1B18] focus:bg-white transition-all outline-none text-[#1E1B18] text-sm font-medium"
               required
               autoComplete="email"
             />
           </div>
         </div>
-        <Button type="submit" variant="primary" fullWidth loading={loading}>
+        <Button 
+          type="submit" 
+          variant="primary" 
+          fullWidth 
+          loading={loading}
+          className="!bg-[#1E1B18] hover:!bg-[#332C27] text-white py-3.5 rounded-xl font-bold uppercase tracking-[0.14em] text-xs shadow-md transition-all active:scale-[0.99] border-0"
+        >
           Invia Codice Reset
         </Button>
-        <Button variant="ghost" fullWidth onClick={() => { setView('login'); setError(''); }}>
+        <Button variant="ghost" fullWidth onClick={() => { setView('login'); setError(''); }} className="text-xs font-semibold text-gray-500 hover:text-gray-900">
           Torna al Login
         </Button>
       </form>
@@ -301,35 +307,35 @@ export const LoginForm: React.FC = () => {
           <p className="text-sm text-gray-600">Inserisci il codice inviato a {email} e la tua nuova password.</p>
         </div>
         <div>
-          <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="code" className="block text-xs font-semibold uppercase tracking-wider text-[#6E645B] mb-2">
             Codice di Verifica
           </label>
           <div className="relative">
-            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               id="code"
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="123456"
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all outline-none"
+              className="w-full pl-10 pr-4 py-3 border border-[#E2D9CC] bg-[#FAF7F2]/50 rounded-xl focus:ring-2 focus:ring-[#1E1B18]/15 focus:border-[#1E1B18] focus:bg-white transition-all outline-none text-[#1E1B18] text-sm font-medium"
               required
             />
           </div>
         </div>
         <div>
-          <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="newPassword" className="block text-xs font-semibold uppercase tracking-wider text-[#6E645B] mb-2">
             Nuova Password
           </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               id="newPassword"
               type={showNewPassword ? 'text' : 'password'}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full pl-10 pr-11 py-3 border border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all outline-none"
+              className="w-full pl-10 pr-11 py-3 border border-[#E2D9CC] bg-[#FAF7F2]/50 rounded-xl focus:ring-2 focus:ring-[#1E1B18]/15 focus:border-[#1E1B18] focus:bg-white transition-all outline-none text-[#1E1B18] text-sm font-medium"
               required
               autoComplete="new-password"
             />
@@ -339,23 +345,23 @@ export const LoginForm: React.FC = () => {
               className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
               title={showNewPassword ? 'Nascondi password' : 'Mostra password'}
             >
-              {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
         </div>
         <div>
-          <label htmlFor="confirmNewPasswordReset" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="confirmNewPasswordReset" className="block text-xs font-semibold uppercase tracking-wider text-[#6E645B] mb-2">
             Conferma Nuova Password
           </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               id="confirmNewPasswordReset"
               type={showConfirmNewPassword ? 'text' : 'password'}
               value={confirmNewPassword}
               onChange={(e) => setConfirmNewPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full pl-10 pr-11 py-3 border border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all outline-none"
+              className="w-full pl-10 pr-11 py-3 border border-[#E2D9CC] bg-[#FAF7F2]/50 rounded-xl focus:ring-2 focus:ring-[#1E1B18]/15 focus:border-[#1E1B18] focus:bg-white transition-all outline-none text-[#1E1B18] text-sm font-medium"
               required
               autoComplete="new-password"
             />
@@ -365,14 +371,20 @@ export const LoginForm: React.FC = () => {
               className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
               title={showConfirmNewPassword ? 'Nascondi password' : 'Mostra password'}
             >
-              {showConfirmNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              {showConfirmNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
         </div>
-        <Button type="submit" variant="primary" fullWidth loading={loading}>
+        <Button 
+          type="submit" 
+          variant="primary" 
+          fullWidth 
+          loading={loading}
+          className="!bg-[#1E1B18] hover:!bg-[#332C27] text-white py-3.5 rounded-xl font-bold uppercase tracking-[0.14em] text-xs shadow-md transition-all active:scale-[0.99] border-0"
+        >
           Imposta Nuova Password
         </Button>
-        <Button variant="ghost" fullWidth onClick={() => { setView('login'); setError(''); }}>
+        <Button variant="ghost" fullWidth onClick={() => { setView('login'); setError(''); }} className="text-xs font-semibold text-gray-500 hover:text-gray-900">
           Torna al Login
         </Button>
       </form>
@@ -380,21 +392,21 @@ export const LoginForm: React.FC = () => {
   }
 
   return (
-    <form onSubmit={handleLoginSubmit} className="space-y-6">
+    <form onSubmit={handleLoginSubmit} className="space-y-5">
       {renderMessages()}
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-[#6E645B] mb-2">
           Indirizzo Email
         </label>
         <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="tua@email.com"
-            className="w-full pl-10 pr-4 py-3 border border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all outline-none"
+            className="w-full pl-10 pr-4 py-3 border border-[#E2D9CC] bg-[#FAF7F2]/50 rounded-xl focus:ring-2 focus:ring-[#1E1B18]/15 focus:border-[#1E1B18] focus:bg-white transition-all outline-none text-[#1E1B18] text-sm font-medium"
             required
             autoComplete="email"
           />
@@ -402,18 +414,18 @@ export const LoginForm: React.FC = () => {
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-[#6E645B] mb-2">
           Password
         </label>
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             id="password"
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            className="w-full pl-10 pr-11 py-3 border border-gray-200 bg-gray-50 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all outline-none"
+            className="w-full pl-10 pr-11 py-3 border border-[#E2D9CC] bg-[#FAF7F2]/50 rounded-xl focus:ring-2 focus:ring-[#1E1B18]/15 focus:border-[#1E1B18] focus:bg-white transition-all outline-none text-[#1E1B18] text-sm font-medium"
             required
             autoComplete="current-password"
           />
@@ -423,12 +435,12 @@ export const LoginForm: React.FC = () => {
             className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
             title={showPassword ? 'Nascondi password' : 'Mostra password'}
           >
-            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
       </div>
       
-      <div className="text-right">
+      <div className="text-right pt-0.5">
         <button
           type="button"
           onClick={() => {
@@ -436,13 +448,19 @@ export const LoginForm: React.FC = () => {
             setError('');
             setMessage('');
           }}
-          className="text-sm font-medium text-primary-600 hover:text-primary-700"
+          className="text-xs font-semibold text-[#8A7E73] hover:text-[#1E1B18] transition-colors"
         >
           Password dimenticata?
         </button>
       </div>
 
-      <Button type="submit" variant="primary" fullWidth loading={loading}>
+      <Button 
+        type="submit" 
+        variant="primary" 
+        fullWidth 
+        loading={loading}
+        className="!bg-[#1E1B18] hover:!bg-[#332C27] text-white py-3.5 rounded-xl font-bold uppercase tracking-[0.14em] text-xs shadow-md transition-all active:scale-[0.99] border-0"
+      >
         Accedi
       </Button>
     </form>
