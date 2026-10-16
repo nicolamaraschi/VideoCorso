@@ -11,6 +11,7 @@ import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { AdminOperationBannerProvider } from './components/common/AdminOperationBanner';
 import { OfferCountdownBar } from './components/common/OfferCountdownBar';
+import { FloatingWhatsAppButton } from './components/common/FloatingWhatsAppButton';
 
 // Route-level code splitting with automatic retry on new deployment chunk mismatch:
 // If a user has a stale tab open when Amplify finishes a new build, a dynamic import
@@ -250,6 +251,7 @@ function App() {
       </div>
 
       <Footer />
+      <FloatingWhatsAppButton />
     </div>
   );
 }

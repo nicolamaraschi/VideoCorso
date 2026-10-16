@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
+import { WhatsAppIcon } from '../common/FloatingWhatsAppButton';
 
 export const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -18,9 +19,27 @@ export const Footer: React.FC = () => {
               </div>
               <span className="font-serif text-2xl tracking-tight text-white">Chiara Morocutti Academy</span>
             </Link>
-            <p className="text-gray-400 text-sm leading-relaxed mb-4 md:mb-6">
+            <p className="text-gray-400 text-sm leading-relaxed mb-3">
               L'accademia di formazione d'eccellenza per le professioniste del Permanent Make Up e dell'estetica avanzata.
             </p>
+            <div className="text-xs text-gray-400 mb-4 md:mb-6 space-y-1.5">
+              <span className="text-gray-500 font-semibold uppercase tracking-wider text-[11px] block">Contatto Diretto & Assistenza</span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm">
+                <a href="tel:+393428077768" className="text-[#FAF7F2] hover:text-[#E5D2CF] transition-colors font-medium">
+                  +39 342 807 7768
+                </a>
+                <span className="hidden sm:inline text-gray-600">•</span>
+                <a
+                  href="https://wa.me/393428077768?text=Ciao%20Chiara,%20vorrei%20informazioni%20sui%20corsi%20di%20Microblading"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[#25D366] hover:text-emerald-400 transition-colors font-medium text-xs bg-[#25D366]/10 hover:bg-[#25D366]/20 px-2.5 py-1 rounded-full border border-[#25D366]/30 self-start sm:self-auto"
+                >
+                  <WhatsAppIcon className="w-3.5 h-3.5" />
+                  <span>WhatsApp Business</span>
+                </a>
+              </div>
+            </div>
             <div className="flex space-x-4">
               <a href="#" className="text-gray-400 hover:text-[#E5D2CF] transition-colors duration-300">
                 <span className="sr-only">Facebook</span>
@@ -29,6 +48,17 @@ export const Footer: React.FC = () => {
               <a href="#" className="text-gray-400 hover:text-[#E5D2CF] transition-colors duration-300">
                 <span className="sr-only">Instagram</span>
                 <Instagram className="h-5 w-5" />
+              </a>
+              <a
+                href="https://wa.me/393428077768?text=Ciao%20Chiara,%20vorrei%20informazioni%20sui%20corsi%20di%20Microblading"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-[#25D366] transition-colors duration-300"
+                aria-label="Contattaci su WhatsApp Business"
+                title="WhatsApp Business"
+              >
+                <span className="sr-only">WhatsApp</span>
+                <WhatsAppIcon className="h-5 w-5" />
               </a>
               <a href="#" className="text-gray-400 hover:text-[#E5D2CF] transition-colors duration-300">
                 <span className="sr-only">Twitter</span>
@@ -64,7 +94,7 @@ export const Footer: React.FC = () => {
               </li>
               <li>
                 <a
-                  href="https://wa.me/393428077768?text=Ciao%20Chiara,%20vorrei%20informazioni%20sui%20tuoi%20corsi%20di%20Microblading"
+                  href="https://link.delera.co/widget/bookings/videocall-studentesse-chiara"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-base text-gray-400 hover:text-white transition-colors"
@@ -137,7 +167,7 @@ export const Footer: React.FC = () => {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
           <p className="text-base text-gray-500 text-center md:text-left">
-            &copy; {currentYear} Chiara Morocutti Academy. Tutti i diritti riservati. P.IVA 12841360964
+            &copy; {currentYear} Chiara Morocutti Academy. Tutti i diritti riservati. P.IVA 12841360964 • Tel: <a href="tel:+393428077768" className="hover:text-white transition-colors">+39 342 807 7768</a>
           </p>
           <div className="mt-4 md:mt-0 flex space-x-6">
             <span className="text-sm text-gray-600">

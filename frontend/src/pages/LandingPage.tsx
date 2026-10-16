@@ -1378,7 +1378,7 @@ export const LandingPage: React.FC = () => {
               </div>
 
               <a
-                href="https://wa.me/393428077768?text=Ciao%20Chiara,%20vorrei%20informazioni%20e%20prenotare%20una%20call%20per%20il%20Percorso%20Base"
+                href="https://link.delera.co/widget/bookings/videocall-studentesse-chiara"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3.5 px-6 rounded-xl border border-gray-300 text-gray-900 font-semibold text-center hover:bg-gray-50 transition block"
@@ -1430,7 +1430,7 @@ export const LandingPage: React.FC = () => {
               </div>
 
               <a
-                href="https://wa.me/393428077768?text=Ciao%20Chiara,%20vorrei%20candidarmi%20e%20prenotare%20una%20call%20per%20il%20Percorso%20Plus"
+                href="https://link.delera.co/widget/bookings/videocall-studentesse-chiara"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3.5 px-6 rounded-xl bg-[#18181B] text-white font-semibold text-center hover:bg-[#332927] transition shadow-md block uppercase tracking-wider text-xs"
@@ -1491,7 +1491,7 @@ export const LandingPage: React.FC = () => {
               </div>
 
               <a
-                href="https://wa.me/393428077768?text=Ciao%20Chiara,%20vorrei%20candidarmi%20e%20prenotare%20una%20call%20per%20il%20Percorso%20Full%20in%20studio"
+                href="https://link.delera.co/widget/bookings/videocall-studentesse-chiara"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 font-bold text-center hover:from-amber-300 hover:to-amber-400 transition shadow-lg block"
@@ -1661,7 +1661,7 @@ export const LandingPage: React.FC = () => {
 
           <div className="mt-10">
             <a 
-              href="https://wa.me/393428077768?text=Ciao%20Chiara,%20vorrei%20prenotare%20una%20call%20conoscitiva%20per%20il%20corso%20di%20Microblading" 
+              href="https://link.delera.co/widget/bookings/videocall-studentesse-chiara" 
               target="_blank"
               rel="noopener noreferrer"
               className="px-10 py-5 bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 font-bold text-lg rounded-full hover:from-amber-300 hover:to-amber-400 transition shadow-2xl inline-block active:scale-95"
