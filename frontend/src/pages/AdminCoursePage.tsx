@@ -441,8 +441,8 @@ export const AdminCoursePage: React.FC = () => {
           >
             <ListTree className="h-5 w-5 flex-shrink-0" />
             <span>
-              <span className="block font-semibold">Struttura corso</span>
-              <span className="block text-xs opacity-75">Capitoli, lezioni, video e relative copertine</span>
+              <span className="block font-semibold">Indice & Struttura corso</span>
+              <span className="block text-xs opacity-75">Moduli, lezioni, video e navigatore rapido</span>
             </span>
           </button>
         )}
@@ -923,6 +923,8 @@ export const AdminCoursePage: React.FC = () => {
         <ErrorMessage variant="card" message={error || 'Failed to load course structure'} onRetry={reload} />
       ) : courseStructure ? (
         <CourseEditor
+          courseId={courseStructure.course.public_slug || courseStructure.course.course_id}
+          courseTitle={courseStructure.course.title}
           chapters={courseStructure.chapters}
           onCreateChapter={handleCreateChapter}
           onUpdateChapter={handleUpdateChapter}

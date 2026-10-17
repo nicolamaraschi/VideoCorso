@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Plus,
   Edit,
@@ -16,7 +17,9 @@ import {
   Upload,
   Loader2,
   ExternalLink,
-  ZoomIn,
+  ListOrdered,
+  Search,
+  X,
 } from 'lucide-react';
 import { Reorder } from 'framer-motion';
 import type { Chapter, Lesson, LessonAttachment, VideoQuality } from '../../types';
@@ -42,6 +45,8 @@ type LessonFormData = {
 };
 
 interface CourseEditorProps {
+  courseId?: string;
+  courseTitle?: string;
   chapters: Chapter[];
   onCreateChapter: (data: { title: string; description: string; image_url?: string }) => Promise<void>;
   onUpdateChapter: (chapterId: string, data: Partial<Chapter>) => Promise<void>;
@@ -72,6 +77,8 @@ const formatLessonTitle = (orderNumber: number, rawTitle: string) => {
 };
 
 export const CourseEditor: React.FC<CourseEditorProps> = ({
+  courseId,
+  courseTitle,
   chapters,
   onCreateChapter,
   onUpdateChapter,
@@ -270,9 +277,129 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const [previewMissing, setPreviewMissing] = useState(false);
   const [replacingThumbnail, setReplacingThumbnail] = useState(false);
   const [replacingChapterImage, setReplacingChapterImage] = useState(false);
-  const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
   const [uploadingMaterial, setUploadingMaterial] = useState(false);
   const [materialError, setMaterialError] = useState<string | null>(null);
+
+  // Indice Corso Slide-Over Drawer State
+  const [isIndexDrawerOpen, setIsIndexDrawerOpen] = useState(false);
+  const [indexSearchQuery, setIndexSearchQuery] = useState('');
+  const [indexExpandedChapters, setIndexExpandedChapters] = useState<Set<string>>(new Set());
+
+  // Total lessons count
+  const totalLessonsCount = useMemo(
+    () => localChapters.reduce((acc, chap) => acc + (chap.lessons?.length || 0), 0),
+    [localChapters]
+  );
+
+  // Sync drawer expanded chapters on open
+  useEffect(() => {
+    if (isIndexDrawerOpen) {
+      setIndexExpandedChapters(new Set(localChapters.map((c) => c.chapter_id)));
+    }
+  }, [isIndexDrawerOpen, localChapters]);
+
+  // Lock body scroll and listen for Escape key when index drawer is open
+  useEffect(() => {
+    if (!isIndexDrawerOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsIndexDrawerOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isIndexDrawerOpen]);
+
+  const toggleIndexChapter = (chapterId: string) => {
+    setIndexExpandedChapters((prev) => {
+      const next = new Set(prev);
+      if (next.has(chapterId)) {
+        next.delete(chapterId);
+      } else {
+        next.add(chapterId);
+      }
+      return next;
+    });
+  };
+
+  const allIndexChapterIds = useMemo(
+    () => localChapters.map((c) => c.chapter_id),
+    [localChapters]
+  );
+
+  const areAllIndexChaptersExpanded =
+    allIndexChapterIds.length > 0 &&
+    allIndexChapterIds.every((id) => indexExpandedChapters.has(id));
+
+  const toggleAllIndexChapters = () => {
+    if (areAllIndexChaptersExpanded) {
+      setIndexExpandedChapters(new Set());
+    } else {
+      setIndexExpandedChapters(new Set(allIndexChapterIds));
+    }
+  };
+
+  const filteredChapters = useMemo(() => {
+    const q = indexSearchQuery.trim().toLowerCase();
+    if (!q) return localChapters;
+    return localChapters
+      .map((chap) => {
+        const matchesChap = chap.title.toLowerCase().includes(q) || (chap.description || '').toLowerCase().includes(q);
+        const matchingLessons = chap.lessons?.filter(
+          (les) =>
+            les.title.toLowerCase().includes(q) ||
+            (les.description || '').toLowerCase().includes(q) ||
+            String(les.order_number).includes(q)
+        );
+        if (matchesChap) return chap;
+        if (matchingLessons && matchingLessons.length > 0) {
+          return { ...chap, lessons: matchingLessons };
+        }
+        return null;
+      })
+      .filter((c): c is Chapter => c !== null);
+  }, [localChapters, indexSearchQuery]);
+
+  const handleJumpToLesson = (chapterId: string, lessonId: string) => {
+    setIsIndexDrawerOpen(false);
+    setExpandedChapterIds((prev) => new Set(prev).add(chapterId));
+    setTimeout(() => {
+      const el = document.getElementById(`lesson-card-${lessonId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('ring-2', 'ring-primary-500', 'bg-primary-50/50');
+        setTimeout(() => {
+          el.classList.remove('ring-2', 'ring-primary-500', 'bg-primary-50/50');
+        }, 2200);
+      }
+    }, 120);
+  };
+
+  const handleEditLessonFromDrawer = (chapterId: string, lesson: Lesson) => {
+    setIsIndexDrawerOpen(false);
+    setSelectedChapterId(chapterId);
+    setExpandedChapterIds((prev) => new Set(prev).add(chapterId));
+    setEditingLesson(lesson);
+    setReplacingThumbnail(false);
+    setMaterialError(null);
+    setLessonForm({
+      title: lesson.title,
+      description: lesson.description,
+      duration_seconds: lesson.duration_seconds,
+      video_s3_key: lesson.video_s3_key,
+      thumbnail_url: lesson.thumbnail_url || '',
+      is_free_preview: lesson.is_free_preview || false,
+      attachments: lesson.attachments ? [...lesson.attachments] : [],
+    });
+    setShowLessonModal(true);
+  };
 
   const [chapterForm, setChapterForm] = useState({ title: '', description: '', image_url: '' });
   const [lessonForm, setLessonForm] = useState<LessonFormData>({
@@ -508,12 +635,33 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Course Structure</h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Struttura & Indice Corso</h2>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 text-primary-900 border border-primary-200">
+              {localChapters.length} Moduli • {totalLessonsCount} Lezioni
+            </span>
+          </div>
           <p className="text-xs text-gray-500 mt-1">
-            I moduli sono chiusi di default. Clicca su un modulo per visualizzare o modificare le relative lezioni.
+            Gestisci moduli e lezioni, oppure usa l'Indice Rapido per trovare e saltare subito a qualsiasi contenuto.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+          {/* Quick Course Index Drawer Button */}
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => setIsIndexDrawerOpen(true)}
+            className="bg-primary-50 text-primary-950 border-primary-200 hover:bg-primary-100 text-xs font-bold shadow-2xs"
+            title="Apri indice rapido lezioni"
+          >
+            <ListOrdered className="w-4 h-4 mr-1.5 text-primary-700" />
+            <span>Indice Corso</span>
+            <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-primary-200/90 text-[10px] font-bold text-primary-900">
+              {totalLessonsCount}
+            </span>
+          </Button>
+
           {expandedChapterIds.size > 0 ? (
             <Button
               type="button"
@@ -523,7 +671,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               className="text-xs font-medium"
             >
               <ChevronUp className="w-4 h-4 mr-1.5" />
-              Comprimi tutti ({expandedChapterIds.size})
+              Comprimi ({expandedChapterIds.size})
             </Button>
           ) : (
             <Button
@@ -534,9 +682,10 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               className="text-xs font-medium"
             >
               <ChevronDown className="w-4 h-4 mr-1.5" />
-              Espandi tutti ({localChapters.length})
+              Espandi ({localChapters.length})
             </Button>
           )}
+
           <Button
             onClick={() => {
               setEditingChapter(null);
@@ -545,8 +694,10 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
               setShowChapterModal(true);
             }}
             variant="primary"
+            size="sm"
+            className="text-xs font-semibold"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 mr-1.5" />
             Aggiungi Modulo
           </Button>
         </div>
@@ -957,24 +1108,36 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                               <div className="flex items-center gap-3 pt-0.5">
                                 {lesson.thumbnail_url ? (
                                   <div
-                                    onClick={() => setZoomImage({ url: lesson.thumbnail_url!, title: `Lezione ${lesson.order_number}: ${lesson.title}` })}
-                                    className="relative cursor-pointer shrink-0 group/thumb rounded-xl overflow-hidden shadow-xs hover:shadow-sm transition-shadow"
-                                    title="Clicca per ingrandire la copertina in HD"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handlePreviewLesson(lesson);
+                                    }}
+                                    className="relative cursor-pointer shrink-0 group/thumb rounded-xl overflow-hidden shadow-xs hover:shadow-md transition-all w-28 min-[380px]:w-32 min-[430px]:w-36 aspect-video"
+                                    title="Tocca la copertina per aprire l'anteprima video"
                                   >
                                     <img
                                       src={lesson.thumbnail_url}
                                       alt={lesson.title}
                                       loading="lazy"
-                                      className="aspect-video w-36 min-[380px]:w-40 min-[430px]:w-44 rounded-xl border border-primary-200/80 object-cover bg-black img-sharp group-hover/thumb:scale-[1.02] transition-transform duration-300"
+                                      className="w-full h-full border border-primary-200/80 object-cover bg-black img-sharp group-hover/thumb:scale-[1.03] transition-transform duration-300"
                                     />
-                                    <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-white text-[9px] font-semibold flex items-center gap-0.5 pointer-events-none shadow-xs">
-                                      <ZoomIn className="w-2.5 h-2.5 text-primary-200" />
-                                      <span>HD</span>
+                                    {/* Video Play Badge overlay */}
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover/thumb:bg-black/35 transition-colors pointer-events-none">
+                                      <div className="w-7 h-7 rounded-full bg-black/65 backdrop-blur-xs text-white flex items-center justify-center shadow-md border border-white/30 group-hover/thumb:scale-110 transition-transform">
+                                        <Play className="w-3.5 h-3.5 fill-current translate-x-0.5 text-white" />
+                                      </div>
                                     </div>
                                   </div>
                                 ) : (
-                                  <div className="flex aspect-video w-36 min-[380px]:w-40 min-[430px]:w-44 shrink-0 items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 text-[11px] font-medium text-gray-400">
-                                    Nessuna copertina
+                                  <div
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handlePreviewLesson(lesson);
+                                    }}
+                                    className="flex aspect-video w-28 min-[380px]:w-32 min-[430px]:w-36 shrink-0 items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 text-[10px] font-medium text-gray-400 cursor-pointer hover:bg-gray-100 transition-colors"
+                                    title="Tocca per anteprima"
+                                  >
+                                    <span>Nessun video</span>
                                   </div>
                                 )}
                                 <div className="min-w-0 flex-1 flex flex-col justify-center">
@@ -1024,9 +1187,12 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                                 </div>
                                 {lesson.thumbnail_url ? (
                                   <div
-                                    onClick={() => setZoomImage({ url: lesson.thumbnail_url!, title: `Lezione ${lesson.order_number}: ${lesson.title}` })}
-                                    className="group relative cursor-pointer flex-shrink-0"
-                                    title="Clicca per ingrandire la copertina"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handlePreviewLesson(lesson);
+                                    }}
+                                    className="group/thumb relative cursor-pointer flex-shrink-0 rounded-xl overflow-hidden shadow-xs hover:shadow-md transition-all"
+                                    title="Clicca sulla copertina per aprire l'anteprima video"
                                   >
                                     <img
                                       src={lesson.thumbnail_url}
@@ -1034,11 +1200,13 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                                       loading="lazy"
                                       width={260}
                                       height={146}
-                                      className="aspect-video w-36 sm:w-44 md:w-52 rounded-xl border border-gray-200 object-contain bg-black shadow-xs"
+                                      className="aspect-video w-36 sm:w-44 md:w-52 border border-gray-200 object-contain bg-black group-hover/thumb:scale-[1.02] transition-transform"
                                     />
-                                    <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[9px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                                      🔍 Zoom
-                                    </span>
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 group-hover/thumb:opacity-100 transition-opacity pointer-events-none">
+                                      <div className="w-9 h-9 rounded-full bg-black/70 backdrop-blur-xs text-white flex items-center justify-center shadow-md border border-white/30">
+                                        <Play className="w-4 h-4 fill-current translate-x-0.5 text-white" />
+                                      </div>
+                                    </div>
                                   </div>
                                 ) : (
                                   <div className="flex aspect-video w-36 sm:w-44 md:w-52 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-xs font-medium text-gray-400">
@@ -1565,30 +1733,262 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         )}
       </Modal>
 
-      {/* Image Zoom Modal */}
-      {zoomImage && (
-        <Modal
-          isOpen={true}
-          onClose={() => setZoomImage(null)}
-          title={zoomImage.title}
-          size="2xl"
-        >
-          <div className="space-y-4">
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-black/5 p-2 flex items-center justify-center">
-              <img
-                src={zoomImage.url}
-                alt={zoomImage.title}
-                className="max-h-[70vh] w-auto max-w-full rounded-lg object-contain shadow-md"
-              />
+      {/* Floating Action Button for Quick Course Index on Mobile */}
+      <button
+        type="button"
+        onClick={() => setIsIndexDrawerOpen(true)}
+        className="fixed bottom-5 right-5 sm:hidden z-30 flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary-950 text-white shadow-2xl border border-primary-700/80 active:scale-95 transition-all text-xs font-bold cursor-pointer"
+        aria-label="Apri indice rapido lezioni"
+      >
+        <ListOrdered className="w-4 h-4 text-primary-300" />
+        <span>Indice Corso ({totalLessonsCount})</span>
+      </button>
+
+      {/* ========================================================================= */}
+      {/* ADMIN SLIDE-OVER PLAYLIST DRAWER: All Modules & Lessons Quick Navigator */}
+      {/* ========================================================================= */}
+      {isIndexDrawerOpen && createPortal(
+        <div className="fixed inset-0 z-[100] flex justify-end overflow-hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+            onClick={() => setIsIndexDrawerOpen(false)}
+          />
+
+          {/* Drawer Container */}
+          <div className="relative w-full sm:max-w-md h-full bg-white shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-300 pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
+            
+            {/* Drawer Header */}
+            <div className="p-4 sm:p-5 bg-primary-950 text-white flex items-center justify-between border-b border-primary-900/50 flex-shrink-0">
+              <div className="min-w-0 pr-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase tracking-widest text-primary-300 font-bold block">
+                    Pannello Admin
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-400/20 text-amber-200 border border-amber-400/30">
+                    Indice Rapido
+                  </span>
+                </div>
+                <h3
+                  className="text-base sm:text-lg font-bold text-white truncate mt-0.5"
+                  style={{ fontFamily: 'Abhaya Libre, serif' }}
+                >
+                  {courseTitle || 'Indice Corso'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsIndexDrawerOpen(false)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-white transition-colors flex-shrink-0 cursor-pointer"
+                aria-label="Chiudi indice"
+              >
+                <span className="text-xs font-semibold">Chiudi</span>
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <div className="flex justify-end">
-              <Button variant="secondary" onClick={() => setZoomImage(null)}>
+
+            {/* Quick Search Bar */}
+            <div className="p-3 bg-gray-50 border-b border-gray-200 flex-shrink-0">
+              <div className="relative">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={indexSearchQuery}
+                  onChange={(e) => setIndexSearchQuery(e.target.value)}
+                  placeholder="Cerca lezione o modulo..."
+                  className="w-full pl-9 pr-8 py-2 rounded-xl border border-gray-200 bg-white text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-2xs"
+                />
+                {indexSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setIndexSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded-md cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Summary & Accordion Toolbar */}
+            <div className="px-4 py-2.5 bg-primary-900/30 border-b border-primary-100 flex items-center justify-between text-xs text-primary-950 flex-shrink-0">
+              <div className="font-medium">
+                <span className="text-gray-600">Riepilogo: </span>
+                <span className="font-bold text-primary-950">
+                  {localChapters.length} Moduli • {totalLessonsCount} Lezioni
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={toggleAllIndexChapters}
+                  className="text-[11px] font-semibold text-primary-800 hover:text-primary-950 underline underline-offset-2 cursor-pointer"
+                >
+                  {areAllIndexChaptersExpanded ? 'Comprimi tutti' : 'Espandi tutti'}
+                </button>
+                {courseId && (
+                  <a
+                    href={`/courses/${courseId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-700 hover:text-primary-950 hover:underline"
+                    title="Vedi come studente in nuova scheda"
+                  >
+                    <span>Vista studente</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Lessons List with Module Accordions */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
+              {filteredChapters.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  <p className="text-sm font-semibold">Nessun modulo o lezione trovata</p>
+                  <p className="text-xs text-gray-400 mt-1">Prova a cambiare termine di ricerca</p>
+                </div>
+              ) : (
+                filteredChapters.map((chapter) => {
+                  const isChapExpanded = indexExpandedChapters.has(chapter.chapter_id);
+                  const totalInChap = chapter.lessons?.length || 0;
+
+                  return (
+                    <div key={chapter.chapter_id} className="rounded-xl border border-primary-100/90 bg-white overflow-hidden shadow-2xs">
+                      {/* Chapter Accordion Header */}
+                      <button
+                        type="button"
+                        onClick={() => toggleIndexChapter(chapter.chapter_id)}
+                        className="w-full flex items-center justify-between gap-2 p-3 text-left bg-gray-50/90 hover:bg-primary-50/60 transition-colors cursor-pointer select-none"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-primary-700 block">
+                            Modulo {chapter.order_number}
+                          </span>
+                          <h4 className="text-xs sm:text-sm font-bold text-gray-900 truncate mt-0.5">
+                            {chapter.title}
+                          </h4>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary-100/80 text-primary-800">
+                            {totalInChap} {totalInChap === 1 ? 'lezione' : 'lezioni'}
+                          </span>
+                          <ChevronDown
+                            className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
+                              isChapExpanded ? 'rotate-180 text-primary-700' : ''
+                            }`}
+                          />
+                        </div>
+                      </button>
+
+                      {/* Chapter Lessons */}
+                      {isChapExpanded && (
+                        <div className="p-2 space-y-1.5 border-t border-primary-50 bg-white">
+                          {chapter.lessons && chapter.lessons.length > 0 ? (
+                            chapter.lessons.map((les) => {
+                              const isDispensa = !les.video_s3_key || les.video_s3_key.trim() === '' || les.duration_seconds === 0;
+
+                              return (
+                                <div
+                                  key={les.lesson_id}
+                                  className="w-full flex items-center justify-between gap-2 p-2 rounded-xl bg-gray-50/70 hover:bg-primary-50/70 text-gray-700 border border-transparent hover:border-primary-200 transition-all group"
+                                >
+                                  {/* Click to jump to lesson in editor */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleJumpToLesson(chapter.chapter_id, les.lesson_id)}
+                                    className="flex items-center gap-2.5 min-w-0 flex-1 text-left cursor-pointer"
+                                    title="Clicca per andare direttamente a questa lezione nell'editor"
+                                  >
+                                    <div
+                                      className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${
+                                        isDispensa
+                                          ? 'bg-amber-100 text-amber-800'
+                                          : 'bg-primary-100 text-primary-800'
+                                      }`}
+                                    >
+                                      {isDispensa ? (
+                                        <FileText className="w-3 h-3 text-amber-600" />
+                                      ) : (
+                                        les.order_number
+                                      )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <span className="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-1 group-hover:text-primary-900">
+                                        {les.title}
+                                      </span>
+                                      <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                                        {les.duration_seconds > 0 ? (
+                                          <span className="font-mono">{formatDuration(les.duration_seconds)}</span>
+                                        ) : (
+                                          <span className="text-amber-700 font-medium">Dispensa PDF / Testo</span>
+                                        )}
+                                        {les.video_s3_key ? (
+                                          <span className="text-emerald-700 font-semibold">• Video OK</span>
+                                        ) : (
+                                          <span className="text-amber-700 font-semibold">• No video</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </button>
+
+                                  {/* Quick Action Buttons in Drawer */}
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => handlePreviewLesson(les)}
+                                      className="p-1.5 text-blue-600 hover:bg-blue-100/70 rounded-lg transition-colors cursor-pointer"
+                                      title="Anteprima video"
+                                      aria-label="Anteprima video"
+                                    >
+                                      <Play className="w-3.5 h-3.5 fill-current" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEditLessonFromDrawer(chapter.chapter_id, les)}
+                                      className="p-1.5 text-gray-600 hover:text-primary-700 hover:bg-primary-100/70 rounded-lg transition-colors cursor-pointer"
+                                      title="Modifica lezione"
+                                      aria-label="Modifica lezione"
+                                    >
+                                      <Edit className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <p className="text-xs text-gray-400 italic p-2 text-center">Nessuna lezione in questo modulo</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Drawer Footer Actions */}
+            <div className="p-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-2 flex-shrink-0">
+              <span className="text-[11px] text-gray-500">
+                Tocca una lezione per navigare nell'editor
+              </span>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsIndexDrawerOpen(false)}
+                className="text-xs"
+              >
                 Chiudi
               </Button>
             </div>
+
           </div>
-        </Modal>
+        </div>,
+        document.body
       )}
+
+
     </div>
   );
 };

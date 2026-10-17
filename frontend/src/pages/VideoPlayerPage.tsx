@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -6,6 +7,7 @@ import {
   BookOpen,
   CheckCircle,
   CheckCircle2,
+  ChevronDown,
   Circle,
   Clock,
   Download,
@@ -79,7 +81,80 @@ export const VideoPlayerPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
+  const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
+  const activeLessonRef = useRef<HTMLButtonElement | null>(null);
   const [isTogglingComplete, setIsTogglingComplete] = useState(false);
+
+  // Auto-expand current lesson's chapter when playlist opens
+  useEffect(() => {
+    if (!courseStructure?.chapters || !isPlaylistOpen) return;
+    const activeChap = courseStructure.chapters.find((chap) =>
+      chap.lessons?.some((l) => l.lesson_id === lessonId)
+    );
+    if (activeChap) {
+      setExpandedChapters(new Set([activeChap.chapter_id]));
+    } else if (courseStructure.chapters.length > 0) {
+      setExpandedChapters(new Set([courseStructure.chapters[0].chapter_id]));
+    }
+  }, [isPlaylistOpen, lessonId, courseStructure]);
+
+  // Scroll active lesson into view when drawer opens
+  useEffect(() => {
+    if (isPlaylistOpen) {
+      const timer = setTimeout(() => {
+        activeLessonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 250);
+      return () => clearTimeout(timer);
+    }
+  }, [isPlaylistOpen]);
+
+  // Lock body scroll and listen for Escape key when playlist is open
+  useEffect(() => {
+    if (!isPlaylistOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsPlaylistOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isPlaylistOpen]);
+
+  const togglePlaylistChapter = (chapterId: string) => {
+    setExpandedChapters((prev) => {
+      const next = new Set(prev);
+      if (next.has(chapterId)) {
+        next.delete(chapterId);
+      } else {
+        next.add(chapterId);
+      }
+      return next;
+    });
+  };
+
+  const allPlaylistChapterIds = useMemo(
+    () => courseStructure?.chapters?.map((c) => c.chapter_id) || [],
+    [courseStructure]
+  );
+
+  const areAllPlaylistChaptersExpanded =
+    allPlaylistChapterIds.length > 0 &&
+    allPlaylistChapterIds.every((id) => expandedChapters.has(id));
+
+  const toggleAllPlaylistChapters = () => {
+    if (areAllPlaylistChaptersExpanded) {
+      setExpandedChapters(new Set());
+    } else {
+      setExpandedChapters(new Set(allPlaylistChapterIds));
+    }
+  };
 
   // Swipe Gesture Feedback Toast
   const [swipeToast, setSwipeToast] = useState<{ direction: 'next' | 'prev'; title: string } | null>(null);
@@ -894,134 +969,181 @@ export const VideoPlayerPage: React.FC = () => {
       {/* ========================================================================= */}
       {/* SLIDE-OVER PLAYLIST DRAWER: All Modules & Lessons Quick Switcher */}
       {/* ========================================================================= */}
-      {isPlaylistOpen && (
-        <div className="fixed inset-0 z-50 overflow-hidden">
+      {isPlaylistOpen && createPortal(
+        <div className="fixed inset-0 z-[100] flex justify-end overflow-hidden">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-gray-900/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
             onClick={() => setIsPlaylistOpen(false)}
           />
 
-          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-            <div className="w-screen max-w-md bg-white shadow-2xl border-l border-primary-100 flex flex-col animate-in slide-in-from-right duration-300">
-              
-              {/* Drawer Header */}
-              <div className="p-5 bg-primary-950 text-white flex items-center justify-between">
-                <div>
-                  <span className="text-xs uppercase tracking-widest text-primary-300 font-bold block">
-                    Indice Masterclass
-                  </span>
-                  <h3
-                    className="text-lg font-bold text-white mt-0.5"
-                    style={{ fontFamily: 'Abhaya Libre, serif' }}
-                  >
-                    {courseStructure.course.title}
-                  </h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsPlaylistOpen(false)}
-                  className="p-2 rounded-xl text-primary-200 hover:text-white hover:bg-white/10 transition-colors"
-                  aria-label="Chiudi elenco"
+          {/* Drawer Container */}
+          <div className="relative w-full sm:max-w-md h-full bg-white shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-300 pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
+            
+            {/* Drawer Header */}
+            <div className="p-4 sm:p-5 bg-primary-950 text-white flex items-center justify-between border-b border-primary-900/50 flex-shrink-0">
+              <div className="min-w-0 pr-3">
+                <span className="text-[10px] uppercase tracking-widest text-primary-300 font-bold block">
+                  Indice Masterclass
+                </span>
+                <h3
+                  className="text-base sm:text-lg font-bold text-white truncate mt-0.5"
+                  style={{ fontFamily: 'Abhaya Libre, serif' }}
                 >
-                  <X className="w-5 h-5" />
-                </button>
+                  {courseStructure.course.title}
+                </h3>
               </div>
+              <button
+                type="button"
+                onClick={() => setIsPlaylistOpen(false)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-white transition-colors flex-shrink-0 cursor-pointer"
+                aria-label="Chiudi indice"
+              >
+                <span className="text-xs font-semibold">Chiudi</span>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-              {/* Progress Bar in Drawer */}
-              <div className="px-5 py-3 bg-primary-900/40 border-b border-primary-100 flex items-center justify-between text-xs font-semibold text-primary-900">
-                <span>Progresso generale:</span>
+            {/* Progress Bar & Accordion Controls in Drawer */}
+            <div className="px-4 sm:px-5 py-2.5 bg-primary-900/30 border-b border-primary-100 flex items-center justify-between text-xs text-primary-950 flex-shrink-0">
+              <div className="font-medium">
+                <span className="text-gray-600">Progresso: </span>
                 <span className="font-bold text-primary-950">
-                  {totalCompletedInCourse} di {totalLessonsInCourse} lezioni completate
+                  {totalCompletedInCourse} di {totalLessonsInCourse} lezioni
                 </span>
               </div>
+              <button
+                type="button"
+                onClick={toggleAllPlaylistChapters}
+                className="text-[11px] font-semibold text-primary-800 hover:text-primary-950 underline underline-offset-2 cursor-pointer"
+              >
+                {areAllPlaylistChaptersExpanded ? 'Comprimi tutti' : 'Espandi tutti'}
+              </button>
+            </div>
 
-              {/* Drawer Lessons List */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                {courseStructure.chapters.map((chapter, chapIdx) => (
-                  <div key={chapter.chapter_id} className="space-y-2">
-                    <div className="px-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-primary-700">
-                        Modulo {chapIdx + 1}
-                      </span>
-                      <h4 className="text-sm font-bold text-gray-900">{chapter.title}</h4>
-                    </div>
+            {/* Drawer Lessons List with Module Accordions */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
+              {courseStructure.chapters.map((chapter, chapIdx) => {
+                const isChapExpanded = expandedChapters.has(chapter.chapter_id);
+                const totalInChap = chapter.lessons?.length || 0;
+                const completedInChap = chapter.lessons?.filter(
+                  (l) => courseProgress?.lesson_progress && courseProgress.lesson_progress[l.lesson_id]?.completed
+                ).length || 0;
+                const isChapComplete = totalInChap > 0 && completedInChap === totalInChap;
 
-                    <div className="space-y-1.5">
-                      {chapter.lessons?.map((les, lesIdx) => {
-                        const isCurrent = les.lesson_id === lessonId;
-                        const isLesDone =
-                          courseProgress?.lesson_progress &&
-                          courseProgress.lesson_progress[les.lesson_id]?.completed;
+                return (
+                  <div key={chapter.chapter_id} className="rounded-xl border border-primary-100/90 bg-white overflow-hidden shadow-2xs">
+                    {/* Chapter Accordion Header */}
+                    <button
+                      type="button"
+                      onClick={() => togglePlaylistChapter(chapter.chapter_id)}
+                      className="w-full flex items-center justify-between gap-2 p-3 text-left bg-gray-50/90 hover:bg-primary-50/60 transition-colors cursor-pointer select-none"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-primary-700 block">
+                          Modulo {chapIdx + 1}
+                        </span>
+                        <h4 className="text-xs sm:text-sm font-bold text-gray-900 truncate mt-0.5">
+                          {chapter.title}
+                        </h4>
+                      </div>
 
-                        const isLesDispensa = !les.video_s3_key || les.video_s3_key.trim() === '' || les.duration_seconds === 0;
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          isChapComplete
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-primary-100/80 text-primary-800'
+                        }`}>
+                          {completedInChap}/{totalInChap}
+                        </span>
+                        <ChevronDown
+                          className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
+                            isChapExpanded ? 'rotate-180 text-primary-700' : ''
+                          }`}
+                        />
+                      </div>
+                    </button>
 
-                        return (
-                          <button
-                            key={les.lesson_id}
-                            type="button"
-                            onClick={() => {
-                              setIsPlaylistOpen(false);
-                              navigate(`/courses/${courseId}/lessons/${les.lesson_id}`);
-                            }}
-                            className={`w-full flex items-center justify-between gap-3 p-3 rounded-xl text-left transition-all ${
-                              isCurrent
-                                ? 'bg-primary-100 text-primary-950 border border-primary-300 font-bold shadow-xs'
-                                : 'bg-gray-50/70 hover:bg-primary-50 text-gray-700 border border-transparent'
-                            }`}
-                          >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div
-                                className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs ${
-                                  isCurrent
-                                    ? 'bg-primary-700 text-white font-bold'
-                                    : isLesDone
-                                    ? 'bg-emerald-100 text-emerald-700 font-bold'
-                                    : isLesDispensa
-                                    ? 'bg-amber-100 text-amber-800'
-                                    : 'bg-gray-200 text-gray-600'
-                                }`}
-                              >
-                                {isCurrent ? (
-                                  isLesDispensa ? (
+                    {/* Chapter Lessons */}
+                    {isChapExpanded && (
+                      <div className="p-2 space-y-1.5 border-t border-primary-50 bg-white">
+                        {chapter.lessons?.map((les, lesIdx) => {
+                          const isCurrent = les.lesson_id === lessonId;
+                          const isLesDone =
+                            courseProgress?.lesson_progress &&
+                            courseProgress.lesson_progress[les.lesson_id]?.completed;
+
+                          const isLesDispensa = !les.video_s3_key || les.video_s3_key.trim() === '' || les.duration_seconds === 0;
+
+                          return (
+                            <button
+                              key={les.lesson_id}
+                              ref={isCurrent ? activeLessonRef : undefined}
+                              type="button"
+                              onClick={() => {
+                                setIsPlaylistOpen(false);
+                                navigate(`/courses/${courseId}/lessons/${les.lesson_id}`);
+                              }}
+                              className={`w-full flex items-center justify-between gap-2.5 p-2.5 rounded-xl text-left transition-all cursor-pointer ${
+                                isCurrent
+                                  ? 'bg-primary-100 text-primary-950 border border-primary-300 font-bold shadow-xs'
+                                  : 'bg-gray-50/60 hover:bg-primary-50 text-gray-700 border border-transparent'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div
+                                  className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs ${
+                                    isCurrent
+                                      ? 'bg-primary-700 text-white font-bold'
+                                      : isLesDone
+                                      ? 'bg-emerald-100 text-emerald-700 font-bold'
+                                      : isLesDispensa
+                                      ? 'bg-amber-100 text-amber-800'
+                                      : 'bg-gray-200 text-gray-600'
+                                  }`}
+                                >
+                                  {isCurrent ? (
+                                    isLesDispensa ? (
+                                      <FileText className="w-3 h-3" />
+                                    ) : (
+                                      <Play className="w-3 h-3 fill-current" />
+                                    )
+                                  ) : isLesDone ? (
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                  ) : isLesDispensa ? (
                                     <FileText className="w-3 h-3" />
                                   ) : (
-                                    <Play className="w-3 h-3 fill-current" />
-                                  )
-                                ) : isLesDone ? (
-                                  <CheckCircle className="w-3.5 h-3.5" />
-                                ) : isLesDispensa ? (
-                                  <FileText className="w-3 h-3" />
-                                ) : (
-                                  lesIdx + 1
-                                )}
+                                    lesIdx + 1
+                                  )}
+                                </div>
+                                <span className="text-xs sm:text-sm line-clamp-1">
+                                  {les.title}
+                                </span>
                               </div>
-                              <span className="text-xs sm:text-sm line-clamp-1">
-                                {les.title}
-                              </span>
-                            </div>
 
-                            {les.duration_seconds > 0 ? (
-                              <span className="text-[11px] text-gray-400 flex-shrink-0">
-                                {formatDuration(les.duration_seconds)}
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-semibold text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md flex items-center gap-1 flex-shrink-0">
-                                <FileText className="w-2.5 h-2.5 text-amber-600" />
-                                Dispensa
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
+                              {les.duration_seconds > 0 ? (
+                                <span className="text-[11px] text-gray-400 flex-shrink-0 font-mono">
+                                  {formatDuration(les.duration_seconds)}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-semibold text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md flex items-center gap-1 flex-shrink-0">
+                                  <FileText className="w-2.5 h-2.5 text-amber-600" />
+                                  Dispensa
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-
+                );
+              })}
             </div>
+
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

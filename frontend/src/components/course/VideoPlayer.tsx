@@ -29,6 +29,19 @@ const QUALITY_LABELS: Record<string, string> = {
   low: 'Bassa (360p)',
 };
 
+const QUALITY_SHORT_LABELS: Record<string, string> = {
+  '4k': '4K',
+  '2k': '2K',
+  '1440p': '1440p',
+  '1080p': '1080p',
+  '720p': '720p',
+  '480p': '480p',
+  '360p': '360p',
+  high: '1080p',
+  medium: '480p',
+  low: '360p',
+};
+
 const QUALITY_FALLBACK_ORDER: VideoQuality[] = ['4k', '2k', '1080p', '720p', '480p', '360p'];
 const STALL_RECOVERY_DELAY_MS = 8_000;
 const PLAYBACK_HEARTBEAT_TIMEOUT_MS = 15_000;
@@ -1105,13 +1118,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
           {/* Floating Settings Card */}
           <div
-            className="absolute bottom-16 right-3 sm:right-6 z-40 w-64 sm:w-72 max-w-[calc(100vw-24px)] bg-neutral-950/92 border border-white/15 rounded-2xl p-3.5 shadow-2xl backdrop-blur-md space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-150"
+            className="absolute bottom-2 sm:bottom-14 right-2 sm:right-4 z-40 w-[calc(100%-16px)] sm:w-80 max-w-[340px] max-h-[calc(100%-12px)] overflow-y-auto overscroll-contain bg-neutral-950/95 border border-white/20 rounded-2xl p-2.5 sm:p-3 shadow-2xl backdrop-blur-md space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Popover Header */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+            <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
               <span className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
-                <Settings className="w-4 h-4 text-primary-400" />
+                <Settings className="w-3.5 h-3.5 text-primary-400" />
                 <span>Impostazioni</span>
               </span>
               <button
@@ -1126,11 +1139,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
             {/* Qualità Video */}
             <div>
-              <div className="text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-400 mb-1.5">
+              <div className="text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-400 mb-1">
                 Qualità Video
               </div>
               {availableQualities.length > 0 ? (
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="flex flex-wrap gap-1">
                   {availableQualities.map((q) => {
                     const isSelected =
                       quality === q ||
@@ -1143,19 +1156,19 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                           handleQualitySelect(q as VideoQuality);
                           setShowSettings(false);
                         }}
-                        className={`w-full text-center px-2 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                        className={`flex-1 min-w-[64px] text-center px-2 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                           isSelected
                             ? 'bg-primary-600 text-white shadow-md border border-primary-400'
-                            : 'bg-white/5 text-white/80 hover:bg-white/15 hover:text-white border border-white/5'
+                            : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white border border-white/10'
                         }`}
                       >
-                        {QUALITY_LABELS[q] || q}
+                        {QUALITY_SHORT_LABELS[q] || QUALITY_LABELS[q] || q}
                       </button>
                     );
                   })}
                 </div>
               ) : (
-                <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/75">
+                <div className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/75">
                   Qualità originale
                 </div>
               )}
@@ -1163,10 +1176,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
             {/* Velocità di riproduzione */}
             <div>
-              <div className="text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-400 mb-1.5">
+              <div className="text-[10px] sm:text-[11px] uppercase tracking-wider font-bold text-gray-400 mb-1">
                 Velocità
               </div>
-              <div className="grid grid-cols-3 gap-1">
+              <div className="grid grid-cols-6 gap-1">
                 {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
                   <button
                     key={rate}
@@ -1175,7 +1188,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                     className={`text-center py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                       playbackRate === rate
                         ? 'bg-primary-600 text-white shadow-md border border-primary-400'
-                        : 'bg-white/5 text-white/80 hover:bg-white/15 border border-white/5'
+                        : 'bg-white/10 text-white/80 hover:bg-white/20 border border-white/10'
                     }`}
                   >
                     {rate}x
